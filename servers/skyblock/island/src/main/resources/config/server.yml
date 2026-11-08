@@ -1,0 +1,11 @@
+server:
+  name: servers:skyblock:island
+  group: skyblock
+  brand: Deyo
+  motd: "Deyo Hypixel-v2 - servers:skyblock:island"
+network:
+  host: 0.0.0.0
+  port: 25565
+world:
+  name: deyo-skyblock-island
+  SpawnProtection: false

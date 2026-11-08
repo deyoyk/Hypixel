@@ -1,0 +1,68 @@
+items:
+  - id: CELESTE_BOOTS
+    material: leather_boots
+    name: "Celeste Boots"
+    rarity: UNCOMMON
+    default_statistics:
+      health: 5.0
+      defense: 5.0
+      intelligence: 20.0
+    components:
+      - id: STANDARD_ITEM
+        standard_item_type: BOOTS
+      - id: LEATHER_COLOR
+        r: '255'
+        g: '142'
+        b: '182'
+      - id: SELLABLE
+        value: 2000.0
+  - id: CELESTE_CHESTPLATE
+    material: leather_chestplate
+    name: "Celeste Chestplate"
+    rarity: UNCOMMON
+    default_statistics:
+      health: 20.0
+      defense: 20.0
+      intelligence: 60.0
+    components:
+      - id: STANDARD_ITEM
+        standard_item_type: CHESTPLATE
+      - id: LEATHER_COLOR
+        r: '255'
+        g: '142'
+        b: '222'
+      - id: SELLABLE
+        value: 4000.0
+  - id: CELESTE_HELMET
+    material: leather_helmet
+    name: "Celeste Helmet"
+    rarity: UNCOMMON
+    default_statistics:
+      defense: 10.0
+      intelligence: 30.0
+    components:
+      - id: STANDARD_ITEM
+        standard_item_type: HELMET
+      - id: LEATHER_COLOR
+        r: '212'
+        g: '142'
+        b: '242'
+      - id: SELLABLE
+        value: 2500.0
+  - id: CELESTE_LEGGINGS
+    material: leather_leggings
+    name: "Celeste Leggings"
+    rarity: UNCOMMON
+    default_statistics:
+      health: 15.0
+      defense: 15.0
+      intelligence: 40.0
+    components:
+      - id: STANDARD_ITEM
+        standard_item_type: LEGGINGS
+      - id: LEATHER_COLOR
+        r: '255'
+        g: '142'
+        b: '202'
+      - id: SELLABLE
+        value: 3500.0

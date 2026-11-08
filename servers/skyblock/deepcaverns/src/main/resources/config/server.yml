@@ -1,0 +1,11 @@
+server:
+  name: servers:skyblock:deepcaverns
+  group: skyblock
+  brand: Deyo
+  motd: "Deyo Hypixel-v2 - servers:skyblock:deepcaverns"
+network:
+  host: 0.0.0.0
+  port: 25565
+world:
+  name: deyo-skyblock-deepcaverns
+  SpawnProtection: false

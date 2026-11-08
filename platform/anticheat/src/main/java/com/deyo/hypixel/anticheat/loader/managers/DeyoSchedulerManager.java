@@ -1,0 +1,8 @@
+package com.deyo.hypixel.anticheat.loader.managers;
+
+public abstract class DeyoSchedulerManager {
+    public abstract int scheduleDelayedTask(Runnable runnable, int delay);
+    public abstract int scheduleRepeatingTask(Runnable runnable, int delay, int period);
+    public abstract void cancelTask(int taskId);
+    public abstract void cancelAllTasks();
+}

@@ -1,0 +1,38 @@
+FROM eclipse-temurin:25-jdk
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y jq netcat-traditional curl && apt-get clean
+
+# Download Velocity proxy JAR
+RUN curl -fSL -o velocity.jar "https://fill-data.papermc.io/v1/objects/0ec616020166465dacca3b790d3db2b246f8f7c13b3aaacaae60c825744a66e0/velocity-3.5.0-SNAPSHOT-605.jar"
+
+# Locally built JARs, empty for a regular install
+COPY ./DockerFiles/jars /app/prebuilt_jars
+
+# Take SkyBlockProxy.jar from the local build when it is there, download it otherwise
+RUN set -eu; \
+    mkdir -p plugins; \
+    if [ -f /app/prebuilt_jars/SkyBlockProxy.jar ]; then \
+        echo "Using locally built SkyBlockProxy.jar"; \
+        cp /app/prebuilt_jars/SkyBlockProxy.jar plugins/SkyBlockProxy.jar; \
+    else \
+        echo "Downloading SkyBlockProxy.jar"; \
+        curl -fSL -o plugins/SkyBlockProxy.jar "https://github.com/deyo/Hypixel-v2/releases/download/latest/SkyBlockProxy.jar"; \
+    fi; \
+    rm -rf /app/prebuilt_jars
+
+# Copy configuration data
+COPY ./configuration /app/configuration_files
+
+# Replace generated velocity.toml with our own
+RUN rm -f velocity.toml && \
+    cp configuration_files/velocity.toml velocity.toml
+
+# Set up config.yml template
+RUN mkdir -p configuration && \
+    cp configuration_files/config.docker.yml ./configuration/config.yml
+
+EXPOSE 25565
+
+CMD ["sh", "-c", "[ -n \"$FORWARDING_SECRET\" ] || { echo 'FORWARDING_SECRET is required' >&2; exit 1; }; printf '%s' \"$FORWARDING_SECRET\" > /app/forwarding.secret; sed -i \"s/velocity-secret: .*/velocity-secret: '$FORWARDING_SECRET'/\" /app/configuration/config.yml; java -jar velocity.jar"]

@@ -1,0 +1,57 @@
+plugins {
+
+    id("java")
+
+}
+
+
+
+group = "com.deyo.hypixel.lobby"
+
+version = "1.0"
+
+
+
+repositories {
+
+    mavenCentral()
+
+}
+
+
+
+dependencies {
+
+    implementation(project(":platform:commons"))
+
+
+
+    compileOnly(libs.minestom) {
+
+        exclude(group = "org.jboss.shrinkwrap.resolver", module = "shrinkwrap-resolver-depchain")
+
+    }
+
+
+
+    implementation(libs.tinylog.api)
+
+    implementation(libs.tinylog.impl)
+
+
+
+    testImplementation(platform("org.junit:junit-bom:6.1.3"))
+
+    testImplementation("org.junit.jupiter:junit-jupiter")
+
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+}
+
+
+
+tasks.test {
+
+    useJUnitPlatform()
+
+}

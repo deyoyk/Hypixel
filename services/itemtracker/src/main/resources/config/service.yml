@@ -1,0 +1,10 @@
+service:
+  name: services:itemtracker
+  brand: Deyo
+  group: services
+database:
+  mongodb-uri: ${MONGO_URI:mongodb://localhost:27017/deyo}
+  redis-uri: ${REDIS_URI:redis://localhost:6379}
+worlds:
+  enabled: true
+  directory: worlds

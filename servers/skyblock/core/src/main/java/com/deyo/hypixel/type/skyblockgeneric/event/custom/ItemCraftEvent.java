@@ -1,0 +1,58 @@
+package com.deyo.hypixel.type.skyblockgeneric.event.custom;
+
+import lombok.Getter;
+import net.minestom.server.event.trait.PlayerInstanceEvent;
+import com.deyo.hypixel.type.skyblockgeneric.data.datapoints.DatapointMinionData;
+import com.deyo.hypixel.type.skyblockgeneric.item.SkyBlockItem;
+import com.deyo.hypixel.type.skyblockgeneric.item.components.MinionComponent;
+import com.deyo.hypixel.type.skyblockgeneric.item.crafting.SkyBlockRecipe;
+import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
+
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+@Getter
+public class ItemCraftEvent implements PlayerInstanceEvent {
+    private final SkyBlockPlayer player;
+    private final SkyBlockItem craftedItem;
+    private final SkyBlockRecipe<?> recipe;
+
+    public ItemCraftEvent(SkyBlockPlayer player, SkyBlockItem craftedItem, SkyBlockRecipe<?> recipe) {
+        this.player = player;
+        this.craftedItem = craftedItem;
+        this.recipe = recipe;
+
+        if (craftedItem.hasComponent(MinionComponent.class)) {
+            DatapointMinionData.ProfileMinionData playerData = player.getSkyblockDataHandler().get(com.deyo.hypixel.type.skyblockgeneric.data.SkyBlockDataHandler.Data.MINION_DATA, DatapointMinionData.class).getValue();
+            String name = craftedItem.getAttributeHandler().getMinionType().name();
+            Integer tier = craftedItem.getAttributeHandler().getMinionData().tier();
+            AbstractMap.SimpleEntry<String, List<Integer>> minion = new AbstractMap.SimpleEntry<>(name, List.of(tier));
+            boolean minionTypeInList = false;
+
+            if (playerData.craftedMinions().isEmpty()) {
+                playerData.craftedMinions().add(minion);
+                return;
+            }
+
+            for (int i = 0; i < playerData.craftedMinions().size(); i++) {
+                if (Objects.equals(playerData.craftedMinions().get(i).getKey(), name)) {
+                    for (Integer integer : playerData.craftedMinions().get(i).getValue()) {
+                        if (Objects.equals(integer, tier)) return;
+                    }
+                    List<Integer> tiers = new ArrayList<>(playerData.craftedMinions().get(i).getValue());
+                    tiers.add(tier);
+                    minion.setValue(tiers);
+                    playerData.craftedMinions().remove(playerData.craftedMinions().get(i));
+                    playerData.craftedMinions().add(minion);
+                    minionTypeInList = true;
+                }
+            }
+
+            if (!minionTypeInList) {
+                playerData.craftedMinions().add(minion);
+            }
+        }
+    }
+}

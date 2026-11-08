@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "deyo-hypixel-clientmod",
+  "version": "${version}",
+  "name": "TheHypixelRecreationMod",
+  "description": "Development Helper Mod for the Hypixel Skyblock Recreation Project",
+  "authors": [
+    "Deyo"
+  ],
+  "contact": {
+    "sources": "https://github.com/deyo/Hypixel-v2"
+  },
+  "license": "AGPL-3.0",
+  "icon": "assets/deyo-hypixel-clientmod/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.deyo.hypixel.clientmod.TheHypixelRecreationMod"
+    ]
+  },
+  "mixins": [
+    "deyo-hypixel-clientmod.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.14",
+    "minecraft": ">=26.2",
+    "java": ">=25",
+    "fabric-api": "*",
+    "hypixel-mod-api": ">=1.0.1"
+  }
+}

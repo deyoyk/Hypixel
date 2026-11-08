@@ -1,0 +1,53 @@
+items:
+  - id: MERCENARY_BOOTS
+    material: leather_boots
+    name: "Mercenary Boots"
+    rarity: RARE
+    default_statistics:
+      health: 30.0
+      defense: 30.0
+    components:
+      - id: STANDARD_ITEM
+        standard_item_type: BOOTS
+      - id: LEATHER_COLOR
+        r: '224'
+        g: '252'
+        b: '247'
+      - id: SELLABLE
+        value: 5000.0
+  - id: MERCENARY_CHESTPLATE
+    material: iron_chestplate
+    name: "Mercenary Chestplate"
+    rarity: RARE
+    default_statistics:
+      health: 70.0
+      defense: 70.0
+    components:
+      - id: STANDARD_ITEM
+        standard_item_type: CHESTPLATE
+      - id: SELLABLE
+        value: 20000.0
+  - id: MERCENARY_HELMET
+    material: chainmail_helmet
+    name: "Mercenary Helmet"
+    rarity: RARE
+    default_statistics:
+      health: 40.0
+      defense: 40.0
+    components:
+      - id: STANDARD_ITEM
+        standard_item_type: HELMET
+      - id: SELLABLE
+        value: 10000.0
+  - id: MERCENARY_LEGGINGS
+    material: chainmail_leggings
+    name: "Mercenary Leggings"
+    rarity: RARE
+    default_statistics:
+      health: 60.0
+      defense: 60.0
+    components:
+      - id: STANDARD_ITEM
+        standard_item_type: LEGGINGS
+      - id: SELLABLE
+        value: 15000.0

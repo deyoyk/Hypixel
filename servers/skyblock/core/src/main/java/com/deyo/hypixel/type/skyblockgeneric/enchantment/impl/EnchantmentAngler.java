@@ -1,0 +1,58 @@
+package com.deyo.hypixel.type.skyblockgeneric.enchantment.impl;
+
+import lombok.NonNull;
+import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistic;
+import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistics;
+import com.deyo.hypixel.type.skyblockgeneric.enchantment.abstr.Ench;
+import com.deyo.hypixel.type.skyblockgeneric.enchantment.abstr.EnchFromTable;
+import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
+import com.deyo.hypixel.type.skyblockgeneric.utility.groups.EnchantItemGroups;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class EnchantmentAngler implements Ench, EnchFromTable {
+    @Override
+    public String getDescription(int level) {
+        return "Grants <3>+" + level + "% Sea Creature Chance<7>.";
+    }
+
+    @Override
+    public ItemStatistics getStatistics(int level) {
+        return ItemStatistics.builder().withBase(ItemStatistic.SEA_CREATURE_CHANCE, (double) level).build();
+    }
+
+    @Override
+    public ApplyLevels getLevelsToApply(@NonNull SkyBlockPlayer player) {
+        return new ApplyLevels(new HashMap<>(Map.of(
+            1, 10,
+            2, 20,
+            3, 30,
+            4, 40,
+            5, 50,
+            6, 100
+        )));
+    }
+
+    @Override
+    public List<EnchantItemGroups> getGroups() {
+        return List.of(EnchantItemGroups.FISHING_ROD);
+    }
+
+    @Override
+    public TableLevels getLevelsFromTableToApply(@NonNull SkyBlockPlayer player) {
+        return new TableLevels(new HashMap<>(Map.of(
+            1, 10,
+            2, 20,
+            3, 30,
+            4, 40,
+            5, 50
+        )));
+    }
+
+    @Override
+    public int getRequiredBookshelfPower() {
+        return 0;
+    }
+}

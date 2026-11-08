@@ -1,0 +1,11 @@
+server:
+  name: servers:murdermystery:configurator
+  group: murdermystery
+  brand: Deyo
+  motd: "Deyo Hypixel-v2 - servers:murdermystery:configurator"
+network:
+  host: 0.0.0.0
+  port: 25565
+world:
+  name: deyo-murdermystery-configurator
+  SpawnProtection: false

@@ -1,0 +1,11 @@
+server:
+  name: servers:skywars:lobby
+  group: skywars
+  brand: Deyo
+  motd: "Deyo Hypixel-v2 - servers:skywars:lobby"
+network:
+  host: 0.0.0.0
+  port: 25565
+world:
+  name: deyo-skywars-lobby
+  SpawnProtection: false

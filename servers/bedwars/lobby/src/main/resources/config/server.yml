@@ -1,0 +1,11 @@
+server:
+  name: servers:bedwars:lobby
+  group: bedwars
+  brand: Deyo
+  motd: "Deyo Hypixel-v2 - servers:bedwars:lobby"
+network:
+  host: 0.0.0.0
+  port: 25565
+world:
+  name: deyo-bedwars-lobby
+  SpawnProtection: false

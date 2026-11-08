@@ -1,0 +1,140 @@
+items:
+  - id: CLAY_BALL
+    material: clay_ball
+    rarity: COMMON
+    components:
+      - id: SELLABLE
+        value: 3.0
+  - id: RAW_FISH
+    material: cod
+    name: "Raw Fish"
+    rarity: COMMON
+    components:
+      - id: SELLABLE
+        value: 6.0
+  - id: INK_SAC
+    material: ink_sac
+    rarity: COMMON
+    components:
+      - id: SELLABLE
+        value: 2.0
+      - id: BREWING_INGREDIENT
+        brewing_time_seconds: 20
+        effect: INK_SAC_BREW
+        effect_duration: 0
+        effect_amplifier: 0
+        alchemy_xp: 5
+  - id: LILY_PAD
+    material: lily_pad
+    rarity: COMMON
+    components:
+      - id: PLACEABLE
+      - id: SELLABLE
+        value: 10.0
+  - id: PRISMARINE_CRYSTALS
+    material: prismarine_crystals
+    rarity: COMMON
+    components:
+      - id: SELLABLE
+        value: 5.0
+  - id: PRISMARINE_SHARD
+    material: prismarine_shard
+    rarity: COMMON
+    components:
+      - id: SELLABLE
+        value: 5.0
+  - id: PUFFERFISH
+    material: pufferfish
+    rarity: COMMON
+    components:
+      - id: SELLABLE
+        value: 15.0
+      - id: BREWING_INGREDIENT
+        brewing_time_seconds: 20
+        effect: WATER_BREATHING
+        effect_duration: 180
+        effect_amplifier: 0
+        alchemy_xp: 12
+  - id: RAW_SALMON
+    material: salmon
+    rarity: COMMON
+    components:
+      - id: SELLABLE
+        value: 10.0
+      - id: BREWING_INGREDIENT
+        brewing_time_seconds: 20
+        effect: SALMON_BREW
+        effect_duration: 0
+        effect_amplifier: 0
+        alchemy_xp: 20
+  - id: SPONGE
+    material: sponge
+    rarity: COMMON
+    components:
+      - id: PLACEABLE
+      - id: SELLABLE
+        value: 50.0
+  - id: TROPICAL_FISH
+    material: tropical_fish
+    rarity: COMMON
+    components:
+      - id: SELLABLE
+        value: 20.0
+  - id: CHUM
+    rarity: UNCOMMON
+    material: PLAYER_HEAD
+    name: "Chum"
+    components:
+      - id: SELLABLE
+        value: 5.0
+      - id: ITEM_MODEL
+        item_model: hypixel_skyblock:item/island_relevant/farming_1/chum
+  - id: CAN_OF_WORMS
+    rarity: UNCOMMON
+    material: PLAYER_HEAD
+    name: "Can Of Worms"
+    components:
+      - id: SELLABLE
+        value: 500.0
+      - id: ITEM_MODEL
+        item_model: hypixel_skyblock:item/fishing/misc/can_of_worms
+  - id: GILL_MEMBRANE
+    rarity: UNCOMMON
+    material: PLAYER_HEAD
+    name: "Gill Membrane"
+    components:
+      - id: SELLABLE
+        value: 70.0
+      - id: ITEM_MODEL
+        item_model: hypixel_skyblock:item/island_relevant/foraging_2/resources/gill_membrane
+  - id: SEA_LUMIES
+    rarity: COMMON
+    material: SEA_PICKLE
+    name: "Sea Lumies"
+    components:
+      - id: SELLABLE
+        value: 3.0
+      - id: ITEM_MODEL
+        item_model: hypixel_skyblock:item/island_relevant/foraging_2/resources/sea_lumies
+  - id: OLD_LEATHER_BOOT
+    rarity: EPIC
+    material: PLAYER_HEAD
+    name: "Old Leather Boot"
+    components:
+      - id: SELLABLE
+        value: 100000.0
+      - id: ITEM_MODEL
+        item_model: hypixel_skyblock:item/fishing/junk/old_leather_boot
+  - id: GRIZZLY_SALMON
+    rarity: RARE
+    material: COOKED_SALMON
+    name: "Grizzly Salmon"
+  - id: WASHED_UP_SOUVENIR
+    rarity: EPIC
+    material: PLAYER_HEAD
+    name: "Washed Up Souvenir"
+    components:
+      - id: SELLABLE
+        value: 250000.0
+      - id: SKULL_HEAD
+        texture: 3777f04644dec5f80bfeaa7401acfbbc150eb25d3ff8be4220e7c34426cd727c

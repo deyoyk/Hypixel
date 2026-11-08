@@ -1,0 +1,11 @@
+# Machine-local vendoring inputs (gitignored, never committed).
+# Copy to local.properties and fill in the upstream Maven coordinates and the
+# dotted source package prefix to relocate under com.deyo.hypixel.libs.
+#   vendor.datahandler.coords = <group>:<artifact>:<version>
+#   vendor.datahandler.prefix = <dotted.package.prefix>
+#   vendor.redisapi.coords    = <group>:<artifact>:<version>
+#   vendor.redisapi.prefix    = <dotted.package.prefix>
+vendor.datahandler.coords =
+vendor.datahandler.prefix =
+vendor.redisapi.coords =
+vendor.redisapi.prefix =

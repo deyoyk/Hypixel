@@ -1,0 +1,15 @@
+package com.deyo.hypixel.type.skyblockgeneric.entity.mob;
+
+import net.minestom.server.entity.EntityType;
+import com.deyo.hypixel.type.generic.gui.inventory.item.GUIMaterial;
+
+public abstract class BestiaryMob extends SkyBlockMob {
+    public BestiaryMob(EntityType entityType) {
+        super(entityType);
+    }
+
+    public abstract int getMaxBestiaryTier();
+    public abstract int getBestiaryBracket();
+    public abstract String getMobID();
+    public abstract GUIMaterial getGuiMaterial();
+}

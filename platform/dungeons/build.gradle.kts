@@ -1,0 +1,17 @@
+plugins {
+    java
+}
+
+group = "com.deyo.hypixel.platform"
+version = "3.0"
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+dependencies {
+    testImplementation(libs.junit)
+    compileOnly(libs.lombok)
+    implementation(libs.gson)
+}

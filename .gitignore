@@ -1,0 +1,87 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+
+
+### Worlds / Maps ###
+/configuration/world/
+/configuration/world
+/configuration/skyblock/islands/
+/configuration/skyblock/islands
+/configuration/hypixel_prototype_lobby/
+/configuration/hypixel_prototype_lobby
+/configuration/hypixel_bedwars_lobby/
+/configuration/hypixel_bedwars_lobby
+/configuration/hypixel_murder_mystery_lobby/
+/configuration/hypixel_murder_mystery_lobby
+/configuration/hypixel_skywars_lobby/
+/configuration/hypixel_skywars_lobby
+/configuration/skyblock/garden/
+*.polar
+*.schem
+/setup/skyblock-installer
+/configuration/*.schem
+
+### Logs ###
+/configuration/logs/
+*.log
+
+### Server runtime ###
+.gradle/
+/server/proxy/logs/
+/server/proxy/lang/
+/server/proxy/plugins/
+/server/proxy/forwarding.secret
+/server/proxy/velocity.toml
+/server/proxy/hs_err_pid*.log
+/server/proxy/replay_pid*.log
+/server/forwarding.secret
+/configuration/config.yml
+/server/proxy/configuration/config.yml
+.claude/
+server/proxy/ViaLoader/
+/configuration/resourcepacks/skyblockpack
+/configuration/resourcepacks/ravengard
+store/.next
+store/node_modules
+store/next-env.d.ts
+tools/store-web/.next
+tools/store-web/node_modules
+tools/store-web/next-env.d.ts
+tools/libs-vendor/.gradle
+tools/libs-vendor/build
+
+### Vendoring inputs (machine-local upstream coordinates, never committed) ###
+tools/libs-vendor/local.properties

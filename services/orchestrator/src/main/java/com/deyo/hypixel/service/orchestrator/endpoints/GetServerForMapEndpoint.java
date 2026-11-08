@@ -1,0 +1,354 @@
+package com.deyo.hypixel.service.orchestrator.endpoints;
+
+import com.deyo.hypixel.commons.ServerType;
+import com.deyo.hypixel.commons.UnderstandableProxyServer;
+import com.deyo.hypixel.commons.protocol.RedisProtocol;
+import com.deyo.hypixel.commons.protocol.objects.orchestrator.GetServerForMapProtocol;
+import com.deyo.hypixel.commons.protocol.objects.game.InstantiateGamePushProtocol;
+import com.deyo.hypixel.commons.bedwars.BedWarsGameType;
+import com.deyo.hypixel.commons.murdermystery.MurderMysteryGameType;
+import com.deyo.hypixel.commons.skywars.SkywarsGameType;
+import com.deyo.hypixel.commons.redis.RedisClient;
+import com.deyo.hypixel.commons.redis.RedisMessageHandler;
+import com.deyo.hypixel.service.orchestrator.OrchestratorCache;
+import org.tinylog.Logger;
+
+import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
+import com.deyo.hypixel.commons.redis.RedisMessageContext;
+
+public class GetServerForMapEndpoint implements RedisMessageHandler
+		<GetServerForMapProtocol.GetServerForMapMessage,
+				GetServerForMapProtocol.GetServerForMapResponse> {
+
+	@Override
+	public RedisProtocol<GetServerForMapProtocol.GetServerForMapMessage, GetServerForMapProtocol.GetServerForMapResponse> protocol() {
+		return new GetServerForMapProtocol();
+	}
+
+	@Override
+	public GetServerForMapProtocol.GetServerForMapResponse handle(GetServerForMapProtocol.GetServerForMapMessage body, RedisMessageContext context) {
+		return switch (body.type()) {
+			case BEDWARS_GAME -> handleBedwars(body);
+			case MURDER_MYSTERY_GAME -> handleMurderMystery(body);
+			case SKYWARS_GAME -> handleSkywars(body);
+			case RAVENGARD_DUNGEON -> handleRavengardDungeon(body);
+			default -> new GetServerForMapProtocol.GetServerForMapResponse(null, null, true, null);
+		};
+	}
+
+	private GetServerForMapProtocol.GetServerForMapResponse handleBedwars(
+			GetServerForMapProtocol.GetServerForMapMessage body) {
+		try {
+			BedWarsGameType gameType = parseBedWarsGameType(body.mode());
+			Logger.info("[matchmaking] BEDWARS request mode='{}' -> parsed={} map={} neededSlots={}",
+					body.mode(), gameType, body.map(), body.neededSlots());
+			if (gameType == null) {
+				Logger.warn("[matchmaking] BEDWARS: could not parse mode '{}'", body.mode());
+				return new GetServerForMapProtocol.GetServerForMapResponse(null, null, true, null);
+			}
+
+			int neededSlots = body.neededSlots() > 0 ? body.neededSlots() : 1;
+
+			// First, try to find an existing joinable game with enough slots
+			OrchestratorCache.GameWithServer existingGameWithServer = OrchestratorCache.findExisting(gameType, body.map(), neededSlots);
+			if (existingGameWithServer != null) {
+				OrchestratorCache.GameServerState hostingServer = OrchestratorCache.getServerByUuid(existingGameWithServer.serverUuid());
+				if (hostingServer != null) {
+					UnderstandableProxyServer proxy = new UnderstandableProxyServer(
+							hostingServer.shortName(),
+							hostingServer.uuid(),
+							hostingServer.type(),
+							-1,
+							new ArrayList<>(),
+							hostingServer.maxPlayers(),
+							hostingServer.shortName()
+					);
+					return new GetServerForMapProtocol.GetServerForMapResponse(proxy, existingGameWithServer.game().getGameId().toString(), true, null);
+				}
+			}
+
+			// If no existing game found, find a server that can instantiate a new one
+			OrchestratorCache.GameServerState availableServer = OrchestratorCache.instantiateServer(gameType, body.map());
+			Logger.info("[matchmaking] BEDWARS instantiateServer -> {}",
+					availableServer == null ? "NO CANDIDATE SERVER" : availableServer.shortName());
+			if (availableServer != null) {
+				try {
+					CompletableFuture<InstantiateGamePushProtocol.Response> responseFuture = RedisClient.requestServerFromService(
+							availableServer.uuid(),
+							new InstantiateGamePushProtocol(),
+							new InstantiateGamePushProtocol.Request(gameType.toString(), body.map())
+					);
+
+					InstantiateGamePushProtocol.Response response = responseFuture.get(8, java.util.concurrent.TimeUnit.SECONDS);
+					Logger.info("[matchmaking] BEDWARS instantiate response from {}: success={} error='{}' gameId={}",
+							availableServer.shortName(),
+							response != null && response.success(),
+							response == null ? "NULL RESPONSE" : response.error(),
+							response == null ? null : response.gameId());
+
+					if (response != null && response.success()) {
+						UnderstandableProxyServer proxy = new UnderstandableProxyServer(
+								availableServer.shortName(),
+								availableServer.uuid(),
+								availableServer.type(),
+								-1,
+								new ArrayList<>(),
+								availableServer.maxPlayers(),
+								availableServer.shortName()
+						);
+						return new GetServerForMapProtocol.GetServerForMapResponse(proxy, response.gameId(), true, null);
+					}
+				} catch (Exception e) {
+					Logger.error(e, "Failed to instantiate Bedwars game");
+				}
+			}
+
+			return new GetServerForMapProtocol.GetServerForMapResponse(null, null, true, null);
+		} catch (Exception e) {
+			return new GetServerForMapProtocol.GetServerForMapResponse(null, null, true, null);
+		}
+	}
+
+	private GetServerForMapProtocol.GetServerForMapResponse handleRavengardDungeon(
+			GetServerForMapProtocol.GetServerForMapMessage body) {
+		try {
+			String mode = body.mode() == null || body.mode().isEmpty() ? "STANDARD" : body.mode();
+			int neededSlots = body.neededSlots() > 0 ? body.neededSlots() : 1;
+
+			// standard queue joins share an open instance when one exists
+			if (mode.equals("STANDARD")) {
+				OrchestratorCache.GameWithServer existing = OrchestratorCache.findExisting(
+						ServerType.RAVENGARD_DUNGEON, 20, null, neededSlots, "STANDARD");
+				if (existing != null) {
+					OrchestratorCache.GameServerState hosting = OrchestratorCache.getServerByUuid(existing.serverUuid());
+					if (hosting != null) {
+						return new GetServerForMapProtocol.GetServerForMapResponse(
+								toProxyServer(hosting), existing.game().getGameId().toString(), true, null);
+					}
+				}
+			}
+
+			OrchestratorCache.GameServerState server = OrchestratorCache.pickServerForNewGame(ServerType.RAVENGARD_DUNGEON);
+			Logger.info("[matchmaking] RAVENGARD_DUNGEON mode='{}' -> server={}",
+					mode, server == null ? "NONE" : server.shortName());
+			if (server == null) {
+				return new GetServerForMapProtocol.GetServerForMapResponse(null, null, true, "No dungeon servers online");
+			}
+
+			CompletableFuture<InstantiateGamePushProtocol.Response> responseFuture = RedisClient.requestServerFromService(
+					server.uuid(),
+					new InstantiateGamePushProtocol(),
+					new InstantiateGamePushProtocol.Request(mode, body.map()));
+			InstantiateGamePushProtocol.Response response = responseFuture.get(15, java.util.concurrent.TimeUnit.SECONDS);
+			if (response != null && response.success()) {
+				return new GetServerForMapProtocol.GetServerForMapResponse(
+						toProxyServer(server), response.gameId(), true, null);
+			}
+			return new GetServerForMapProtocol.GetServerForMapResponse(null, null, true,
+					response == null ? "No response from dungeon server" : response.error());
+		} catch (Exception e) {
+			Logger.error(e, "Failed to allocate Ravengard dungeon");
+			return new GetServerForMapProtocol.GetServerForMapResponse(null, null, true, e.getMessage());
+		}
+	}
+
+	private static UnderstandableProxyServer toProxyServer(OrchestratorCache.GameServerState server) {
+		return new UnderstandableProxyServer(
+				server.shortName(),
+				server.uuid(),
+				server.type(),
+				-1,
+				new ArrayList<>(),
+				server.maxPlayers(),
+				server.shortName());
+	}
+
+	private GetServerForMapProtocol.GetServerForMapResponse handleMurderMystery(
+			GetServerForMapProtocol.GetServerForMapMessage body) {
+		try {
+			MurderMysteryGameType gameType = parseMurderMysteryGameType(body.mode());
+			if (gameType == null) {
+				return new GetServerForMapProtocol.GetServerForMapResponse(null, null, true, null);
+			}
+
+			int neededSlots = body.neededSlots() > 0 ? body.neededSlots() : 1;
+
+			// First, try to find an existing joinable game with enough slots
+			OrchestratorCache.GameWithServer existingGameWithServer = OrchestratorCache.findExisting(
+					ServerType.MURDER_MYSTERY_GAME, gameType.getMaxPlayers(), body.map(), neededSlots, gameType.name());
+			if (existingGameWithServer != null) {
+				OrchestratorCache.GameServerState hostingServer = OrchestratorCache.getServerByUuid(existingGameWithServer.serverUuid());
+				if (hostingServer != null) {
+					UnderstandableProxyServer proxy = new UnderstandableProxyServer(
+							hostingServer.shortName(),
+							hostingServer.uuid(),
+							hostingServer.type(),
+							-1,
+							new ArrayList<>(),
+							hostingServer.maxPlayers(),
+							hostingServer.shortName()
+					);
+					return new GetServerForMapProtocol.GetServerForMapResponse(proxy, existingGameWithServer.game().getGameId().toString(), true, null);
+				}
+			}
+
+			// If no existing game found, find a server that can instantiate a new one
+			OrchestratorCache.GameServerState availableServer = OrchestratorCache.instantiateServer(
+					ServerType.MURDER_MYSTERY_GAME, gameType.getMaxPlayers());
+			if (availableServer != null) {
+				try {
+					CompletableFuture<InstantiateGamePushProtocol.Response> responseFuture = RedisClient.requestServerFromService(
+							availableServer.uuid(),
+							new InstantiateGamePushProtocol(),
+							new InstantiateGamePushProtocol.Request(gameType.name(), body.map())
+					);
+
+					InstantiateGamePushProtocol.Response response = responseFuture.get();
+
+					if (response != null && response.success()) {
+						UnderstandableProxyServer proxy = new UnderstandableProxyServer(
+								availableServer.shortName(),
+								availableServer.uuid(),
+								availableServer.type(),
+								-1,
+								new ArrayList<>(),
+								availableServer.maxPlayers(),
+								availableServer.shortName()
+						);
+						return new GetServerForMapProtocol.GetServerForMapResponse(proxy, response.gameId(), true, null);
+					}
+				} catch (Exception e) {
+					Logger.error(e, "Failed to instantiate Murder Mystery game");
+				}
+			}
+
+			return new GetServerForMapProtocol.GetServerForMapResponse(null, null, true, null);
+		} catch (Exception e) {
+			return new GetServerForMapProtocol.GetServerForMapResponse(null, null, true, null);
+		}
+	}
+
+	private BedWarsGameType parseBedWarsGameType(String mode) {
+		if (mode == null) return null;
+
+		try {
+			return BedWarsGameType.valueOf(mode.toUpperCase());
+		} catch (IllegalArgumentException e) {
+			switch (mode.toLowerCase()) {
+				case "solo", "1v1v1v1v1v1v1v1" -> { return BedWarsGameType.ONE_EIGHT; }
+				case "doubles", "2v2v2v2" -> { return BedWarsGameType.TWO_EIGHT; }
+				case "triples", "3v3v3v3" -> { return BedWarsGameType.FOUR_THREE; }
+				case "quads", "4v4v4v4" -> { return BedWarsGameType.FOUR_FOUR; }
+				case "4v4" -> { return BedWarsGameType.TWO_FOUR; }
+				default -> { return null; }
+			}
+		}
+	}
+
+	private MurderMysteryGameType parseMurderMysteryGameType(String mode) {
+		if (mode == null) return null;
+
+		// First try the enum's from() method
+		MurderMysteryGameType type = MurderMysteryGameType.from(mode);
+		if (type != null) return type;
+
+		// Try display name
+		type = MurderMysteryGameType.fromDisplayName(mode);
+		if (type != null) return type;
+
+		// Handle common aliases
+		return switch (mode.toLowerCase()) {
+			case "classic" -> MurderMysteryGameType.CLASSIC;
+			case "double_up", "doubleup", "double up" -> MurderMysteryGameType.DOUBLE_UP;
+			case "assassins" -> MurderMysteryGameType.ASSASSINS;
+			default -> null;
+		};
+	}
+
+	private GetServerForMapProtocol.GetServerForMapResponse handleSkywars(
+			GetServerForMapProtocol.GetServerForMapMessage body) {
+		try {
+			SkywarsGameType gameType = parseSkywarsGameType(body.mode());
+			if (gameType == null) {
+				return new GetServerForMapProtocol.GetServerForMapResponse(null, null, true, null);
+			}
+
+			int neededSlots = body.neededSlots() > 0 ? body.neededSlots() : 1;
+
+			// First, try to find an existing joinable game with enough slots
+			OrchestratorCache.GameWithServer existingGameWithServer = OrchestratorCache.findExisting(
+					ServerType.SKYWARS_GAME, gameType.getMaxPlayers(), body.map(), neededSlots, gameType.name());
+			if (existingGameWithServer != null) {
+				OrchestratorCache.GameServerState hostingServer = OrchestratorCache.getServerByUuid(existingGameWithServer.serverUuid());
+				if (hostingServer != null) {
+					UnderstandableProxyServer proxy = new UnderstandableProxyServer(
+							hostingServer.shortName(),
+							hostingServer.uuid(),
+							hostingServer.type(),
+							-1,
+							new ArrayList<>(),
+							hostingServer.maxPlayers(),
+							hostingServer.shortName()
+					);
+					return new GetServerForMapProtocol.GetServerForMapResponse(proxy, existingGameWithServer.game().getGameId().toString(), true, null);
+				}
+			}
+
+			// If no existing game found, find a server that can instantiate a new one
+			OrchestratorCache.GameServerState availableServer = OrchestratorCache.instantiateServer(
+					ServerType.SKYWARS_GAME, gameType.getMaxPlayers());
+			if (availableServer != null) {
+				try {
+					CompletableFuture<InstantiateGamePushProtocol.Response> responseFuture = RedisClient.requestServerFromService(
+							availableServer.uuid(),
+							new InstantiateGamePushProtocol(),
+							new InstantiateGamePushProtocol.Request(gameType.name(), body.map())
+					);
+
+					InstantiateGamePushProtocol.Response response = responseFuture.get();
+
+					if (response != null && response.success()) {
+						UnderstandableProxyServer proxy = new UnderstandableProxyServer(
+								availableServer.shortName(),
+								availableServer.uuid(),
+								availableServer.type(),
+								-1,
+								new ArrayList<>(),
+								availableServer.maxPlayers(),
+								availableServer.shortName()
+						);
+						return new GetServerForMapProtocol.GetServerForMapResponse(proxy, response.gameId(), true, null);
+					}
+				} catch (Exception e) {
+					Logger.error(e, "Failed to instantiate Skywars game");
+				}
+			}
+
+			return new GetServerForMapProtocol.GetServerForMapResponse(null, null, true, null);
+		} catch (Exception e) {
+			return new GetServerForMapProtocol.GetServerForMapResponse(null, null, true, null);
+		}
+	}
+
+	private SkywarsGameType parseSkywarsGameType(String mode) {
+		if (mode == null) return null;
+
+		// First try the enum's from() method
+		SkywarsGameType type = SkywarsGameType.from(mode);
+		if (type != null) return type;
+
+		// Try display name
+		type = SkywarsGameType.fromDisplayName(mode);
+		if (type != null) return type;
+
+		// Handle common aliases
+		return switch (mode.toLowerCase()) {
+			case "solo_normal", "solo normal", "normal" -> SkywarsGameType.SOLO_NORMAL;
+			case "solo_insane", "solo insane", "insane" -> SkywarsGameType.SOLO_INSANE;
+			case "doubles_normal", "doubles normal", "doubles" -> SkywarsGameType.DOUBLES_NORMAL;
+			case "solo_lucky_block", "lucky_block", "lucky block", "luckyblock" -> SkywarsGameType.SOLO_LUCKY_BLOCK;
+			default -> null;
+		};
+	}
+}

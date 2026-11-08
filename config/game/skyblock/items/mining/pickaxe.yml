@@ -1,0 +1,18 @@
+items:
+  - id: PROMISING_PICKAXE
+    material: iron_pickaxe
+    name: "Promising Pickaxe"
+    rarity: UNCOMMON
+    default_statistics:
+      damage: 20.0
+      mining_speed: 50.0
+      breaking_power: 3.0
+    components:
+      - id: ABILITY
+        abilities:
+          - STORED_POTENTIAL
+      - id: PICKAXE
+      - id: SELLABLE
+        value: 10.0
+      - id: ITEM_MODEL
+        item_model: hypixel_skyblock:item/uncategorized/promising_pickaxe

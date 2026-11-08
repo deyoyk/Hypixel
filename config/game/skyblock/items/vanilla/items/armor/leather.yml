@@ -1,0 +1,102 @@
+items:
+  - id: LEATHER_HELMET
+    material: LEATHER_HELMET
+    name: "Leather Helmet"
+    rarity: COMMON
+    components:
+      - id: STANDARD_ITEM
+        standard_item_type: HELMET
+      - id: DEFAULT_CRAFTABLE
+        recipes:
+          - type: SHAPED
+            recipe-type: NONE
+            pattern:
+              - AAA
+              - A A
+            ingredients:
+              A:
+                type: LEATHER
+                amount: 1
+            result:
+              type: LEATHER_HELMET
+              amount: 1
+      - id: SELLABLE
+        value: 7.0
+    default_statistics:
+      defense: 5.0
+  - id: LEATHER_CHESTPLATE
+    material: LEATHER_CHESTPLATE
+    name: "Leather Chestplate"
+    rarity: COMMON
+    components:
+      - id: STANDARD_ITEM
+        standard_item_type: CHESTPLATE
+      - id: DEFAULT_CRAFTABLE
+        recipes:
+          - type: SHAPED
+            recipe-type: NONE
+            pattern:
+              - A A
+              - AAA
+              - AAA
+            ingredients:
+              A:
+                type: LEATHER
+                amount: 1
+            result:
+              type: LEATHER_CHESTPLATE
+              amount: 1
+      - id: SELLABLE
+        value: 12.0
+    default_statistics:
+      defense: 15.0
+  - id: LEATHER_LEGGINGS
+    material: LEATHER_LEGGINGS
+    name: "Leather Leggings"
+    rarity: COMMON
+    components:
+      - id: STANDARD_ITEM
+        standard_item_type: LEGGINGS
+      - id: DEFAULT_CRAFTABLE
+        recipes:
+          - type: SHAPED
+            recipe-type: NONE
+            pattern:
+              - AAA
+              - A A
+              - A A
+            ingredients:
+              A:
+                type: LEATHER
+                amount: 1
+            result:
+              type: LEATHER_LEGGINGS
+              amount: 1
+      - id: SELLABLE
+        value: 10.0
+    default_statistics:
+      defense: 10.0
+  - id: LEATHER_BOOTS
+    material: LEATHER_BOOTS
+    rarity: COMMON
+    components:
+      - id: STANDARD_ITEM
+        standard_item_type: BOOTS
+      - id: DEFAULT_CRAFTABLE
+        recipes:
+          - type: SHAPED
+            recipe-type: NONE
+            pattern:
+              - A A
+              - A A
+            ingredients:
+              A:
+                type: LEATHER
+                amount: 1
+            result:
+              type: LEATHER_BOOTS
+              amount: 1
+      - id: SELLABLE
+        value: 6.0
+    default_statistics:
+      defense: 5.0

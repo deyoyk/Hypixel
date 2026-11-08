@@ -1,0 +1,34 @@
+package com.deyo.hypixel.type.ravengardgeneric.commands;
+
+import net.minestom.server.entity.Player;
+import com.deyo.hypixel.type.generic.command.CommandParameters;
+import com.deyo.hypixel.type.generic.command.HypixelCommand;
+import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.generic.user.categories.Rank;
+
+import java.util.function.Consumer;
+
+@CommandParameters(
+        labels = "spawnsatchel",
+        description = "Drops a loot satchel at your position",
+        usage = "/spawnsatchel",
+        permission = Rank.STAFF,
+        allowsConsole = false)
+public class SpawnSatchelCommand extends HypixelCommand {
+    public static volatile Consumer<Player> spawner;
+
+    @Override
+    public void registerUsage(MinestomCommand command) {
+        command.addSyntax((sender, context) -> {
+            if (!permissionCheck(sender)) return;
+            HypixelPlayer player = (HypixelPlayer) sender;
+            Consumer<Player> hook = spawner;
+            if (hook == null) {
+                player.sendMessage("<c>Satchels only exist on dungeon servers.");
+                return;
+            }
+            hook.accept(player);
+            player.sendMessage("<a>Satchel dropped.");
+        });
+    }
+}

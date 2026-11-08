@@ -1,0 +1,46 @@
+package com.deyo.hypixel.type.skyblockgeneric.block.attribute;
+
+import lombok.Getter;
+import lombok.Setter;
+import com.deyo.hypixel.type.skyblockgeneric.SkyBlockGenericLoader;
+import com.deyo.hypixel.type.skyblockgeneric.block.impl.CustomSkyBlockBlock;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Collection;
+
+@Setter
+@Getter
+public abstract class BlockAttribute<T> {
+    private static final ArrayList<BlockAttribute<?>> attributes = new ArrayList<>();
+
+    public T value;
+
+    public BlockAttribute() {
+        value = getDefaultValue(null);
+    }
+
+    public abstract String getKey();
+
+    public abstract T getDefaultValue(@Nullable Class<? extends CustomSkyBlockBlock> blockClass);
+
+    public abstract T loadFromString(String string);
+
+    public abstract String saveIntoString();
+
+    public static void registerBlockAttributes() {
+        SkyBlockGenericLoader.loopThroughPackage(
+                "com.deyo.hypixel.type.skyblockgeneric.block.attribute.attributes", BlockAttribute.class
+        ).forEach(attributes::add);
+    }
+
+    public static Collection<BlockAttribute<?>> getPossibleAttributes() {
+        return (Collection<BlockAttribute<?>>) attributes.stream().map(attributeClass -> {
+            try {
+                return attributeClass.getClass().newInstance();
+            } catch (InstantiationException | IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }).toList();
+    }
+}

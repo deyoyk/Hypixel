@@ -1,0 +1,61 @@
+items:
+  - id: STARLIGHT_BOOTS
+    material: leather_boots
+    name: "Starlight Boots"
+    rarity: RARE
+    default_statistics:
+      health: 30.0
+      defense: 30.0
+      intelligence: 50.0
+    components:
+      - id: STANDARD_ITEM
+        standard_item_type: BOOTS
+      - id: LEATHER_COLOR
+        r: '212'
+        g: '0'
+        b: '255'
+      - id: SELLABLE
+        value: 15000.0
+  - id: STARLIGHT_CHESTPLATE
+    material: leather_chestplate
+    name: "Starlight Chestplate"
+    rarity: RARE
+    default_statistics:
+      health: 30.0
+      defense: 30.0
+      intelligence: 50.0
+    components:
+      - id: STANDARD_ITEM
+        standard_item_type: CHESTPLATE
+      - id: LEATHER_COLOR
+        r: '212'
+        g: '0'
+        b: '255'
+      - id: SELLABLE
+        value: 35000.0
+  - id: STARLIGHT_HELMET
+    material: golden_helmet
+    name: "Starlight Helmet"
+    rarity: RARE
+    default_statistics:
+      health: 30.0
+      defense: 30.0
+      intelligence: 50.0
+    components:
+      - id: STANDARD_ITEM
+        standard_item_type: HELMET
+      - id: SELLABLE
+        value: 17500.0
+  - id: STARLIGHT_LEGGINGS
+    material: golden_leggings
+    name: "Starlight Leggings"
+    rarity: RARE
+    default_statistics:
+      health: 30.0
+      defense: 30.0
+      intelligence: 50.0
+    components:
+      - id: STANDARD_ITEM
+        standard_item_type: LEGGINGS
+      - id: SELLABLE
+        value: 22500.0
