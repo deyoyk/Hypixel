@@ -51,6 +51,7 @@ build/
 /configuration/skyblock/garden/
 *.polar
 *.schem
+buck-out/
 !config/game/world/*.polar
 !config/game/bedwars/*.polar
 !config/game/murdermystery/*.polar

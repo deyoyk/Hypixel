@@ -12,4 +12,10 @@ tools\docker\build-jars.bat
 docker compose up --build -d
 ```
 
+Build one module only:
+
+```bat
+gradlew.bat :platform:packer:shadowJar
+```
+
 Connect with Minecraft to `localhost:25565`. `docker compose ps` shows service health, `docker compose down` stops everything.

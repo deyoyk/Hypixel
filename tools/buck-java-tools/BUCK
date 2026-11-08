@@ -1,0 +1,11 @@
+export_file(
+    name = "jar_builder_main.jar",
+    src = "jar_builder_main.jar",
+    visibility = ["PUBLIC"],
+)
+
+export_file(
+    name = "zip_scrubber_main.jar",
+    src = "zip_scrubber_main.jar",
+    visibility = ["PUBLIC"],
+)

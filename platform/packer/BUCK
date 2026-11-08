@@ -1,0 +1,11 @@
+java_library(
+    name = "packer",
+    srcs = glob(["src/main/java/**/*.java"]),
+    resources = glob(["src/main/resources/**/*"]),
+    deps = [
+        "//third-party:creative-api",
+        "//third-party:creative-serializer-minecraft",
+        "//third-party:creative-server",
+    ],
+    visibility = ["PUBLIC"],
+)
