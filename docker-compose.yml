@@ -38,7 +38,7 @@ services:
   proxy:
     build:
       context: .
-      dockerfile: "./DockerFiles/Dockerfile.proxy"
+      dockerfile: "./tools/docker/Dockerfile.proxy"
     container_name: hypixel_proxy
     environment:
       <<: *forwarding_env
@@ -50,7 +50,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./configuration:/app/configuration_files
+      - ./config/game:/app/configuration_files
     networks:
       - hypixel_network
     healthcheck:
@@ -63,11 +63,11 @@ services:
   game_server_builder:
     build:
       context: .
-      dockerfile: "./DockerFiles/Dockerfile.game_server"
+      dockerfile: "./tools/docker/Dockerfile.game_server"
     image: game_server_prepared
     container_name: game_server_builder
     volumes:
-      - ./configuration:/app/configuration_files
+      - ./config/game:/app/configuration_files
     networks:
       - hypixel_network
 
@@ -84,7 +84,7 @@ services:
       game_server_builder:
         condition: service_started
     volumes:
-      - ./configuration:/app/configuration_files
+      - ./config/game:/app/configuration_files
     networks:
       - hypixel_network
 
@@ -101,7 +101,7 @@ services:
       game_server_builder:
         condition: service_started
     volumes:
-      - ./configuration:/app/configuration_files
+      - ./config/game:/app/configuration_files
     networks:
       - hypixel_network
 
@@ -118,7 +118,7 @@ services:
       game_server_builder:
         condition: service_started
     volumes:
-      - ./configuration:/app/configuration_files
+      - ./config/game:/app/configuration_files
     networks:
       - hypixel_network
 
@@ -135,7 +135,7 @@ services:
       game_server_builder:
         condition: service_started
     volumes:
-      - ./configuration:/app/configuration_files
+      - ./config/game:/app/configuration_files
     networks:
       - hypixel_network
 
@@ -183,7 +183,7 @@ services:
       game_server_builder:
         condition: service_started
     volumes:
-      - ./configuration:/app/configuration_files
+      - ./config/game:/app/configuration_files
     networks:
       - hypixel_network
 
@@ -200,7 +200,7 @@ services:
       game_server_builder:
         condition: service_started
     volumes:
-      - ./configuration:/app/configuration_files
+      - ./config/game:/app/configuration_files
     networks:
       - hypixel_network
 
@@ -217,7 +217,7 @@ services:
       game_server_builder:
         condition: service_started
     volumes:
-      - ./configuration:/app/configuration_files
+      - ./config/game:/app/configuration_files
     networks:
       - hypixel_network
 
@@ -234,7 +234,7 @@ services:
       game_server_builder:
         condition: service_started
     volumes:
-      - ./configuration:/app/configuration_files
+      - ./config/game:/app/configuration_files
     networks:
       - hypixel_network
 
@@ -251,7 +251,7 @@ services:
       game_server_builder:
         condition: service_started
     volumes:
-      - ./configuration:/app/configuration_files
+      - ./config/game:/app/configuration_files
     networks:
       - hypixel_network
 
@@ -268,7 +268,7 @@ services:
       game_server_builder:
         condition: service_started
     volumes:
-      - ./configuration:/app/configuration_files
+      - ./config/game:/app/configuration_files
     networks:
       - hypixel_network
 
@@ -285,7 +285,7 @@ services:
       game_server_builder:
         condition: service_started
     volumes:
-      - ./configuration:/app/configuration_files
+      - ./config/game:/app/configuration_files
     networks:
       - hypixel_network
 
@@ -302,7 +302,7 @@ services:
       game_server_builder:
         condition: service_started
     volumes:
-      - ./configuration:/app/configuration_files
+      - ./config/game:/app/configuration_files
     networks:
       - hypixel_network
 

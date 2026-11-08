@@ -16,7 +16,7 @@ ARG JAR_BASE_URL=https://github.com/deyo/Hypixel-v2/releases/download/latest
 
 # Locally built JARs, empty for a regular install
 
-COPY ./DockerFiles/jars /app/prebuilt_jars
+COPY ./tools/docker/jars /app/prebuilt_jars
 
 
 
@@ -80,7 +80,7 @@ RUN set -eu; \
 
 # Copy configuration data
 
-COPY ./configuration /app/configuration_files
+COPY ./config/game /app/configuration_files
 
 
 

@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y jq netcat-traditional curl && apt-get c
 RUN curl -fSL -o velocity.jar "https://fill-data.papermc.io/v1/objects/0ec616020166465dacca3b790d3db2b246f8f7c13b3aaacaae60c825744a66e0/velocity-3.5.0-SNAPSHOT-605.jar"
 
 # Locally built JARs, empty for a regular install
-COPY ./DockerFiles/jars /app/prebuilt_jars
+COPY ./tools/docker/jars /app/prebuilt_jars
 
 # Take SkyBlockProxy.jar from the local build when it is there, download it otherwise
 RUN set -eu; \
@@ -23,7 +23,7 @@ RUN set -eu; \
     rm -rf /app/prebuilt_jars
 
 # Copy configuration data
-COPY ./configuration /app/configuration_files
+COPY ./config/game /app/configuration_files
 
 # Replace generated velocity.toml with our own
 RUN rm -f velocity.toml && \

@@ -51,6 +51,12 @@ build/
 /configuration/skyblock/garden/
 *.polar
 *.schem
+!config/game/world/*.polar
+!config/game/bedwars/*.polar
+!config/game/murdermystery/*.polar
+!config/game/skywars/*.polar
+!config/game/ravengard/dungeon_1.polar
+!config/game/limbo.schem
 /setup/skyblock-installer
 /configuration/*.schem
 

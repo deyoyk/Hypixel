@@ -148,7 +148,6 @@ func copyFile(src, dst string, mode os.FileMode) error {
 
 func writeConfigYAML(cfg Config) error {
 	body := `host-name: 0.0.0.0
-transfer-timeout: 800
 mongodb: mongodb://mongodb
 redis-uri: redis://redis:6379
 velocity-secret: placeholder
@@ -156,14 +155,11 @@ require-auth: false
 integrations:
     spark: false
     anticheat: false
-    via-version: false
+    via-version: true
     sentry-dsn: ''
 limbo:
     host-name: pico_limbo
     port: 65535
-resource-pack:
-    public-url: ''
-    pack-hash: ''
 resource-packs:
     skyblockpack:
         server-url: http://127.0.0.1:7270

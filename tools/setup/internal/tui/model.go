@@ -1071,6 +1071,8 @@ func localConfigurationDir() string {
 	candidates := []string{
 		filepath.Join(cwd, "configuration"),
 		filepath.Join(cwd, "..", "configuration"),
+		filepath.Join(cwd, "config", "game"),
+		filepath.Join(cwd, "..", "config", "game"),
 	}
 	for _, candidate := range candidates {
 		if info, err := os.Stat(candidate); err == nil && info.IsDir() {

@@ -69,11 +69,11 @@ func (r *Runner) install(ctx context.Context, cfg Config, sourceConfigDir string
 	}
 
 	r.emit("Copying configuration files")
-	if err := CopyDir(filepath.Join(repoDir, "configuration"), filepath.Join(cfg.InstallDir, "configuration")); err != nil {
+	if err := CopyDir(filepath.Join(repoDir, "config", "game"), filepath.Join(cfg.InstallDir, "configuration")); err != nil {
 		return err
 	}
 	r.emit("Copying Dockerfiles")
-	if err := CopyDir(filepath.Join(repoDir, "DockerFiles"), filepath.Join(cfg.InstallDir, "DockerFiles")); err != nil {
+	if err := CopyDir(filepath.Join(repoDir, "tools", "docker"), filepath.Join(cfg.InstallDir, "DockerFiles")); err != nil {
 		return err
 	}
 	if sourceConfigDir != "" {
@@ -123,7 +123,7 @@ func (r *Runner) cloneAssets(ctx context.Context, cfg Config) (string, error) {
 		if err := runStream(ctx, repoDir, r.Events, "git", "pull", "--depth", "1"); err != nil {
 			return "", err
 		}
-		if err := runStream(ctx, repoDir, r.Events, "git", "sparse-checkout", "set", "configuration", "DockerFiles"); err != nil {
+		if err := runStream(ctx, repoDir, r.Events, "git", "sparse-checkout", "set", "config/game", "tools/docker"); err != nil {
 			return "", err
 		}
 		return repoDir, nil
@@ -133,7 +133,7 @@ func (r *Runner) cloneAssets(ctx context.Context, cfg Config) (string, error) {
 	if err := runStream(ctx, installDir, r.Events, "git", "clone", "--depth", "1", "--filter=blob:none", "--sparse", "https://github.com/"+GitHubRepo+".git", "_repo"); err != nil {
 		return "", err
 	}
-	if err := runStream(ctx, repoDir, r.Events, "git", "sparse-checkout", "set", "configuration", "DockerFiles"); err != nil {
+	if err := runStream(ctx, repoDir, r.Events, "git", "sparse-checkout", "set", "config/game", "tools/docker"); err != nil {
 		return "", err
 	}
 	return repoDir, nil

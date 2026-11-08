@@ -101,7 +101,7 @@ public class Hypixel {
 
         // Initialize Minecraft server
 		MinecraftServer minecraftServer = MinecraftServer.init(
-                new Auth.Velocity(ConfigProvider.settings().getVelocitySecret())
+                new Auth.Bungee()
         );
         serverUUID = UUID.randomUUID();
 

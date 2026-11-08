@@ -9,8 +9,7 @@ reduced_debug_info = false
 accept_transfers = false
 
 [forwarding]
-method = "MODERN"
-secret = "${FORWARDING_SECRET}"
+method = "LEGACY"
 
 [world]
 spawn_position = [

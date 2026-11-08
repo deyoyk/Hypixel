@@ -67,7 +67,7 @@ public class Settings {
         private boolean anticheat = false;
 
         @Comment("Whether to enable ViaVersion for supporting multiple Minecraft versions. This may cause issues of any kind")
-        private boolean viaVersion = false;
+        private boolean viaVersion = true;
 
         @Comment("The DSN to use for Sentry error tracking. If empty, Sentry will be disabled")
         private String sentryDsn = "";
