@@ -57,7 +57,6 @@ build/
 !config/game/skywars/*.polar
 !config/game/ravengard/dungeon_1.polar
 !config/game/limbo.schem
-/setup/skyblock-installer
 /configuration/*.schem
 
 ### Logs ###
