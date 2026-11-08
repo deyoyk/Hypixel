@@ -139,37 +139,413 @@ services:
     networks:
       - hypixel_network
 
-  # bedwars_lobby:
-  #   image: game_server_prepared
-  #   container_name: bedwars_lobby
-  #   restart: "unless-stopped"
-  #   environment:
-  #     SERVICE_CMD: java -jar HypixelCore.jar BEDWARS_LOBBY
-  #   depends_on:
-  #     proxy:
-  #       condition: service_healthy
-  #     game_server_builder:
-  #       condition: service_started
-  #   volumes:
-  #     - ./configuration:/app/configuration_files
-  #   networks:
-  #     - hypixel_network
+  hypixelcore_spiders_den:
+    image: game_server_prepared
+    container_name: hypixelcore_spiders_den
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar SKYBLOCK_SPIDERS_DEN
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
 
-  # bedwars_game:
-  #   image: game_server_prepared
-  #   container_name: bedwars_game
-  #   restart: "unless-stopped"
-  #   environment:
-  #     SERVICE_CMD: java -jar HypixelCore.jar BEDWARS_GAME
-  #   depends_on:
-  #     proxy:
-  #       condition: service_healthy
-  #     game_server_builder:
-  #       condition: service_started
-  #   volumes:
-  #     - ./configuration:/app/configuration_files
-  #   networks:
-  #     - hypixel_network
+  hypixelcore_the_end:
+    image: game_server_prepared
+    container_name: hypixelcore_the_end
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar SKYBLOCK_THE_END
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_crimson_isle:
+    image: game_server_prepared
+    container_name: hypixelcore_crimson_isle
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar SKYBLOCK_CRIMSON_ISLE
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_dungeon_hub:
+    image: game_server_prepared
+    container_name: hypixelcore_dungeon_hub
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar SKYBLOCK_DUNGEON_HUB
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_gold_mine:
+    image: game_server_prepared
+    container_name: hypixelcore_gold_mine
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar SKYBLOCK_GOLD_MINE
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_deep_caverns:
+    image: game_server_prepared
+    container_name: hypixelcore_deep_caverns
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar SKYBLOCK_DEEP_CAVERNS
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_dwarven_mines:
+    image: game_server_prepared
+    container_name: hypixelcore_dwarven_mines
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar SKYBLOCK_DWARVEN_MINES
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_the_park:
+    image: game_server_prepared
+    container_name: hypixelcore_the_park
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar SKYBLOCK_THE_PARK
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_galatea:
+    image: game_server_prepared
+    container_name: hypixelcore_galatea
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar SKYBLOCK_GALATEA
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_backwater_bayou:
+    image: game_server_prepared
+    container_name: hypixelcore_backwater_bayou
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar SKYBLOCK_BACKWATER_BAYOU
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_jerrys_workshop:
+    image: game_server_prepared
+    container_name: hypixelcore_jerrys_workshop
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar SKYBLOCK_JERRYS_WORKSHOP
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_bedwars_lobby:
+    image: game_server_prepared
+    container_name: hypixelcore_bedwars_lobby
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar BEDWARS_LOBBY
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_bedwars_game:
+    image: game_server_prepared
+    container_name: hypixelcore_bedwars_game
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar BEDWARS_GAME
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_bedwars_configurator:
+    image: game_server_prepared
+    container_name: hypixelcore_bedwars_configurator
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar BEDWARS_CONFIGURATOR
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_main_lobby:
+    image: game_server_prepared
+    container_name: hypixelcore_main_lobby
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar MAIN_LOBBY
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_murder_mystery_lobby:
+    image: game_server_prepared
+    container_name: hypixelcore_murder_mystery_lobby
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar MURDER_MYSTERY_LOBBY
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_murder_mystery_game:
+    image: game_server_prepared
+    container_name: hypixelcore_murder_mystery_game
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar MURDER_MYSTERY_GAME
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_murder_mystery_configurator:
+    image: game_server_prepared
+    container_name: hypixelcore_murder_mystery_configurator
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar MURDER_MYSTERY_CONFIGURATOR
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_skywars_lobby:
+    image: game_server_prepared
+    container_name: hypixelcore_skywars_lobby
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar SKYWARS_LOBBY
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_skywars_game:
+    image: game_server_prepared
+    container_name: hypixelcore_skywars_game
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar SKYWARS_GAME
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_skywars_configurator:
+    image: game_server_prepared
+    container_name: hypixelcore_skywars_configurator
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar SKYWARS_CONFIGURATOR
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_ravengard_lobby:
+    image: game_server_prepared
+    container_name: hypixelcore_ravengard_lobby
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar RAVENGARD_LOBBY
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_ravengard_dungeon:
+    image: game_server_prepared
+    container_name: hypixelcore_ravengard_dungeon
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar RAVENGARD_DUNGEON
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  hypixelcore_replay_viewer:
+    image: game_server_prepared
+    container_name: hypixelcore_replay_viewer
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar HypixelCore.jar REPLAY_VIEWER
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
 
   pico_limbo:
     image: ghcr.io/quozul/picolimbo:v1.12.2-mc26.1.2
@@ -296,6 +672,125 @@ services:
     environment:
       <<: *forwarding_env
       SERVICE_CMD: java -jar ServiceStore.jar
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  service_darkauction:
+    image: game_server_prepared
+    container_name: service_darkauction
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar ServiceDarkAuction.jar
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  service_orchestrator:
+    image: game_server_prepared
+    container_name: service_orchestrator
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar ServiceOrchestrator.jar
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  service_friend:
+    image: game_server_prepared
+    container_name: service_friend
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar ServiceFriend.jar
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  service_election:
+    image: game_server_prepared
+    container_name: service_election
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar ServiceElection.jar
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  service_guild:
+    image: game_server_prepared
+    container_name: service_guild
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar ServiceGuild.jar
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  service_punishment:
+    image: game_server_prepared
+    container_name: service_punishment
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar ServicePunishment.jar
+    depends_on:
+      proxy:
+        condition: service_healthy
+      game_server_builder:
+        condition: service_started
+    volumes:
+      - ./config/game:/app/configuration_files
+    networks:
+      - hypixel_network
+
+  service_replay:
+    image: game_server_prepared
+    container_name: service_replay
+    restart: "unless-stopped"
+    environment:
+      <<: *forwarding_env
+      SERVICE_CMD: java -jar ServiceReplay.jar
     depends_on:
       proxy:
         condition: service_healthy
