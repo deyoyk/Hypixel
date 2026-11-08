@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const INFRA: [&str; 5] = ["mongodb", "redis", "proxy", "pico_limbo", "pack_server"];
-const ALWAYS_SERVER: &str = "hypixelcore_main_lobby";
+const ALWAYS_SERVERS: [&str; 2] = ["hypixelcore_main_lobby", "prototype_lobby"];
 const CORE_SERVICES: [&str; 6] = [
     "service_api",
     "service_auctionhouse",
@@ -12,7 +12,15 @@ const CORE_SERVICES: [&str; 6] = [
     "service_party",
     "service_store",
 ];
-const PRESETS: [&str; 6] = ["skyblock", "bedwars", "skywars", "murdermystery", "full", "custom"];
+const PRESETS: [&str; 7] = [
+    "skyblock",
+    "bedwars",
+    "skywars",
+    "murdermystery",
+    "lobbies",
+    "full",
+    "custom",
+];
 
 fn preset_servers(name: &str) -> Vec<&'static str> {
     match name {
@@ -46,6 +54,14 @@ fn preset_servers(name: &str) -> Vec<&'static str> {
             "hypixelcore_murder_mystery_lobby",
             "hypixelcore_murder_mystery_game",
             "hypixelcore_murder_mystery_configurator",
+        ],
+        "lobbies" => vec![
+            "prototype_lobby",
+            "hypixelcore_main_lobby",
+            "hypixelcore_bedwars_lobby",
+            "hypixelcore_skywars_lobby",
+            "hypixelcore_murder_mystery_lobby",
+            "hypixelcore_ravengard_lobby",
         ],
         _ => vec![],
     }
@@ -113,7 +129,7 @@ fn dedupe(items: Vec<String>) -> Vec<String> {
 }
 
 fn resolve(available: &[String], presets: &[String], custom_servers: Vec<String>, custom_services: Vec<String>) -> (Vec<String>, Vec<String>) {
-    let mut servers = vec![ALWAYS_SERVER.to_string()];
+    let mut servers: Vec<String> = ALWAYS_SERVERS.iter().map(|s| s.to_string()).collect();
     let mut services: Vec<String> = vec![];
     if presets.iter().any(|p| p == "full") {
         servers.extend(
@@ -161,6 +177,8 @@ fn boot(root: &Path, servers: &[String], services: &[String]) {
         .status()
         .expect("failed to run docker compose up");
     if !status.success() {
+        eprintln!("docker compose up failed: {}", status);
+        pause();
         std::process::exit(1);
     }
     let _ = Command::new("docker")
@@ -168,6 +186,12 @@ fn boot(root: &Path, servers: &[String], services: &[String]) {
         .current_dir(root)
         .status();
     println!("Follow logs with: docker compose logs -f <service>");
+}
+
+fn pause() {
+    use std::io::Read;
+    println!("Press Enter to exit");
+    let _ = std::io::stdin().read(&mut [0u8; 1]);
 }
 
 fn main() {
