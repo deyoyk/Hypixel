@@ -52,6 +52,7 @@ build/
 *.polar
 *.schem
 buck-out/
+/tools/starter/target/
 !config/game/world/*.polar
 !config/game/bedwars/*.polar
 !config/game/murdermystery/*.polar
