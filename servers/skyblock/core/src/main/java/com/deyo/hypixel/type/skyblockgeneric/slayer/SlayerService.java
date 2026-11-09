@@ -148,18 +148,22 @@ public final class SlayerService {
             quest.type().categoryName(), level, progress.getXp());
     }
 
-    private static int questCost(SlayerTierDefinition tierDefinition) {
-        if (ElectionManager.isPerkActive(SkyBlockMayor.Perk.SLASHED_PRICING)) {
-            return Math.max(1, tierDefinition.cost() / 2);
-        }
-        return tierDefinition.cost();
+    public static int questCost(SlayerTierDefinition tierDefinition) {
+        return applySlashedPricing(tierDefinition.cost(),
+                ElectionManager.isPerkActive(SkyBlockMayor.Perk.SLASHED_PRICING));
     }
 
-    private static int slayerXpReward(SlayerTierDefinition tierDefinition) {
-        if (ElectionManager.isPerkActive(SkyBlockMayor.Perk.SLAYER_XP_BUFF)) {
-            return (int) Math.round(tierDefinition.slayerXp() * 1.25D);
-        }
-        return tierDefinition.slayerXp();
+    static int applySlashedPricing(int cost, boolean slashedPricing) {
+        return slashedPricing ? Math.max(1, cost / 2) : cost;
+    }
+
+    public static int slayerXpReward(SlayerTierDefinition tierDefinition) {
+        return applySlayerXpBuff(tierDefinition.slayerXp(),
+                ElectionManager.isPerkActive(SkyBlockMayor.Perk.SLAYER_XP_BUFF));
+    }
+
+    static int applySlayerXpBuff(int slayerXp, boolean slayerXpBuff) {
+        return slayerXpBuff ? (int) Math.round(slayerXp * 1.25D) : slayerXp;
     }
 
     private static @Nullable SlayerBossMob spawnBoss(SkyBlockPlayer player, SlayerDefinition definition, SlayerTierDefinition tierDefinition, Pos position) {

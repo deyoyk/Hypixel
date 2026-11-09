@@ -84,9 +84,9 @@ public class GUISlayerTier extends HypixelInventoryGUI {
                     int completions = data.progress(type).completions(tier.tier());
                     return ItemStacks.item(type.menuMaterial(), 1,
                             Text.of("<e>{}", tier.displayName(type)), List.of(
-                                    Text.of("<7>Cost: <6>{:,} Coins", tier.cost()),
+                                    Text.of("<7>Cost: <6>{:,} Coins", SlayerService.questCost(tier)),
                                     Text.of("<7>Combat XP: <e>{:,}", tier.requiredCombatXp()),
-                                    Text.of("<7>Slayer XP: <d>{:,}", tier.slayerXp()),
+                                    Text.of("<7>Slayer XP: <d>{:,}", SlayerService.slayerXpReward(tier)),
                                     Text.of("<7>Boss Level: <c>{}", tier.bossLevel()),
                                     Text.of("<7>Completions: <a>{}", completions),
                                     Text.empty(),
