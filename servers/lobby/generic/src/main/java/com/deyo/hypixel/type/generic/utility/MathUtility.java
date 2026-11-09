@@ -13,7 +13,10 @@ import net.minestom.server.utils.Direction;
 import org.tinylog.Logger;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class MathUtility {
@@ -92,35 +95,56 @@ public final class MathUtility {
     }
 
     public static List<Pos> getNearbyBlocks(Instance instance, Pos pos, int range, Block block) {
-        List<Pos> blocks = new ArrayList<>();
+        return getNearbyBlocks(instance, pos, range, List.of(block));
+    }
+
+    /**
+     * Scans the area once and returns positions matching any of the supplied blocks.
+     */
+    public static List<Pos> getNearbyBlocks(Instance instance, Pos pos, int range, Collection<Block> blocks) {
+        if (blocks.isEmpty()) {
+            return List.of();
+        }
+
+        int minChunkX = (pos.blockX() - range) >> 4;
+        int maxChunkX = (pos.blockX() + range) >> 4;
+        int minChunkZ = (pos.blockZ() - range) >> 4;
+        int maxChunkZ = (pos.blockZ() + range) >> 4;
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                if (!instance.isChunkLoaded(chunkX, chunkZ)) {
+                    instance.loadChunk(chunkX, chunkZ).join();
+                }
+            }
+        }
+
+        Set<Block> targets = blocks.size() == 1 ? null : Set.copyOf(blocks);
+        Block singleTarget = blocks.size() == 1 ? blocks.iterator().next() : null;
+
+        List<Pos> found = new ArrayList<>();
+        int rangeSquared = range * range;
         for (int x = pos.blockX() - range; x <= pos.blockX() + range; x++) {
             for (int y = pos.blockY() - range; y <= pos.blockY() + range; y++) {
                 for (int z = pos.blockZ() - range; z <= pos.blockZ() + range; z++) {
-                    if (pos.distance(new Pos(x, y, z)) <= range) {
-                        int[] relativePositions = {-1, 0, 1};
-                        for (int dx : relativePositions) {
-                            for (int dz : relativePositions) {
-                                int chunkX = (x / 16) + dx;
-                                int chunkZ = (z / 16) + dz;
-                                if (!instance.isChunkLoaded(chunkX, chunkZ)) {
-                                    instance.loadChunk(chunkX, chunkZ).join();
-                                }
-                            }
-                        }
+                    int dx = x - pos.blockX();
+                    int dy = y - pos.blockY();
+                    int dz = z - pos.blockZ();
+                    if (dx * dx + dy * dy + dz * dz > rangeSquared) {
+                        continue;
+                    }
 
-                        try {
-                            Block blockAt = instance.getBlock(x, y, z);
-                            if (blockAt == block) {
-                                blocks.add(new Pos(x, y, z));
-                            }
-                        } catch (Exception e) {
-                            Logger.debug(e, "Block read failed at {} {} {} during getBlocksInRadius", x, y, z);
+                    try {
+                        Block blockAt = instance.getBlock(x, y, z);
+                        if (targets == null ? blockAt == singleTarget : targets.contains(blockAt)) {
+                            found.add(new Pos(x, y, z));
                         }
+                    } catch (Exception e) {
+                        Logger.debug(e, "Block read failed at {} {} {} during getBlocksInRadius", x, y, z);
                     }
                 }
             }
         }
-        return blocks;
+        return found;
     }
 
     public static List<Pos> getCircleAroundPos(Pos pos, double radius, int steps) {
@@ -208,7 +232,7 @@ public final class MathUtility {
     }
 
     public static int random(int min, int max) {
-        return (int) Math.round(Math.random() * (max - min) + min);
+        return ThreadLocalRandom.current().nextInt(min, max + 1);
     }
 
     public static float getYawNeededToLookAt(Pos from, Pos to) {

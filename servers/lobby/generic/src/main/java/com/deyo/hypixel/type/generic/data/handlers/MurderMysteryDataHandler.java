@@ -15,11 +15,12 @@ import tools.jackson.core.JacksonException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 public class MurderMysteryDataHandler extends DataHandler implements GameDataHandler {
-    public static final Map<UUID, MurderMysteryDataHandler> murderMysteryCache = new HashMap<>();
+    public static final Map<UUID, MurderMysteryDataHandler> murderMysteryCache = new ConcurrentHashMap<>();
 
     public MurderMysteryDataHandler() { super(); }
     public MurderMysteryDataHandler(UUID uuid) { super(uuid); }

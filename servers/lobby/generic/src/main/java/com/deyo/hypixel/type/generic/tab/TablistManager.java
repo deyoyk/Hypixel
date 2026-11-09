@@ -26,6 +26,7 @@ public abstract class TablistManager {
     private static final class PlayerTabCache {
         private final List<UUID> tabEntries = new ArrayList<>();
         private final Set<String> createdTeams = new HashSet<>();
+        private List<TablistModule.TablistEntry> lastEntries = List.of();
     }
 
     public abstract List<TablistModule> getModules();
@@ -47,6 +48,21 @@ public abstract class TablistManager {
             HypixelGenericLoader.getLoadedPlayers().forEach(player -> {
                 PlayerTabCache cache = tablistEntries.computeIfAbsent(player, ignored -> new PlayerTabCache());
 
+                List<TablistModule.TablistEntry> entries = new ArrayList<>();
+                for (TablistModule module : getModules()) {
+                    try {
+                        entries.addAll(module.getEntries(player));
+                    } catch (Exception exception) {
+                        org.tinylog.Logger.error(exception, "Failed to build tablist entries for {}",
+                                module.getClass().getSimpleName());
+                    }
+                }
+
+                if (!entriesChanged(entries, cache.lastEntries)) {
+                    return;
+                }
+                cache.lastEntries = List.copyOf(entries);
+
                 if (!cache.tabEntries.isEmpty()) {
                     player.sendPacket(new PlayerInfoRemovePacket(cache.tabEntries));
                 }
@@ -54,65 +70,63 @@ public abstract class TablistManager {
 
                 AtomicInteger slot = new AtomicInteger(0);
 
-                getModules().forEach(module -> {
-                    try {
-                        List<TablistModule.TablistEntry> entries = module.getEntries(player);
+                entries.forEach(entry -> {
+                    int slotIndex = slot.getAndIncrement();
+                    String teamName = getTeamName(slotIndex);
+                    String fakeProfileName = getFakeProfileName(slotIndex);
 
-                        entries.forEach(entry -> {
-                            int slotIndex = slot.getAndIncrement();
-                            String teamName = getTeamName(slotIndex);
-                            String fakeProfileName = getFakeProfileName(slotIndex);
+                    List<PlayerInfoUpdatePacket.Property> properties = new ArrayList<>();
+                    TablistSkin skin = entry.registry();
+                    properties.add(new PlayerInfoUpdatePacket.Property(
+                        "textures",
+                        skin.getTexture(),
+                        skin.getSignature()));
 
-                            List<PlayerInfoUpdatePacket.Property> properties = new ArrayList<>();
-                            TablistSkin skin = entry.registry();
-                            properties.add(new PlayerInfoUpdatePacket.Property(
-                                "textures",
-                                skin.getTexture(),
-                                skin.getSignature()));
+                    if (cache.createdTeams.add(teamName)) {
+                        TeamsPacket teamPacket = new TeamsPacket(teamName, new TeamsPacket.CreateTeamAction(
+                                new TeamsPacket.Settings(
+                                        Component.text(teamName),
+                                        Component.text(teamName),
+                                        Component.empty(),
+                                        TeamsPacket.NameTagVisibility.ALWAYS,
+                                        TeamsPacket.CollisionRule.ALWAYS,
+                                        TeamColor.RED,
+                                        (byte) 0x01
+                                ),
+                            new ArrayList<>(Collections.singletonList(fakeProfileName))
+                        ));
 
-                            if (cache.createdTeams.add(teamName)) {
-                                TeamsPacket teamPacket = new TeamsPacket(teamName, new TeamsPacket.CreateTeamAction(
-                                        new TeamsPacket.Settings(
-                                                Component.text(teamName),
-                                                Component.text(teamName),
-                                                Component.empty(),
-                                                TeamsPacket.NameTagVisibility.ALWAYS,
-                                                TeamsPacket.CollisionRule.ALWAYS,
-                                                TeamColor.RED,
-                                                (byte) 0x01
-                                        ),
-                                    new ArrayList<>(Collections.singletonList(fakeProfileName))
-                                ));
-
-                                player.sendPacket(teamPacket);
-                            }
-
-                            UUID uuid = UUID.nameUUIDFromBytes((player.getUuid() + "#tab#" + slotIndex)
-                                .getBytes(StandardCharsets.UTF_8));
-                            cache.tabEntries.add(uuid);
-
-                            player.sendPackets(
-                                new PlayerInfoUpdatePacket(EnumSet.of(
-                                    PlayerInfoUpdatePacket.Action.ADD_PLAYER,
-                                    PlayerInfoUpdatePacket.Action.UPDATE_DISPLAY_NAME,
-                                    PlayerInfoUpdatePacket.Action.UPDATE_LISTED
-                                ), Collections.singletonList(new PlayerInfoUpdatePacket.Entry(
-                                    uuid,
-                                    fakeProfileName,
-                                    properties,
-                                    true,
-                                    0,
-                                    GameMode.CREATIVE,
-                                        HypixelTextRenderer.render(entry.content().asComponent(), RenderContext.of(player)),
-                                    null,
-                                    1, true)))
-                            );
-                        });
-                    } catch (Exception _) {
+                        player.sendPacket(teamPacket);
                     }
+
+                    UUID uuid = UUID.nameUUIDFromBytes((player.getUuid() + "#tab#" + slotIndex)
+                        .getBytes(StandardCharsets.UTF_8));
+                    cache.tabEntries.add(uuid);
+
+                    player.sendPackets(
+                        new PlayerInfoUpdatePacket(EnumSet.of(
+                            PlayerInfoUpdatePacket.Action.ADD_PLAYER,
+                            PlayerInfoUpdatePacket.Action.UPDATE_DISPLAY_NAME,
+                            PlayerInfoUpdatePacket.Action.UPDATE_LISTED
+                        ), Collections.singletonList(new PlayerInfoUpdatePacket.Entry(
+                            uuid,
+                            fakeProfileName,
+                            properties,
+                            true,
+                            0,
+                            GameMode.CREATIVE,
+                                HypixelTextRenderer.render(entry.content().asComponent(), RenderContext.of(player)),
+                            null,
+                            1, true)))
+                    );
                 });
             });
         }, TaskSchedule.seconds(5), TaskSchedule.seconds(3), ExecutionType.TICK_END);
+    }
+
+    static boolean entriesChanged(List<TablistModule.TablistEntry> current,
+                                  List<TablistModule.TablistEntry> previous) {
+        return !current.equals(previous);
     }
 
     private static String getTeamName(int slotIndex) {

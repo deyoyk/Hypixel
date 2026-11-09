@@ -1,6 +1,7 @@
 package com.deyo.hypixel.type.generic.entity.npc;
 
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.attribute.Attribute;
 
@@ -85,7 +86,22 @@ public final class NPCMovementController {
 
         try {
             if (!entity.getInstance().isChunkLoaded(target)) {
-                entity.getInstance().loadChunk(target).join();
+                entity.getInstance().loadChunk(target)
+                        .thenRun(() -> MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+                            synchronized (NPCMovementController.this) {
+                                moveToNextWaypoint(id);
+                            }
+                        }))
+                        .exceptionally(throwable -> {
+                            MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+                                synchronized (NPCMovementController.this) {
+                                    failMovement(new IllegalStateException(
+                                            "Failed to load NPC waypoint chunk " + target, throwable));
+                                }
+                            });
+                            return null;
+                        });
+                return;
             }
 
             AtomicBoolean callbackRan = new AtomicBoolean();

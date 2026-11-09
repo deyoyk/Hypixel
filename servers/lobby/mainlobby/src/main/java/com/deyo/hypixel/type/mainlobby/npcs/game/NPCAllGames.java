@@ -1,11 +1,18 @@
 package com.deyo.hypixel.type.mainlobby.npcs.game;
 
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.entity.EquipmentSlot;
+import net.minestom.server.item.ItemStack;
+import net.minestom.server.item.Material;
+import com.deyo.hypixel.commons.StringUtility;
 import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
 import com.deyo.hypixel.type.generic.entity.npc.configuration.HumanConfiguration;
 import com.deyo.hypixel.type.generic.event.custom.NPCInteractEvent;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.generic.utility.NetworkCountCache;
 import com.deyo.hypixel.type.lobby.gui.GUIGameMenu;
+
+import java.util.Map;
 
 public class NPCAllGames extends HypixelNPC {
 
@@ -13,7 +20,12 @@ public class NPCAllGames extends HypixelNPC {
         super(new HumanConfiguration() {
             @Override
             public String[] holograms(HypixelPlayer player) {
-                return new String[]{"<b>All Games", "<e>? Playing"}; // TODO: network player count
+                return new String[]{"<b>All Games", "<e>" + StringUtility.commaify(NetworkCountCache.getPlayerCount()) + " Playing"};
+            }
+
+            @Override
+            public Map<EquipmentSlot, ItemStack> equipment(HypixelPlayer player) {
+                return Map.of(EquipmentSlot.MAIN_HAND, ItemStack.of(Material.COMPASS));
             }
 
             @Override
@@ -30,8 +42,6 @@ public class NPCAllGames extends HypixelNPC {
             public Pos position(HypixelPlayer player) {
                 return new Pos(-29.5, 93, 18.5, 139, 0);
             }
-
-            // TODO: compass in hand
         });
     }
 

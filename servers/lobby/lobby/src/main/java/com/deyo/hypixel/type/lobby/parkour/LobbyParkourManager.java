@@ -17,19 +17,17 @@ import com.deyo.hypixel.type.lobby.item.impl.ResetParkour;
 import org.tinylog.Logger;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-
 @Getter
 @AllArgsConstructor
 public class LobbyParkourManager {
 
 	private final Parkour parkour;
 	private final Map<UUID, RunData> perPlayerStartTime = new ConcurrentHashMap<>();
-	private static final Map<UUID, HologramCache> perPlayerHolo = new HashMap<>();
+	private static final Map<UUID, HologramCache> perPlayerHolo = new ConcurrentHashMap<>();
 
 	public void updateForPlayer(Instance instance, HypixelPlayer player) {
 		List<Point> checkpoints = parkour.getCheckpoints();
@@ -233,8 +231,8 @@ public class LobbyParkourManager {
 		startParkour(player);
 	}
 
-	public static void removePlayerHolograms(HypixelPlayer player) {
-		HologramCache cache = perPlayerHolo.remove(player.getUuid());
+	public static void removePlayerHolograms(UUID playerUuid) {
+		HologramCache cache = perPlayerHolo.remove(playerUuid);
 		if (cache != null) {
 			for (PlayerHolograms.ExternalPlayerHologram holo : cache.getHolograms()) {
 				PlayerHolograms.removeExternalPlayerHologram(holo);

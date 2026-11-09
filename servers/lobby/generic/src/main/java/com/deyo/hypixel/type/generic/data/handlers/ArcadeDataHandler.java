@@ -14,11 +14,12 @@ import tools.jackson.core.JacksonException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 public class ArcadeDataHandler extends DataHandler implements GameDataHandler {
-    public static final Map<UUID, ArcadeDataHandler> arcadeCache = new HashMap<>();
+    public static final Map<UUID, ArcadeDataHandler> arcadeCache = new ConcurrentHashMap<>();
 
     public ArcadeDataHandler() {
         super();

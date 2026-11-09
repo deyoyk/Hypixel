@@ -121,16 +121,16 @@ public class GuildManager {
     }
 
     public static void mutePlayer(HypixelPlayer muter, String target, long duration) {
-        String resolvedTarget = resolveTarget(muter, target);
-        if (resolvedTarget == null) return;
-        GuildMuteRequestEvent event = new GuildMuteRequestEvent(muter.getUuid(), resolvedTarget, duration);
+        ResolvedTarget resolvedTarget = resolveTarget(muter, target);
+        if (!resolvedTarget.valid()) return;
+        GuildMuteRequestEvent event = new GuildMuteRequestEvent(muter.getUuid(), resolvedTarget.uuid(), duration);
         sendEventToService(event);
     }
 
     public static void unmutePlayer(HypixelPlayer unmuter, String target) {
-        String resolvedTarget = resolveTarget(unmuter, target);
-        if (resolvedTarget == null) return;
-        GuildUnmuteRequestEvent event = new GuildUnmuteRequestEvent(unmuter.getUuid(), resolvedTarget);
+        ResolvedTarget resolvedTarget = resolveTarget(unmuter, target);
+        if (!resolvedTarget.valid()) return;
+        GuildUnmuteRequestEvent event = new GuildUnmuteRequestEvent(unmuter.getUuid(), resolvedTarget.uuid());
         sendEventToService(event);
     }
 
@@ -144,7 +144,6 @@ public class GuildManager {
         sendEventToService(event);
     }
 
-    // TODO: make less stupid
     public static void recordProgress(HypixelPlayer player, long gexp, boolean win) {
         sendEventToService(new GuildProgressRequestEvent(player.getUuid(), gexp, win));
     }
@@ -163,13 +162,16 @@ public class GuildManager {
         player.sendMessage("<sep>");
     }
 
-    private static @Nullable String resolveTarget(HypixelPlayer player, String target) {
-        if (target.equalsIgnoreCase("everyone")) return "everyone";
+    private record ResolvedTarget(boolean valid, UUID uuid) {
+    }
+
+    private static ResolvedTarget resolveTarget(HypixelPlayer player, String target) {
+        if (target.equalsIgnoreCase("everyone")) return new ResolvedTarget(true, null);
         UUID targetUUID = HypixelDataHandler.getPotentialUUIDFromName(target);
         if (targetUUID == null) {
             sendError(player, "<c>Couldn't find a player with that name!");
-            return null;
+            return new ResolvedTarget(false, null);
         }
-        return targetUUID.toString();
+        return new ResolvedTarget(true, targetUUID);
     }
 }

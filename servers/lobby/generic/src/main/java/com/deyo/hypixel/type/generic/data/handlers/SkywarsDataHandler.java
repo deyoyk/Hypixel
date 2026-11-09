@@ -22,11 +22,12 @@ import tools.jackson.core.JacksonException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 public class SkywarsDataHandler extends DataHandler implements GameDataHandler {
-    public static final Map<UUID, SkywarsDataHandler> skywarsCache = new HashMap<>();
+    public static final Map<UUID, SkywarsDataHandler> skywarsCache = new ConcurrentHashMap<>();
 
     public SkywarsDataHandler() { super(); }
     public SkywarsDataHandler(UUID uuid) { super(uuid); }

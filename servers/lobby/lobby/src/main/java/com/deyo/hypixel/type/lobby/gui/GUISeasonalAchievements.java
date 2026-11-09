@@ -65,6 +65,11 @@ public class GUISeasonalAchievements extends HypixelInventoryGUI {
         this.category = category;
     }
 
+    public GUISeasonalAchievements() {
+        super(Text.literal("Seasonal Achievements"), InventoryType.CHEST_6_ROW);
+        this.category = null;
+    }
+
     @Override
     public void onOpen(InventoryGUIOpenEvent e) {
         HypixelPlayer player = e.player();
@@ -78,10 +83,26 @@ public class GUISeasonalAchievements extends HypixelInventoryGUI {
                 .filter(a -> handler.hasAchievement(a.getId()))
                 .count();
 
-        int totalUnlocked = handler.getUnlockedCount(category);
-        int totalAchievements = AchievementRegistry.getByCategory(category).size();
-        int totalPoints = handler.getTotalPoints(category);
-        int maxPoints = AchievementRegistry.getTotalPoints(category);
+        int totalUnlocked;
+        int totalAchievements;
+        int totalPoints;
+        int maxPoints;
+        if (category == null) {
+            totalAchievements = totalCount;
+            totalUnlocked = unlockedCount;
+            totalPoints = seasonalAchievements.stream()
+                    .filter(a -> handler.hasAchievement(a.getId()))
+                    .mapToInt(AchievementDefinition::getTotalPoints)
+                    .sum();
+            maxPoints = seasonalAchievements.stream()
+                    .mapToInt(AchievementDefinition::getTotalPoints)
+                    .sum();
+        } else {
+            totalUnlocked = handler.getUnlockedCount(category);
+            totalAchievements = AchievementRegistry.getByCategory(category).size();
+            totalPoints = handler.getTotalPoints(category);
+            maxPoints = AchievementRegistry.getTotalPoints(category);
+        }
         double unlockedPercent = totalAchievements > 0 ? (totalUnlocked * 100.0 / totalAchievements) : 0;
         double pointsPercent = maxPoints > 0 ? (totalPoints * 100.0 / maxPoints) : 0;
 
@@ -118,27 +139,38 @@ public class GUISeasonalAchievements extends HypixelInventoryGUI {
         set(new GUIClickableItem(48) {
             @Override
             public ItemStack.Builder getItem(HypixelPlayer player) {
+                String target = category == null ? "Achievements" : category.getDisplayName() + " Achievements";
                 return ItemStacks.item(Material.ARROW, """
                         <a>Go Back
-                        <7>To {} Achievements""", category.getDisplayName());
+                        <7>To {}""", target);
             }
 
             @Override
             public void run(InventoryPreClickEvent e, HypixelPlayer player) {
-                new GUIGameAchievements(category).open(player);
+                if (category == null) {
+                    new GUIAchievementsMenu().open(player);
+                } else {
+                    new GUIGameAchievements(category).open(player);
+                }
             }
         });
 
         set(new GUIItem(49) {
             @Override
             public ItemStack.Builder getItem(HypixelPlayer player) {
-                return ItemStacks.of(category.getMaterial(), 1, """
+                String name = category == null ? "Seasonal" : category.getDisplayName();
+                String textBlock = """
                         <a>Total Completion
                         <8>{}
                         <7>Unlocked: <b>{}<7>/<b>{} <8>({}%)
-                        <7>Points: <e>{}<7>/<e>{} <8>({}%)""",
-                        category.getDisplayName(),
-                        totalUnlocked, totalAchievements, (int) unlockedPercent,
+                        <7>Points: <e>{}<7>/<e>{} <8>({}%)""";
+                if (category == null) {
+                    return ItemStacks.item(Material.MAGMA_CREAM, 1, textBlock,
+                            name, totalUnlocked, totalAchievements, (int) unlockedPercent,
+                            totalPoints, maxPoints, (int) pointsPercent);
+                }
+                return ItemStacks.of(category.getMaterial(), 1, textBlock,
+                        name, totalUnlocked, totalAchievements, (int) unlockedPercent,
                         totalPoints, maxPoints, (int) pointsPercent);
             }
         });
@@ -199,9 +231,9 @@ public class GUISeasonalAchievements extends HypixelInventoryGUI {
     }
 
     private List<AchievementDefinition> getFilteredAchievements() {
-        return AchievementRegistry.getByCategory(category).stream()
-                .filter(a -> a.getType() == AchievementType.SEASONAL)
-                .collect(Collectors.toList());
+        return category == null
+                ? AchievementRegistry.getSeasonalAchievements()
+                : AchievementRegistry.getSeasonalAchievements(category);
     }
 
     private List<AchievementDefinition> sortAchievements(List<AchievementDefinition> achievements, PlayerAchievementHandler handler) {

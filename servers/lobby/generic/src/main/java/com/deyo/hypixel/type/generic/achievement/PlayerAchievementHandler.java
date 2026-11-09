@@ -2,6 +2,7 @@ package com.deyo.hypixel.type.generic.achievement;
 
 import lombok.RequiredArgsConstructor;
 import com.deyo.hypixel.commons.text.Text;
+import com.deyo.hypixel.type.generic.HypixelConst;
 import com.deyo.hypixel.type.generic.data.HypixelDataHandler;
 import com.deyo.hypixel.type.generic.data.datapoints.DatapointAchievementData;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
@@ -156,7 +157,6 @@ public class PlayerAchievementHandler {
             tierText = " " + toRoman(progress.getCurrentTier());
         }
 
-        // TODO: make this actually clickable to open the achievements menu
         Text tierHover = Text.of("""
                 <a>{}{}
                 <7>{}
@@ -167,12 +167,19 @@ public class PlayerAchievementHandler {
                 <e>Click to open achievements menu!""",
                 def.getName(), tierText, def.getDescription());
 
-        player.sendMessage("<e><k>A</k><a>>>   Achievement Unlocked: <6><hover:'{0}'>{1}{2}</hover><a>   \\<\\<<e><k>A",
+        player.sendMessage(achievementMessageFormat(HypixelConst.getTypeLoader().supportsAchievementsMenu()),
                 tierHover, def.getName(), tierText);
 
         player.playSound(net.kyori.adventure.sound.Sound.sound(
                 net.minestom.server.sound.SoundEvent.ENTITY_PLAYER_LEVELUP,
                 net.kyori.adventure.sound.Sound.Source.MASTER, 1.0f, 1.0f));
+    }
+
+    static String achievementMessageFormat(boolean supportsMenu) {
+        String clickStart = supportsMenu ? "<click:run:'/achievements'>" : "";
+        String clickEnd = supportsMenu ? "</click>" : "";
+        return "<e><k>A</k><a>>>   Achievement Unlocked: <6><hover:'{0}'>"
+                + clickStart + "{1}{2}" + clickEnd + "</hover><a>   \\<\\<<e><k>A";
     }
 
     private String toRoman(int tier) {

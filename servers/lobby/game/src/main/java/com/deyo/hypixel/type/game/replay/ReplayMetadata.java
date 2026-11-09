@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import com.deyo.hypixel.commons.ServerType;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,19 @@ public class ReplayMetadata {
 	private double mapCenterX;
 	private double mapCenterZ;
 	private long dataSize;
+
+	public @Nullable String getTeamId(UUID playerUuid) {
+		if (teams == null || playerUuid == null) {
+			return null;
+		}
+		for (Map.Entry<String, List<UUID>> entry : teams.entrySet()) {
+			List<UUID> members = entry.getValue();
+			if (members != null && members.contains(playerUuid)) {
+				return entry.getKey();
+			}
+		}
+		return null;
+	}
 
 	public record TeamInfo(
 		String name,

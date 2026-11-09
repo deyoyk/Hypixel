@@ -60,5 +60,13 @@ dependencies {
 
     implementation(libs.adventure.text.minimessage)
 
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
+    testImplementation(libs.minestom)
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 

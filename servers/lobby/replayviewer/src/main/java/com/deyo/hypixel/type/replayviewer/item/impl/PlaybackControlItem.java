@@ -19,7 +19,7 @@ public class PlaybackControlItem extends ReplayItem {
 
     @Override
     public ItemStack getBlandItem() {
-        return null;
+        return ItemStacks.named(Material.MAGENTA_DYE, "<a>Click to Pause").build();
     }
 
     @Override

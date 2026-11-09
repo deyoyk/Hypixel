@@ -26,6 +26,18 @@ public abstract class PaginatedView<T, S extends PaginatedView.PaginatedState<T>
 
     protected static final ItemStack.Builder FILLER = ItemStacks.filler(Material.BLACK_STAINED_GLASS_PANE);
 
+    public record PageSlice(int page, int totalPages, int startIndex, int endIndex) {
+    }
+
+    static PageSlice pageBounds(int itemCount, int pageSize, int requestedPage) {
+        pageSize = Math.max(1, pageSize);
+        int totalPages = Math.max(1, (itemCount + pageSize - 1) / pageSize);
+        int currentPage = Math.min(Math.max(0, requestedPage), totalPages - 1);
+        int startIndex = currentPage * pageSize;
+        int endIndex = Math.min(startIndex + pageSize, itemCount);
+        return new PageSlice(currentPage, totalPages, startIndex, endIndex);
+    }
+
     public interface PaginatedState<T> {
         List<T> items();
 
@@ -39,30 +51,27 @@ public abstract class PaginatedView<T, S extends PaginatedView.PaginatedState<T>
     @Override
     public void layout(ViewLayout<S> layout, S state, ViewContext ctx) {
         layoutBackground(layout, state, ctx);
-        List<T> filteredItems = getFilteredItems(state);
+        List<T> filteredItems = getFilteredItems(state, ctx);
         int[] slots = getPaginatedSlots();
-        int itemsPerPage = slots.length;
-        int totalPages = Math.max(1, (int) Math.ceil((double) filteredItems.size() / itemsPerPage));
-        int currentPage = Math.min(state.page(), totalPages - 1);
+        PageSlice page = pageBounds(filteredItems.size(), slots.length, state.page());
 
-        // Calculate page boundaries
-        int startIndex = currentPage * itemsPerPage;
-        int endIndex = Math.min(startIndex + itemsPerPage, filteredItems.size());
-        List<T> pageItems = startIndex < filteredItems.size() ? filteredItems.subList(startIndex, endIndex) : List.of();
+        List<T> pageItems = page.startIndex() < filteredItems.size()
+                ? filteredItems.subList(page.startIndex(), page.endIndex())
+                : List.of();
 
         // Render paginated items
         for (int i = 0; i < slots.length; i++) {
             int slot = slots[i];
             if (i < pageItems.size()) {
                 T item = pageItems.get(i);
-                int itemIndex = startIndex + i;
+                int itemIndex = page.startIndex() + i;
                 layout.slot(slot, (s, c) -> renderItem(item, itemIndex, ctx.player()), (click, viewCtx) -> onItemClick(click, viewCtx, item, itemIndex));
             } else {
                 layout.slot(slot, (s, c) -> ItemStack.AIR.builder());
             }
         }
 
-        layoutNavigation(layout, state, ctx, currentPage, totalPages);
+        layoutNavigation(layout, state, ctx, page.page(), page.totalPages());
         layoutCustom(layout, state, ctx);
     }
 
@@ -72,6 +81,10 @@ public abstract class PaginatedView<T, S extends PaginatedView.PaginatedState<T>
 
     protected List<T> getFilteredItems(S state) {
         return state.items().stream().filter(item -> !shouldFilterFromSearch(state, item)).toList();
+    }
+
+    protected List<T> getFilteredItems(S state, ViewContext ctx) {
+        return getFilteredItems(state);
     }
 
     protected void layoutBackground(ViewLayout<S> layout, S state, ViewContext ctx) {

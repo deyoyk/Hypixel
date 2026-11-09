@@ -6,13 +6,13 @@ import com.deyo.hypixel.commons.redis.RedisMessageContext;
 import com.deyo.hypixel.commons.protocol.RedisProtocol;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TypedViewReplayHandler implements RedisMessageHandler<ViewReplayPushProtocol.Request, ViewReplayPushProtocol.Response> {
-    public static Map<UUID, String> replay = new HashMap<>();
-    public static Map<UUID, String> shareCode = new HashMap<>();
+    private static final Map<UUID, String> replay = new ConcurrentHashMap<>();
+    private static final Map<UUID, String> shareCode = new ConcurrentHashMap<>();
 
     private static final ViewReplayPushProtocol PROTOCOL = new ViewReplayPushProtocol();
 
@@ -37,5 +37,10 @@ public class TypedViewReplayHandler implements RedisMessageHandler<ViewReplayPus
     @Nullable
     public static String getAndRemoveShareCode(UUID uuid) {
         return shareCode.remove(uuid);
+    }
+
+    @Nullable
+    public static String getAndRemoveReplay(UUID uuid) {
+        return replay.remove(uuid);
     }
 }

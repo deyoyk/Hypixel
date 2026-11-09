@@ -6,7 +6,7 @@ import net.minestom.server.item.Material;
 import com.deyo.hypixel.commons.ServerType;
 import com.deyo.hypixel.commons.text.Text;
 import com.deyo.hypixel.type.generic.gui.inventory.ItemStacks;
-import com.deyo.hypixel.type.lobby.ServerInfoCache;
+import com.deyo.hypixel.type.generic.utility.ServerInfoCache;
 
 import java.util.Arrays;
 import java.util.List;

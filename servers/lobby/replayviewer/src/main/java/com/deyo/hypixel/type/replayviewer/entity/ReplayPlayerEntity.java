@@ -7,9 +7,11 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
+import net.minestom.server.entity.EntityPose;
 import net.minestom.server.entity.EntityType;
 import net.minestom.server.entity.EquipmentSlot;
 import net.minestom.server.entity.GameMode;
+import net.minestom.server.entity.attribute.Attribute;
 import net.minestom.server.entity.LivingEntity;
 import net.minestom.server.entity.Metadata;
 import net.minestom.server.entity.MetadataDef;
@@ -45,6 +47,8 @@ public class ReplayPlayerEntity extends LivingEntity {
     @Setter
     private int belowScore = 0;
     private final int internalId;
+    @Getter
+    private boolean dead;
 
     public ReplayPlayerEntity(String playerName,
                               String textureValue, String textureSignature, UUID actualUuid, int internalId) {
@@ -93,7 +97,9 @@ public class ReplayPlayerEntity extends LivingEntity {
             new EntityHeadLookPacket(getEntityId(), getPosition().yaw()),
             new EntityMetaDataPacket(getEntityId(), Map.of(
                 MetadataDef.Avatar.DISPLAYED_MODEL_PARTS_FLAGS.index(),
-                Metadata.Byte((byte) 127) // 127 is all parts
+                Metadata.Byte((byte) 127), // 127 is all parts
+                MetadataDef.LivingEntity.HEALTH.index(),
+                Metadata.Float(dead ? 0f : getHealth())
             ))
         );
 
@@ -125,6 +131,20 @@ public class ReplayPlayerEntity extends LivingEntity {
             0,
             getPosition()
         ));
+    }
+
+    public void setDead(boolean dead) {
+        if (this.dead == dead) return;
+        this.dead = dead;
+
+        setPose(dead ? EntityPose.DYING : EntityPose.STANDING);
+        if (!dead) {
+            setHealth((float) getAttributeValue(Attribute.MAX_HEALTH));
+        }
+        sendPacketToViewersAndSelf(new EntityMetaDataPacket(getEntityId(), Map.of(
+            MetadataDef.LivingEntity.HEALTH.index(),
+            Metadata.Float(dead ? 0f : getHealth())
+        )));
     }
 
     public void updateSkin(String textureValue, String textureSignature) {

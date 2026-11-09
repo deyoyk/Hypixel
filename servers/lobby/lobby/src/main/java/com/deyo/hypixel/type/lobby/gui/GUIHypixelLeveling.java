@@ -116,7 +116,7 @@ public class GUIHypixelLeveling extends HypixelInventoryGUI {
             @Override
             public void run(InventoryPreClickEvent e, HypixelPlayer player) {
                 if (currentLevel >= 100) {
-                    player.sendMessage("<6>Veteran Rewards coming soon!");
+                    new GUIVeteranRewards().open(player);
                 } else {
                     player.sendMessage("<c>You must be Hypixel Level 100 or higher!");
                 }
@@ -261,7 +261,7 @@ public class GUIHypixelLeveling extends HypixelInventoryGUI {
         };
     }
 
-    private Text formatSpecialReward(String reward) {
+    static Text formatSpecialReward(String reward) {
         return switch (reward) {
             case "rankcolor_yellow" -> Text.of("Yellow <e>+ <7>option for <b>[MVP<c>+<b>]");
             case "rankcolor_light_purple" -> Text.of("Light Purple <d>+ <7>option for <b>[MVP<c>+<b>]");

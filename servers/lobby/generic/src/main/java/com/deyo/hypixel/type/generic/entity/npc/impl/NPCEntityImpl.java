@@ -119,7 +119,7 @@ public class NPCEntityImpl extends EntityCreature implements NPCViewable {
         }
 
         if (!instance.isChunkLoaded(position)) {
-            instance.loadChunk(position).join();
+            return;
         }
 
         super.tick(time);

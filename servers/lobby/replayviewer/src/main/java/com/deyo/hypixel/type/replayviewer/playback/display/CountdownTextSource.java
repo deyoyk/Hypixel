@@ -1,5 +1,6 @@
 package com.deyo.hypixel.type.replayviewer.playback.display;
 
+import com.deyo.hypixel.commons.StringUtility;
 import com.deyo.hypixel.commons.text.Text;
 
 import java.util.ArrayList;
@@ -42,7 +43,7 @@ public class CountdownTextSource implements DynamicTextSource {
 
         List<String> result = new ArrayList<>();
         result.add(Text.of("<e>{}", eventName).serialize());
-        result.add(Text.of("<7>in <f>{}", formatTime(remainingSeconds)).serialize());
+        result.add(Text.of("<7>in <f>{}", StringUtility.formatSeconds(remainingSeconds)).serialize());
 
         return result;
     }
@@ -58,11 +59,5 @@ public class CountdownTextSource implements DynamicTextSource {
     @Override
     public boolean isActiveAt(int currentTick) {
         return currentTick >= startTick;
-    }
-
-    private String formatTime(int totalSeconds) {
-        int minutes = totalSeconds / 60;
-        int seconds = totalSeconds % 60;
-        return String.format("%d:%02d", minutes, seconds);
     }
 }

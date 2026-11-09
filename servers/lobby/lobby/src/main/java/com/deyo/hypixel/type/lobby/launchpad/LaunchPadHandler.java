@@ -67,15 +67,32 @@ public class LaunchPadHandler {
         if (instance == null) return new ArrayList<>();
         List<Pos> toReturn = new ArrayList<>();
 
+        int minChunkX = (pos.blockX() - 5) >> 4;
+        int maxChunkX = (pos.blockX() + 5) >> 4;
+        int minChunkZ = (pos.blockZ() - 5) >> 4;
+        int maxChunkZ = (pos.blockZ() + 5) >> 4;
+        List<java.util.concurrent.CompletableFuture<net.minestom.server.instance.Chunk>> loads = new ArrayList<>();
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                if (instance.getChunk(chunkX, chunkZ) == null) {
+                    loads.add(instance.loadChunk(chunkX, chunkZ));
+                }
+            }
+        }
+        if (!loads.isEmpty()) {
+            java.util.concurrent.CompletableFuture.allOf(
+                    loads.toArray(java.util.concurrent.CompletableFuture[]::new)).join();
+        }
+
         for (int x = -5; x <= 5; x++) {
             for (int z = -5; z <= 5; z++) {
                 for (int y = -5; y <= 5; y++) {
                     Pos check = new Pos(pos.x() + x, pos.y() + y, pos.z() + z);
-                    instance.loadChunk(check).join();
+                    Block block = instance.getBlock(check);
 
-                    if (instance.getBlock(check) == Block.SLIME_BLOCK)
+                    if (block == Block.SLIME_BLOCK)
                         toReturn.add(check);
-                    if (instance.getBlock(check) == Block.BARRIER)
+                    if (block == Block.BARRIER)
                         instance.setBlock(check, Block.AIR);
                 }
             }

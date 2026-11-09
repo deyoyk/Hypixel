@@ -14,7 +14,7 @@ import com.deyo.hypixel.type.generic.gui.v2.StatelessView;
 import com.deyo.hypixel.type.generic.gui.v2.ViewConfiguration;
 import com.deyo.hypixel.type.generic.gui.v2.ViewLayout;
 import com.deyo.hypixel.type.generic.gui.v2.context.ViewContext;
-import com.deyo.hypixel.type.lobby.ServerInfoCache;
+import com.deyo.hypixel.type.generic.utility.ServerInfoCache;
 import com.deyo.hypixel.type.lobby.game.GameType;
 
 import java.util.ArrayList;

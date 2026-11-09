@@ -1,11 +1,18 @@
 package com.deyo.hypixel.type.mainlobby.npcs.game;
 
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.entity.EquipmentSlot;
+import net.minestom.server.item.ItemStack;
+import net.minestom.server.item.Material;
 import com.deyo.hypixel.commons.ServerType;
+import com.deyo.hypixel.commons.StringUtility;
 import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
 import com.deyo.hypixel.type.generic.entity.npc.configuration.HumanConfiguration;
 import com.deyo.hypixel.type.generic.event.custom.NPCInteractEvent;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.generic.utility.ServerInfoCache;
+
+import java.util.Map;
 
 public class NPCMurderMystery extends HypixelNPC {
 
@@ -13,7 +20,14 @@ public class NPCMurderMystery extends HypixelNPC {
         super(new HumanConfiguration() {
             @Override
             public String[] holograms(HypixelPlayer player) {
-                return new String[]{"<e><l>CLICK TO PLAY", "<b>Murder Mystery", "<e>? Playing"};
+                int online = ServerInfoCache.getTotalPlayersForType(ServerType.MURDER_MYSTERY_GAME)
+                        + ServerInfoCache.getTotalPlayersForType(ServerType.MURDER_MYSTERY_LOBBY);
+                return new String[]{"<e><l>CLICK TO PLAY", "<b>Murder Mystery", "<e>" + StringUtility.commaify(online) + " Playing"};
+            }
+
+            @Override
+            public Map<EquipmentSlot, ItemStack> equipment(HypixelPlayer player) {
+                return Map.of(EquipmentSlot.MAIN_HAND, ItemStack.of(Material.BOW));
             }
 
             @Override
@@ -30,8 +44,6 @@ public class NPCMurderMystery extends HypixelNPC {
             public Pos position(HypixelPlayer player) {
                 return new Pos(-29.5, 93, -17.5, 39, 0);
             }
-
-            // TODO: holding bow
         });
     }
 

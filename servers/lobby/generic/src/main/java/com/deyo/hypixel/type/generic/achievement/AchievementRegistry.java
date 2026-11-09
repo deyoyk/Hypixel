@@ -155,6 +155,22 @@ public class AchievementRegistry {
                 .collect(Collectors.toList());
     }
 
+    public static List<AchievementDefinition> getSeasonalAchievements() {
+        return filterSeasonal(ACHIEVEMENTS.values(), null);
+    }
+
+    public static List<AchievementDefinition> getSeasonalAchievements(AchievementCategory category) {
+        return filterSeasonal(ACHIEVEMENTS.values(), category);
+    }
+
+    static List<AchievementDefinition> filterSeasonal(Collection<AchievementDefinition> definitions,
+                                                       AchievementCategory category) {
+        return definitions.stream()
+                .filter(a -> a.getType() == AchievementType.SEASONAL)
+                .filter(a -> category == null || a.getCategory() == category)
+                .collect(Collectors.toList());
+    }
+
     public static List<AchievementDefinition> getPerGameAchievements(String trigger) {
         return getByTrigger(trigger).stream()
                 .filter(AchievementDefinition::isPerGame)

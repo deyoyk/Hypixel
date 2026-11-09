@@ -154,7 +154,7 @@ public record HypixelGenericLoader(HypixelTypeLoader loader) {
                 loader.headerFooter().ifPresentOrElse(headerFooter -> {
                     Audiences.players().sendPlayerListHeaderAndFooter(headerFooter.getKey(), headerFooter.getValue());
                 }, () -> {
-                    final long ramUsage = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory() / (long) 1e6; // bytes to MB
+                    final long ramUsage = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1_000_000L; // bytes to MB
                     final TickMonitor tickMonitor = LAST_TICK.get();
                     final double TPS = 1000 / tickMonitor.getTickTime();
 

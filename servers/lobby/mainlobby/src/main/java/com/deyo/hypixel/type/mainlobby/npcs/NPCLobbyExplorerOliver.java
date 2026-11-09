@@ -1,10 +1,13 @@
 package com.deyo.hypixel.type.mainlobby.npcs;
 
 import net.minestom.server.coordinate.Pos;
+import com.deyo.hypixel.commons.StringUtility;
+import com.deyo.hypixel.type.generic.HypixelConst;
 import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
 import com.deyo.hypixel.type.generic.entity.npc.configuration.HumanConfiguration;
 import com.deyo.hypixel.type.generic.event.custom.NPCInteractEvent;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.lobby.gui.GUILobbySelector;
 
 public class NPCLobbyExplorerOliver extends HypixelNPC {
 
@@ -39,6 +42,7 @@ public class NPCLobbyExplorerOliver extends HypixelNPC {
 
     @Override
     public void onClick(NPCInteractEvent event) {
-        event.player().notImplemented();
+        var serverType = HypixelConst.getTypeLoader().getType();
+        event.player().openView(new GUILobbySelector(serverType, StringUtility.toNormalCase(serverType.name())));
     }
 }

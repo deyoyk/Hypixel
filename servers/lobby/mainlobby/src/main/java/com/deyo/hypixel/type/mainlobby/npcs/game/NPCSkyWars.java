@@ -1,11 +1,18 @@
 package com.deyo.hypixel.type.mainlobby.npcs.game;
 
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.entity.EquipmentSlot;
+import net.minestom.server.item.ItemStack;
+import net.minestom.server.item.Material;
 import com.deyo.hypixel.commons.ServerType;
+import com.deyo.hypixel.commons.StringUtility;
 import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
 import com.deyo.hypixel.type.generic.entity.npc.configuration.HumanConfiguration;
 import com.deyo.hypixel.type.generic.event.custom.NPCInteractEvent;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.generic.utility.ServerInfoCache;
+
+import java.util.Map;
 
 public class NPCSkyWars extends HypixelNPC {
 
@@ -13,7 +20,14 @@ public class NPCSkyWars extends HypixelNPC {
         super(new HumanConfiguration() {
             @Override
             public String[] holograms(HypixelPlayer player) {
-                return new String[]{"<e><l>CLICK TO PLAY", "<b>SkyWars", "<e>? Playing"};
+                int online = ServerInfoCache.getTotalPlayersForType(ServerType.SKYWARS_GAME)
+                        + ServerInfoCache.getTotalPlayersForType(ServerType.SKYWARS_LOBBY);
+                return new String[]{"<e><l>CLICK TO PLAY", "<b>SkyWars", "<e>" + StringUtility.commaify(online) + " Playing"};
+            }
+
+            @Override
+            public Map<EquipmentSlot, ItemStack> equipment(HypixelPlayer player) {
+                return Map.of(EquipmentSlot.MAIN_HAND, ItemStack.of(Material.DIAMOND_SWORD));
             }
 
             @Override
@@ -30,8 +44,6 @@ public class NPCSkyWars extends HypixelNPC {
             public Pos position(HypixelPlayer player) {
                 return new Pos(-26.5, 93, 10.5, 118, 0);
             }
-
-            // TODO: holding item
         });
     }
 

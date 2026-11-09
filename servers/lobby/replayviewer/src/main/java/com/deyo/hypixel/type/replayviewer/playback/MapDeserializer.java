@@ -26,6 +26,10 @@ public final class MapDeserializer {
      * @throws IOException If deserialization fails
      */
     public static void loadMap(Instance instance, byte[] compressedData) throws IOException {
+        decode(compressedData).apply(instance);
+    }
+
+    public static DecodedMap decode(byte[] compressedData) throws IOException {
         byte[] decompressed = ReplayCompression.decompress(compressedData);
 
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(decompressed));
@@ -91,10 +95,14 @@ public final class MapDeserializer {
             }
         }
 
-        // Apply batch
-        batch.apply(instance, null);
+        return new DecodedMap(batch, chunkCount);
+    }
 
-        Logger.info("Map loaded successfully: {} chunks", chunkCount);
+    public record DecodedMap(AbsoluteBlockBatch batch, int chunkCount) {
+        public void apply(Instance instance) {
+            batch.apply(instance, null);
+            Logger.info("Map loaded successfully: {} chunks", chunkCount);
+        }
     }
 
     private static int[] readPackedBlocks(DataInputStream dis, int bitsPerBlock, int minY, int maxY) throws IOException {

@@ -6,6 +6,7 @@ import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import com.deyo.hypixel.commons.text.Text;
 import com.deyo.hypixel.type.generic.achievement.AchievementCategory;
+import com.deyo.hypixel.type.generic.achievement.AchievementDefinition;
 import com.deyo.hypixel.type.generic.achievement.AchievementRegistry;
 import com.deyo.hypixel.type.generic.achievement.PlayerAchievementHandler;
 import com.deyo.hypixel.type.generic.gui.inventory.HypixelInventoryGUI;
@@ -193,17 +194,33 @@ public class GUIAchievementsMenu extends HypixelInventoryGUI {
         return new GUIClickableItem(slot) {
             @Override
             public ItemStack.Builder getItem(HypixelPlayer player) {
+                List<AchievementDefinition> seasonal = AchievementRegistry.getSeasonalAchievements();
+                int total = seasonal.size();
+                int unlocked = (int) seasonal.stream()
+                        .filter(achievement -> handler.hasAchievement(achievement.getId()))
+                        .count();
+                int points = seasonal.stream()
+                        .filter(achievement -> handler.hasAchievement(achievement.getId()))
+                        .mapToInt(AchievementDefinition::getTotalPoints)
+                        .sum();
+                int maxPoints = seasonal.stream()
+                        .mapToInt(AchievementDefinition::getTotalPoints)
+                        .sum();
+                int unlockedPercent = total > 0 ? (int) (unlocked * 100.0 / total) : 0;
+                int pointsPercent = maxPoints > 0 ? (int) (points * 100.0 / maxPoints) : 0;
+
                 return ItemStacks.head("f5612dc7b86d71afc1197301c15fd979e9f39e7b1f41d8f1ebdf8115576e2e", """
                         <a>Seasonal Achievements
-                        <7>Unlocked: <b>0<7>/<b>251 <8>(0%)
-                        <7>Points: <e>0<7>/<e>2,500 <8>(0%)
+                        <7>Unlocked: <b>{}<7>/<b>{} <8>({}%)
+                        <7>Points: <e>{}<7>/<e>{} <8>({}%)
 
-                        <e>Click to view achievements!""");
+                        <e>Click to view achievements!""",
+                        unlocked, total, unlockedPercent, points, maxPoints, pointsPercent);
             }
 
             @Override
             public void run(InventoryPreClickEvent e, HypixelPlayer player) {
-                player.sendMessage("<6>Seasonal achievements browser coming soon!");
+                new GUISeasonalAchievements().open(player);
             }
         };
     }

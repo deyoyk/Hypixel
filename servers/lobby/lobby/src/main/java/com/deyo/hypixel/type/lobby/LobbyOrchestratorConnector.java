@@ -17,12 +17,14 @@ import org.tinylog.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 public record LobbyOrchestratorConnector(HypixelPlayer player) {
     private static final ProxyService PROXY_SERVICE = new ProxyService(ServiceType.ORCHESTRATOR);
-    private static final List<UUID> PLAYERS_SEARCHING = new ArrayList<>();
+    private static final Set<UUID> PLAYERS_SEARCHING = ConcurrentHashMap.newKeySet();
 
     public CompletableFuture<Pair<UnderstandableProxyServer, String>> findGameServer(
             ServerType targetServerType,
@@ -30,11 +32,9 @@ public record LobbyOrchestratorConnector(HypixelPlayer player) {
             @Nullable String map,
             int neededSlots
     ) {
-        if (PLAYERS_SEARCHING.contains(player.getUuid())) {
+        if (!PLAYERS_SEARCHING.add(player.getUuid())) {
             return CompletableFuture.completedFuture(null);
         }
-
-        PLAYERS_SEARCHING.add(player.getUuid());
 
         GetServerForMapProtocol.GetServerForMapMessage message =
                 new GetServerForMapProtocol.GetServerForMapMessage(
@@ -44,22 +44,27 @@ public record LobbyOrchestratorConnector(HypixelPlayer player) {
                         neededSlots
                 );
 
-        return PROXY_SERVICE.handleRequest(message)
-                .thenApply(response -> {
-                    PLAYERS_SEARCHING.remove(player.getUuid());
+        try {
+            return PROXY_SERVICE.handleRequest(message)
+                    .thenApply(response -> {
+                        PLAYERS_SEARCHING.remove(player.getUuid());
 
-                    if (response instanceof GetServerForMapProtocol.GetServerForMapResponse(
-                            UnderstandableProxyServer server, String gameId, boolean success, String error
-                    )) {
-                        return new Pair<>(server, gameId);
-                    }
-                    return null;
-                })
-                .exceptionally(throwable -> {
-                    PLAYERS_SEARCHING.remove(player.getUuid());
-                    player.sendMessage("<c>Failed to find server: {}", throwable.getMessage());
-                    return null;
-                });
+                        if (response instanceof GetServerForMapProtocol.GetServerForMapResponse(
+                                UnderstandableProxyServer server, String gameId, boolean success, String error
+                        )) {
+                            return new Pair<>(server, gameId);
+                        }
+                        return null;
+                    })
+                    .exceptionally(throwable -> {
+                        PLAYERS_SEARCHING.remove(player.getUuid());
+                        player.sendMessage("<c>Failed to find server: {}", throwable.getMessage());
+                        return null;
+                    });
+        } catch (RuntimeException exception) {
+            PLAYERS_SEARCHING.remove(player.getUuid());
+            throw exception;
+        }
     }
 
     public void sendToGame(ServerType targetServerType, String gameType, @Nullable String map) {
@@ -132,27 +137,30 @@ public record LobbyOrchestratorConnector(HypixelPlayer player) {
                     );
                 }
 
-                try {
-                    CompletableFuture.allOf(registrationFutures.toArray(new CompletableFuture[0]))
-                            .orTimeout(3, TimeUnit.SECONDS)
-                            .join();
-                } catch (Exception e) {
-                    Logger.warn("Some party member registrations timed out, proceeding with transfer anyway");
-                }
+                CompletableFuture.allOf(registrationFutures.toArray(CompletableFuture[]::new))
+                        .orTimeout(3, TimeUnit.SECONDS)
+                        .exceptionally(throwable -> {
+                            Logger.warn("Some party member registrations timed out, proceeding with transfer anyway");
+                            return null;
+                        })
+                        .thenRun(() -> {
+                            player.sendMessage("<a>Sending your party to {}!", server.shortName());
+                            player.asProxyPlayer().transferToWithIndication(server.uuid());
 
-                player.sendMessage("<a>Sending your party to {}!", server.shortName());
-
-                player.asProxyPlayer().transferToWithIndication(server.uuid());
-
-                for (UUID memberUuid : partyMemberUuids) {
-                    if (!memberUuid.equals(player.getUuid())) {
-                        ProxyPlayer memberProxy = new ProxyPlayer(memberUuid);
-                        if (memberProxy.isOnline().join()) {
-                            memberProxy.sendMessage("<e>Your party leader is starting a game! Joining...");
-                            memberProxy.transferToWithIndication(server.uuid());
-                        }
-                    }
-                }
+                            for (UUID memberUuid : partyMemberUuids) {
+                                if (memberUuid.equals(player.getUuid())) {
+                                    continue;
+                                }
+                                ProxyPlayer memberProxy = new ProxyPlayer(memberUuid);
+                                memberProxy.isOnline().thenAccept(online -> {
+                                    if (!online) {
+                                        return;
+                                    }
+                                    memberProxy.sendMessage("<e>Your party leader is starting a game! Joining...");
+                                    memberProxy.transferToWithIndication(server.uuid());
+                                });
+                            }
+                        });
             } else {
                 player.sendMessage("<c>No available servers found with enough space for your party! Please try again later.");
             }

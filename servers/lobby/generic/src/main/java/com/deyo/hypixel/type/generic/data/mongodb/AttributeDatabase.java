@@ -4,6 +4,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.ReplaceOptions;
 import org.bson.Document;
 
 public class AttributeDatabase {
@@ -17,11 +18,11 @@ public class AttributeDatabase {
     }
 
     public static void saveDocument(Document document) {
-        if (collection.find(Filters.eq("_id", document.getString("_id"))).first() != null) {
-            collection.replaceOne(Filters.eq("_id", document.getString("_id")), document);
-        } else {
-            collection.insertOne(document);
-        }
+        collection.replaceOne(
+                Filters.eq("_id", document.getString("_id")),
+                document,
+                new ReplaceOptions().upsert(true)
+        );
     }
 
     public static Document getDocument(String key) {

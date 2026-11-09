@@ -4,12 +4,18 @@ import com.deyo.hypixel.commons.redis.RedisConnectionPool;
 import org.tinylog.Logger;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.Pipeline;
+import redis.clients.jedis.Response;
 import redis.clients.jedis.params.ScanParams;
 import redis.clients.jedis.resps.ScanResult;
 import redis.clients.jedis.resps.Tuple;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class LeaderboardService {
@@ -100,6 +106,43 @@ public class LeaderboardService {
             return entries;
         } catch (Exception e) {
             Logger.warn(e, "Failed to get top {} for leaderboard {}", n, leaderboardKey);
+            return List.of();
+        }
+    }
+
+    /**
+     * Get the top N players on a leaderboard restricted to the given players.
+     * @param leaderboardKey The leaderboard key
+     * @param playerUuids The players to consider
+     * @param n Number of entries to retrieve
+     * @return List of leaderboard entries (1-indexed ranks)
+     */
+    public static List<LeaderboardEntry> getTopNForPlayers(String leaderboardKey, Collection<UUID> playerUuids, int n) {
+        if (!isInitialized() || n <= 0 || playerUuids.isEmpty()) return List.of();
+
+        try (Jedis jedis = jedisPool.getResource()) {
+            Pipeline pipeline = jedis.pipelined();
+            Map<UUID, Response<Double>> scores = new LinkedHashMap<>();
+            Map<UUID, Response<Long>> ranks = new LinkedHashMap<>();
+            for (UUID playerUuid : playerUuids) {
+                scores.put(playerUuid, pipeline.zscore(PREFIX + leaderboardKey, playerUuid.toString()));
+                ranks.put(playerUuid, pipeline.zrevrank(PREFIX + leaderboardKey, playerUuid.toString()));
+            }
+            pipeline.sync();
+
+            List<LeaderboardEntry> entries = new ArrayList<>();
+            for (Map.Entry<UUID, Response<Double>> entry : scores.entrySet()) {
+                Double score = entry.getValue().get();
+                Long rank = ranks.get(entry.getKey()).get();
+                if (score != null && rank != null) {
+                    entries.add(new LeaderboardEntry(entry.getKey(), rank.intValue() + 1, score));
+                }
+            }
+
+            entries.sort(Comparator.comparingDouble(LeaderboardEntry::score).reversed());
+            return entries.size() > n ? new ArrayList<>(entries.subList(0, n)) : entries;
+        } catch (Exception e) {
+            Logger.warn(e, "Failed to get top {} for {} players on {}", n, playerUuids.size(), leaderboardKey);
             return List.of();
         }
     }

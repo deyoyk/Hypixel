@@ -77,6 +77,10 @@ public interface HypixelTypeLoader {
         return false;
     }
 
+    default boolean supportsAchievementsMenu() {
+        return false;
+    }
+
     default Optional<Tuple<Text, Text>> headerFooter() {
         return Optional.empty();
     }

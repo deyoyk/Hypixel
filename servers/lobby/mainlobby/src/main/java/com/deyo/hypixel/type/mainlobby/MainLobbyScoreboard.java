@@ -11,19 +11,20 @@ import com.deyo.hypixel.type.generic.HypixelGenericLoader;
 import com.deyo.hypixel.type.generic.data.HypixelDataHandler;
 import com.deyo.hypixel.type.generic.scoreboard.HypixelScoreboard;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.generic.utility.NetworkCountCache;
+import com.deyo.hypixel.type.generic.utility.SocialCountCache;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public class MainLobbyScoreboard {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("MM/dd/yy");
     private static final Text BLANK = Text.literal(" ");
     private static final HypixelScoreboard scoreboard = new HypixelScoreboard();
-    private static Integer prototypeName = 0;
+    private static int prototypeName = 0;
 
     public static void start() {
         Scheduler scheduler = MinecraftServer.getSchedulerManager();
@@ -34,8 +35,13 @@ public class MainLobbyScoreboard {
                 prototypeName = 0;
             }
 
-            for (HypixelPlayer player : HypixelGenericLoader.getLoadedPlayers()) {
-                Locale l = player.getLocale();
+            List<HypixelPlayer> players = List.copyOf(HypixelGenericLoader.getLoadedPlayers());
+            String date = DATE_FORMAT.format(LocalDateTime.now(ZoneId.systemDefault()));
+            Text sidebarName = getSidebarName(prototypeName);
+            int networkPlayers = NetworkCountCache.getPlayerCount();
+            int lobbyNumber = lobbyNumber();
+
+            for (HypixelPlayer player : players) {
                 HypixelDataHandler dataHandler = player.getDataHandler();
 
                 if (dataHandler == null) {
@@ -43,22 +49,23 @@ public class MainLobbyScoreboard {
                 }
 
                 List<Text> lines = new ArrayList<>();
-                lines.add(Text.key("scoreboard.common.date_line",
-                    DATE_FORMAT.format(LocalDateTime.now(ZoneId.systemDefault())),
-                    HypixelConst.getServerName()));
+                lines.add(Text.key("scoreboard.common.date_line", date, HypixelConst.getServerName()));
                 lines.add(BLANK);
                 lines.add(Text.key("scoreboard.main_lobby.rank", player.getRankTitle()));
-                lines.add(Text.key("scoreboard.main_lobby.achievements", StringUtility.commaify(player.getAchievementHandler().getTotalUnlockedCount())));
+                lines.add(Text.key("scoreboard.main_lobby.achievements",
+                        StringUtility.commaify(player.getAchievementHandler().getTotalUnlockedCount())));
                 lines.add(Text.key("scoreboard.main_lobby.level", StringUtility.commaify(player.getLevel())));
                 lines.add(BLANK);
-                lines.add(Text.key("scoreboard.main_lobby.lobby", StringUtility.commaify(0))); // TODO: what lobby is this?
-                lines.add(Text.key("scoreboard.main_lobby.online_players", StringUtility.commaify(HypixelGenericLoader.getLoadedPlayers().size()))); // TODO: whole network
+                lines.add(Text.key("scoreboard.main_lobby.lobby", StringUtility.commaify(lobbyNumber)));
+                lines.add(Text.key("scoreboard.main_lobby.online_players", StringUtility.commaify(networkPlayers)));
                 lines.add(BLANK);
-                lines.add(Text.key("scoreboard.main_lobby.friends_online", StringUtility.commaify(0))); // TODO: friends
-                lines.add(Text.key("scoreboard.main_lobby.guild_online", StringUtility.commaify(0))); // TODO: guilds
+                lines.add(Text.key("scoreboard.main_lobby.friends_online",
+                        StringUtility.commaify(SocialCountCache.getFriendsOnline(player))));
+                lines.add(Text.key("scoreboard.main_lobby.guild_online",
+                        StringUtility.commaify(SocialCountCache.getGuildOnline(player))));
                 lines.add(Text.key("scoreboard.common.footer"));
 
-                scoreboard.update(player, getSidebarName(prototypeName, l), lines);
+                scoreboard.update(player, sidebarName, lines);
             }
             return TaskSchedule.tick(4);
         });
@@ -66,9 +73,25 @@ public class MainLobbyScoreboard {
 
     public static void removeCache(Player player) {
         scoreboard.removeScoreboard(player);
+        SocialCountCache.clear(player.getUuid());
     }
 
-    private static Text getSidebarName(int counter, Locale locale) {
+    static int lobbyNumber() {
+        String serverName = HypixelConst.getServerName();
+        if (serverName == null) return 0;
+        int number = 0;
+        boolean found = false;
+        for (int index = 0; index < serverName.length(); index++) {
+            char character = serverName.charAt(index);
+            if (character >= '0' && character <= '9') {
+                number = number * 10 + (character - '0');
+                found = true;
+            }
+        }
+        return found ? number : 0;
+    }
+
+    private static Text getSidebarName(int counter) {
         String baseText = "Hypixel";
         String[] colors = {"<f><l>", "<6><l>", "<e><l>"};
         String endColor = "<a><l>";

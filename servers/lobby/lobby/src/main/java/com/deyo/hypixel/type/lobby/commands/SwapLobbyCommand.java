@@ -9,7 +9,7 @@ import com.deyo.hypixel.type.generic.command.HypixelCommand;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 import com.deyo.hypixel.type.generic.user.categories.Rank;
 import com.deyo.hypixel.type.lobby.LobbyServerOrder;
-import com.deyo.hypixel.type.lobby.ServerInfoCache;
+import com.deyo.hypixel.type.generic.utility.ServerInfoCache;
 
 import java.util.List;
 

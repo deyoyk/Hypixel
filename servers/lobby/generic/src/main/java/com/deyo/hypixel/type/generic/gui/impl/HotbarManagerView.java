@@ -45,7 +45,8 @@ public class HotbarManagerView extends StatelessView {
                     c.player().sendMessage("<c>An error occurred while trying to reset your hotbar layout. Please try again later.");
                     return;
                 }
-                dataHandler.get(BedWarsDataHandler.Data.HOTBAR_LAYOUT, DatapointBedWarsHotbar.class).setValue(DatapointBedWarsHotbar.defaultHotbar);
+                dataHandler.get(BedWarsDataHandler.Data.HOTBAR_LAYOUT, DatapointBedWarsHotbar.class)
+                        .setValue(new HashMap<>(DatapointBedWarsHotbar.defaultHotbar));
                 c.player().getInventory().setCursorItem(ItemStack.AIR);
                 c.session(DefaultState.class).refresh();
             }

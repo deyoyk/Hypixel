@@ -13,15 +13,16 @@ import com.deyo.hypixel.type.generic.gui.v2.context.ClickContext;
 import com.deyo.hypixel.type.generic.gui.v2.context.ViewContext;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.function.Consumer;
 
 public class ReplaysListView extends StatefulPaginatedView<ReplayEntry, ReplaysListView.State> {
 
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final Consumer<ReplayEntry> onReplaySelect;
 
@@ -38,7 +39,8 @@ public class ReplaysListView extends StatefulPaginatedView<ReplayEntry, ReplaysL
     public State initialState() {
         return new State(
                 Collections.emptyList(),
-                0
+                0,
+                false
         );
     }
 
@@ -75,14 +77,19 @@ public class ReplaysListView extends StatefulPaginatedView<ReplayEntry, ReplaysL
             <7>Replays are currently supported in the following games:
             <f> - Bed Wars"""));
 
-        // TODO: behaviour
-        layout.slot(49, (_, _) -> ItemStacks.item(Material.GRAY_DYE, 1, """
-            <a>Show Replays Only
-            <7>Toggle whether all your recently
-            <7>played games should be displayed or
-            <7>only games with replays attached.
+        layout.slot(49,
+            (s, _) -> ItemStacks.item(
+                s.showReplaysOnly() ? Material.LIME_DYE : Material.GRAY_DYE, 1, """
+                    <a>Show Replays Only
+                    <7>Toggle whether all your recently
+                    <7>played games should be displayed or
+                    <7>only games with replays attached.
 
-            <e>Click to toggle!"""));
+                    <e>Click to toggle!"""),
+            (_, c) -> c.session(Object.class).updateUnchecked(rawState -> {
+                State replayState = (State) rawState;
+                return new State(replayState.items(), replayState.page(), !replayState.showReplaysOnly());
+            }));
     }
 
     @Override
@@ -118,7 +125,7 @@ public class ReplaysListView extends StatefulPaginatedView<ReplayEntry, ReplaysL
 
             <e>Click to view replay!""",
                 item.displayName(),
-                DATE_FORMAT.format(new Date(item.startTime())),
+                formatStartTime(item.startTime()),
                 item.formattedDuration(),
                 StringUtility.capitalize(item.gameTypeName()),
                 item.mapName(),
@@ -132,23 +139,33 @@ public class ReplaysListView extends StatefulPaginatedView<ReplayEntry, ReplaysL
         onReplaySelect.accept(item);
     }
 
+    static String formatStartTime(long startTime) {
+        return DATE_FORMAT.format(Instant.ofEpochMilli(startTime).atZone(ZoneId.systemDefault()));
+    }
+
     @Override
     protected boolean shouldFilterFromSearch(State state, ReplayEntry item) {
-        return false;
+        return state.showReplaysOnly() && item.replayId() == null;
     }
 
     public record State(
             List<ReplayEntry> items,
-            int page
+            int page,
+            boolean showReplaysOnly
     ) implements PaginatedState<ReplayEntry> {
+
+        public State(List<ReplayEntry> items, int page) {
+            this(items, page, false);
+        }
+
         @Override
         public State withPage(int page) {
-            return new State(items, page);
+            return new State(items, page, showReplaysOnly);
         }
 
         @Override
         public State withItems(List<ReplayEntry> items) {
-            return new State(items, page);
+            return new State(items, page, showReplaysOnly);
         }
     }
 }

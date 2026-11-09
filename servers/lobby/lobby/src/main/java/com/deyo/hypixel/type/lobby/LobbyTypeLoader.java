@@ -17,6 +17,11 @@ import java.util.Map;
 
 public interface LobbyTypeLoader extends HypixelTypeLoader {
 
+    @Override
+    default boolean supportsAchievementsMenu() {
+        return true;
+    }
+
     /**
      * Returns the item handler for this lobby.
      * The handler manages all lobby items and dispatches events.

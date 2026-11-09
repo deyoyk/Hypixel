@@ -27,12 +27,18 @@ import com.deyo.hypixel.type.replayviewer.redis.service.TypedViewReplayHandler;
 import com.deyo.hypixel.type.replayviewer.util.ReplayShareCodec;
 import org.tinylog.Logger;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class PlayerJoinEvent implements HypixelEventClass {
+    private static final ProxyService REPLAY_SERVICE = new ProxyService(ServiceType.REPLAY);
+    private static final ExecutorService LOAD_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
 
     @SneakyThrows
     @PhasedEvent(node = EventNodes.ALL, requireDataLoaded = false)
@@ -43,7 +49,7 @@ public class PlayerJoinEvent implements HypixelEventClass {
     }
 
     private void tryGame(HypixelPlayer player, boolean isRetry, AsyncPlayerConfigurationEvent event) {
-        String replayStr = TypedViewReplayHandler.replay.remove(player.getUuid());
+        String replayStr = TypedViewReplayHandler.getAndRemoveReplay(player.getUuid());
         if (replayStr == null) {
             if (!isRetry) {
                 ScheduleUtility.delay(() -> tryGame(player, true, event), 20);
@@ -87,77 +93,110 @@ public class PlayerJoinEvent implements HypixelEventClass {
         event.setSpawningInstance(instance);
         event.getPlayer().setRespawnPoint(new Pos(0, 100, 0));
 
-        CompletableFuture.runAsync(() -> ScheduleUtility.delay(() -> loadReplay(player, replayId, instance), 20));
+        CompletableFuture.supplyAsync(() -> fetchReplay(player, replayId), LOAD_EXECUTOR)
+            .thenAccept(bundle -> {
+                if (bundle == null) return;
+                ScheduleUtility.delay(() -> finishReplay(player, bundle, instance), 20);
+            })
+            .exceptionally(exception -> {
+                Logger.error(exception, "Failed to load replay {}", replayId);
+                ScheduleUtility.delay(() -> player.sendMessage("<c>Failed to load the replay."), 1);
+                return null;
+            });
     }
 
-    private void loadReplay(HypixelPlayer player, UUID replayId, InstanceContainer instance) {
-        try {
-            // Get share code if present
-            String shareCode = TypedViewReplayHandler.getAndRemoveShareCode(player.getUuid());
+    private record ReplayBundle(
+            ReplayMetadata metadata,
+            ReplayData replayData,
+            MapDeserializer.DecodedMap decodedMap,
+            String shareCode,
+            List<String> messages) {
+    }
 
-            ProxyService replayService = new ProxyService(ServiceType.REPLAY);
-            var request = new ReplayLoadProtocolObject.LoadRequest(replayId);
+    @SneakyThrows
+    private ReplayBundle fetchReplay(HypixelPlayer player, UUID replayId) {
+        String shareCode = TypedViewReplayHandler.getAndRemoveShareCode(player.getUuid());
+        List<String> messages = new ArrayList<>();
 
-            ReplayLoadProtocolObject.LoadResponse response = replayService
-                .<ReplayLoadProtocolObject.LoadRequest, ReplayLoadProtocolObject.LoadResponse>handleRequest(request)
+        ReplayLoadProtocolObject.LoadResponse response = REPLAY_SERVICE
+            .<ReplayLoadProtocolObject.LoadRequest, ReplayLoadProtocolObject.LoadResponse>handleRequest(
+                new ReplayLoadProtocolObject.LoadRequest(replayId))
+            .join();
+
+        if (!response.success() || response.metadata() == null) {
+            return null;
+        }
+
+        ReplayLoadProtocolObject.ReplayMetadata protoMetadata = response.metadata();
+        Map<String, ReplayMetadata.TeamInfo> teamInfo = new HashMap<>();
+        protoMetadata.teamInfo().forEach((teamId, info) ->
+            teamInfo.put(teamId, new ReplayMetadata.TeamInfo(info.name(), info.colorCode(), info.color())));
+
+        ReplayMetadata metadata = ReplayMetadata.builder()
+            .replayId(protoMetadata.replayId())
+            .gameId(protoMetadata.gameId())
+            .serverType(protoMetadata.serverType())
+            .serverId(protoMetadata.serverId())
+            .gameTypeName(protoMetadata.gameTypeName())
+            .mapName(protoMetadata.mapName())
+            .mapHash(protoMetadata.mapHash())
+            .version(protoMetadata.version())
+            .startTime(protoMetadata.startTime())
+            .endTime(protoMetadata.endTime())
+            .durationTicks(protoMetadata.durationTicks())
+            .players(protoMetadata.players())
+            .teams(protoMetadata.teams())
+            .teamInfo(teamInfo)
+            .winnerId(protoMetadata.winnerId())
+            .dataSize(protoMetadata.dataSize())
+            .mapCenterX(protoMetadata.mapCenterX())
+            .mapCenterZ(protoMetadata.mapCenterZ())
+            .build();
+
+        ReplayData replayData = new ReplayData();
+        if (response.dataChunks() != null && !response.dataChunks().isEmpty()) {
+            ReplayData.IntegrityReport integrityReport = replayData.loadFromProtocolChunks(
+                response.dataChunks(),
+                metadata.getDurationTicks()
+            );
+            if (integrityReport.hasIssues()) {
+                messages.add("<c>Some moments may be missing. " + ReplayError.REPLAY_INCOMPLETE.format());
+            }
+        }
+
+        MapDeserializer.DecodedMap decodedMap = null;
+        if (metadata.getMapHash() != null && !metadata.getMapHash().isEmpty()) {
+            ReplayMapLoadProtocolObject.MapLoadResponse mapResponse = REPLAY_SERVICE
+                .<ReplayMapLoadProtocolObject.MapLoadRequest, ReplayMapLoadProtocolObject.MapLoadResponse>handleRequest(
+                    new ReplayMapLoadProtocolObject.MapLoadRequest(metadata.getMapHash()))
                 .join();
 
-            if (!response.success()) {
-                return;
+            if (!mapResponse.success() || !mapResponse.found()) {
+                messages.add("<e>Map data not available, using empty world.");
+            } else if (mapResponse.compressedData() != null && mapResponse.compressedData().length > 0) {
+                decodedMap = MapDeserializer.decode(mapResponse.compressedData());
+            }
+        }
+
+        return new ReplayBundle(metadata, replayData, decodedMap, shareCode, messages);
+    }
+
+    private void finishReplay(HypixelPlayer player, ReplayBundle bundle, InstanceContainer instance) {
+        try {
+            if (bundle.decodedMap() != null) {
+                bundle.decodedMap().apply(instance);
+            }
+            for (String message : bundle.messages()) {
+                player.sendMessage(message);
             }
 
-            if (response.metadata() == null) {
-                return;
-            }
-
-            ReplayLoadProtocolObject.ReplayMetadata protoMetadata = response.metadata();
-            Map<String, ReplayMetadata.TeamInfo> teamInfo = new HashMap<>();
-            protoMetadata.teamInfo().forEach((teamId, info) ->
-                teamInfo.put(teamId, new ReplayMetadata.TeamInfo(info.name(), info.colorCode(), info.color())));
-
-            ReplayMetadata metadata = ReplayMetadata.builder()
-                .replayId(protoMetadata.replayId())
-                .gameId(protoMetadata.gameId())
-                .serverType(protoMetadata.serverType())
-                .serverId(protoMetadata.serverId())
-                .gameTypeName(protoMetadata.gameTypeName())
-                .mapName(protoMetadata.mapName())
-                .mapHash(protoMetadata.mapHash())
-                .version(protoMetadata.version())
-                .startTime(protoMetadata.startTime())
-                .endTime(protoMetadata.endTime())
-                .durationTicks(protoMetadata.durationTicks())
-                .players(protoMetadata.players())
-                .teams(protoMetadata.teams())
-                .teamInfo(teamInfo)
-                .winnerId(protoMetadata.winnerId())
-                .dataSize(protoMetadata.dataSize())
-                .mapCenterX(protoMetadata.mapCenterX())
-                .mapCenterZ(protoMetadata.mapCenterZ())
-                .build();
-
-            ReplayData replayData = new ReplayData();
-            if (response.dataChunks() != null && !response.dataChunks().isEmpty()) {
-                ReplayData.IntegrityReport integrityReport = replayData.loadFromProtocolChunks(
-                    response.dataChunks(),
-                    metadata.getDurationTicks()
-                );
-
-                if (integrityReport.hasIssues()) {
-                    player.sendMessage("<c>Some moments may be missing. {}", ReplayError.REPLAY_INCOMPLETE.format());
-                }
-            }
-
-            // Load map data
-            loadMapData(metadata.getMapHash(), instance, player);
-
-            // Determine spawn position - use share code if available
+            ReplayMetadata metadata = bundle.metadata();
             Pos spawnPos;
             int startTick = 0;
 
-            if (shareCode != null) {
+            if (bundle.shareCode() != null) {
                 ReplayShareCodec.ShareData shareData = ReplayShareCodec.decode(
-                    shareCode,
+                    bundle.shareCode(),
                     metadata.getMapCenterX(),
                     metadata.getMapCenterZ()
                 );
@@ -175,7 +214,7 @@ public class PlayerJoinEvent implements HypixelEventClass {
 
             player.teleport(spawnPos);
 
-            ReplaySession session = new ReplaySession(player, metadata, instance, replayData);
+            ReplaySession session = new ReplaySession(player, metadata, instance, bundle.replayData());
             TypeReplayViewerLoader.registerSession(player.getUuid(), session);
 
             if (startTick > 0) {
@@ -183,42 +222,9 @@ public class PlayerJoinEvent implements HypixelEventClass {
             }
 
             session.play();
-        } catch (Exception e) {
-            Logger.error(e, "Failed to load replay {}", replayId);
-        }
-    }
-
-    private void loadMapData(String mapHash, InstanceContainer instance, HypixelPlayer player) {
-        if (mapHash == null || mapHash.isEmpty()) {
-            Logger.warn("No map hash provided, skipping map load");
-            return;
-        }
-
-        try {
-            ProxyService replayService = new ProxyService(ServiceType.REPLAY);
-            var request = new ReplayMapLoadProtocolObject.MapLoadRequest(mapHash);
-
-            ReplayMapLoadProtocolObject.MapLoadResponse response = replayService
-                .<ReplayMapLoadProtocolObject.MapLoadRequest, ReplayMapLoadProtocolObject.MapLoadResponse>handleRequest(request)
-                .join();
-
-            if (!response.success() || !response.found()) {
-                Logger.warn("Map {} not found in replay service", mapHash);
-                player.sendMessage("<e>Map data not available, using empty world.");
-                return;
-            }
-
-            if (response.compressedData() == null || response.compressedData().length == 0) {
-                Logger.warn("Map {} has no data", mapHash);
-                return;
-            }
-
-            // Deserialize and apply map
-            MapDeserializer.loadMap(instance, response.compressedData());
-            Logger.info("Loaded map {} ({} bytes)", mapHash, response.compressedData().length);
-        } catch (Exception e) {
-            Logger.error(e, "Failed to load map {}", mapHash);
-            player.sendMessage("<e>Failed to load map: {}", e.getMessage());
+        } catch (Exception exception) {
+            Logger.error(exception, "Failed to finish loading replay {}", bundle.metadata().getReplayId());
+            player.sendMessage("<c>Failed to load the replay.");
         }
     }
 }

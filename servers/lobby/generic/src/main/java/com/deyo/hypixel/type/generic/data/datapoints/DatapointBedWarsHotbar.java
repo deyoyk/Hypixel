@@ -25,7 +25,7 @@ public class DatapointBedWarsHotbar extends Datapoint<Map<Byte, DatapointBedWars
         @Override
         public Map<Byte, HotbarItemType> deserialize(String json) {
             if (json == null || !json.startsWith("{")) {
-                return defaultHotbar;
+                return new HashMap<>(defaultHotbar);
             }
 
             try {
@@ -46,7 +46,7 @@ public class DatapointBedWarsHotbar extends Datapoint<Map<Byte, DatapointBedWars
 
                 return hotbarMap;
             } catch (Exception e) {
-                return defaultHotbar;
+                return new HashMap<>(defaultHotbar);
             }
         }
 
@@ -62,14 +62,13 @@ public class DatapointBedWarsHotbar extends Datapoint<Map<Byte, DatapointBedWars
     }
 
     public DatapointBedWarsHotbar(String key) {
-        super(key, defaultHotbar, serializer);
+        super(key, new HashMap<>(defaultHotbar), serializer);
     }
 
-    public static Map<Byte, HotbarItemType> defaultHotbar =
-        new HashMap<>(Map.of(
+    public static final Map<Byte, HotbarItemType> defaultHotbar = Map.of(
             (byte) 0, HotbarItemType.MELEE,
             (byte) 8, HotbarItemType.COMPASS
-        ));
+    );
 
     @Getter
     public enum HotbarItemType {

@@ -397,8 +397,13 @@ public class DatapointSkywarsUnlocks extends Datapoint<DatapointSkywarsUnlocks.S
         }
 
         public SkywarsUnlocks copy() {
+            Map<String, List<String>> perksByMode = new HashMap<>();
+            selectedPerksByMode.forEach((mode, perks) -> perksByMode.put(mode, new ArrayList<>(perks)));
+            Map<String, Set<String>> disabledPerks = new HashMap<>();
+            disabledInsanePerks.forEach((mode, perks) -> disabledPerks.put(mode, new HashSet<>(perks)));
+
             return new SkywarsUnlocks(unlockedKits, unlockedPerks, selectedKit, selectedPerks,
-                    selectedKitByMode, selectedPerksByMode, disabledInsanePerks, favoriteKits, kitPrestigeXP);
+                    selectedKitByMode, perksByMode, disabledPerks, favoriteKits, kitPrestigeXP);
         }
     }
 }

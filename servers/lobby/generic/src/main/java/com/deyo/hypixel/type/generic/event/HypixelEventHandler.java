@@ -22,8 +22,16 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class HypixelEventHandler {
+    private static final long MAX_DEFER_MS = 30_000;
+    private static final Object PENDING_LOCK = new Object();
+    private static final Map<UUID, List<PendingEvent>> PENDING_EVENTS = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> PENDING_SINCE = new ConcurrentHashMap<>();
+    private static final java.util.Set<UUID> POLLING = ConcurrentHashMap.newKeySet();
     private static final ArrayList<EventMethodEntry> cachedEvents = new ArrayList<>();
     private static final EventNode<Event> rootNode = EventNode.all("hypixel-phased-events");
     private static boolean registered = false;
@@ -147,22 +155,15 @@ public class HypixelEventHandler {
         }
     }
 
+    private record PendingEvent(EventMethodEntry entry, Event event) {
+    }
+
     private static void runOrWaitForData(EventMethodEntry entry, Event concreteEvent) {
         if (concreteEvent instanceof PlayerEvent event
                 && entry.requireDataLoaded()
                 && (HypixelDataHandler.getUser(event.getPlayer()) == null
                 || (HypixelConst.isIslandServer() && !((HypixelPlayer) event.getPlayer()).isReadyForEvents()))) {
-            Scheduler scheduler = MinecraftServer.getSchedulerManager();
-
-            scheduler.submitTask(() -> {
-                Player player = event.getPlayer();
-                if (!player.isOnline()) return TaskSchedule.stop();
-                if (HypixelDataHandler.getUser(player) == null) return TaskSchedule.millis(2);
-                if (HypixelConst.isIslandServer() && !((HypixelPlayer) player).isReadyForEvents()) return TaskSchedule.millis(2);
-
-                runEvent(entry, concreteEvent);
-                return TaskSchedule.stop();
-            });
+            deferUntilReady(event.getPlayer(), new PendingEvent(entry, concreteEvent));
             return;
         }
 
@@ -172,6 +173,71 @@ public class HypixelEventHandler {
             Logger.error(ex, "Exception occurred while running event {} with event type {}",
                     entry.method().getClass().getSimpleName(),
                     concreteEvent.getClass().getSimpleName());
+        }
+    }
+
+    private static void deferUntilReady(Player player, PendingEvent pendingEvent) {
+        UUID uuid = player.getUuid();
+        synchronized (PENDING_LOCK) {
+            List<PendingEvent> queue = PENDING_EVENTS.computeIfAbsent(uuid, ignored -> new ArrayList<>());
+            queue.add(pendingEvent);
+            PENDING_SINCE.putIfAbsent(uuid, System.currentTimeMillis());
+            if (!POLLING.add(uuid)) {
+                return;
+            }
+        }
+
+        Scheduler scheduler = MinecraftServer.getSchedulerManager();
+        scheduler.submitTask(() -> pollPlayer(uuid));
+    }
+
+    private static TaskSchedule pollPlayer(UUID uuid) {
+        Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid);
+        if (player == null) {
+            clearPending(uuid);
+            return TaskSchedule.stop();
+        }
+
+        long pendingSince = PENDING_SINCE.getOrDefault(uuid, System.currentTimeMillis());
+        if (System.currentTimeMillis() - pendingSince > MAX_DEFER_MS) {
+            Logger.warn("Dropping deferred events for {} after data failed to load", player.getUsername());
+            clearPending(uuid);
+            return TaskSchedule.stop();
+        }
+
+        if (HypixelDataHandler.getUser(player) == null
+                || (HypixelConst.isIslandServer() && !((HypixelPlayer) player).isReadyForEvents())) {
+            return TaskSchedule.millis(2);
+        }
+
+        List<PendingEvent> events;
+        synchronized (PENDING_LOCK) {
+            events = PENDING_EVENTS.remove(uuid);
+            PENDING_SINCE.remove(uuid);
+            POLLING.remove(uuid);
+        }
+
+        if (events == null) {
+            return TaskSchedule.stop();
+        }
+
+        for (PendingEvent pending : events) {
+            try {
+                runEvent(pending.entry(), pending.event());
+            } catch (Exception ex) {
+                Logger.error(ex, "Exception occurred while running deferred event {}",
+                        pending.event().getClass().getSimpleName());
+            }
+        }
+
+        return TaskSchedule.stop();
+    }
+
+    private static void clearPending(UUID uuid) {
+        synchronized (PENDING_LOCK) {
+            PENDING_EVENTS.remove(uuid);
+            PENDING_SINCE.remove(uuid);
+            POLLING.remove(uuid);
         }
     }
 }

@@ -6,7 +6,11 @@ import com.deyo.hypixel.commons.protocol.objects.orchestrator.GetGameCountsProto
 import com.deyo.hypixel.proxyapi.ProxyService;
 
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 /**
  * Shared cache for game player counts.
@@ -14,7 +18,18 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class GameCountCache {
     private static final Map<String, CachedCount> cache = new ConcurrentHashMap<>();
+    private static final Set<String> refreshing = ConcurrentHashMap.newKeySet();
     private static final long CACHE_TTL_MS = 5000; // 5 seconds
+    private static final long REQUEST_TIMEOUT_SECONDS = 10;
+
+    private static final Function<GetGameCountsProtocol.GetGameCountsMessage,
+            CompletableFuture<GetGameCountsProtocol.GetGameCountsResponse>> DEFAULT_REQUEST =
+            message -> new ProxyService(ServiceType.ORCHESTRATOR)
+                    .<GetGameCountsProtocol.GetGameCountsMessage,
+                            GetGameCountsProtocol.GetGameCountsResponse>handleRequest(message);
+
+    private static volatile Function<GetGameCountsProtocol.GetGameCountsMessage,
+            CompletableFuture<GetGameCountsProtocol.GetGameCountsResponse>> requestHandler = DEFAULT_REQUEST;
 
     /**
      * Get the player count for a specific server type and game type.
@@ -89,7 +104,7 @@ public class GameCountCache {
         return cached.gameCount;
     }
 
-    private static String buildCacheKey(ServerType type, String gameTypeName, String mapName) {
+    static String buildCacheKey(ServerType type, String gameTypeName, String mapName) {
         StringBuilder key = new StringBuilder(type.name());
         key.append(":").append(gameTypeName != null ? gameTypeName : "ALL");
         key.append(":").append(mapName != null ? mapName : "ALL");
@@ -97,10 +112,20 @@ public class GameCountCache {
     }
 
     private static void refreshAsync(ServerType type, String gameTypeName, String mapName, String cacheKey) {
-        var message = new GetGameCountsProtocol.GetGameCountsMessage(type, gameTypeName, mapName);
+        if (!refreshing.add(cacheKey)) {
+            return;
+        }
 
-        new ProxyService(ServiceType.ORCHESTRATOR)
-                .<GetGameCountsProtocol.GetGameCountsMessage, GetGameCountsProtocol.GetGameCountsResponse>handleRequest(message)
+        var message = new GetGameCountsProtocol.GetGameCountsMessage(type, gameTypeName, mapName);
+        CompletableFuture<GetGameCountsProtocol.GetGameCountsResponse> future;
+        try {
+            future = requestHandler.apply(message);
+        } catch (RuntimeException exception) {
+            refreshing.remove(cacheKey);
+            return;
+        }
+
+        future.orTimeout(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)
                 .thenAccept(response -> {
                     if (response != null) {
                         cache.put(cacheKey, new CachedCount(
@@ -109,7 +134,19 @@ public class GameCountCache {
                                 System.currentTimeMillis()
                         ));
                     }
-                });
+                })
+                .whenComplete((_, _) -> refreshing.remove(cacheKey));
+    }
+
+    static void setRequestHandler(Function<GetGameCountsProtocol.GetGameCountsMessage,
+            CompletableFuture<GetGameCountsProtocol.GetGameCountsResponse>> handler) {
+        requestHandler = handler;
+    }
+
+    static void resetForTests() {
+        cache.clear();
+        refreshing.clear();
+        requestHandler = DEFAULT_REQUEST;
     }
 
     private record CachedCount(int playerCount, int gameCount, long timestamp) {}

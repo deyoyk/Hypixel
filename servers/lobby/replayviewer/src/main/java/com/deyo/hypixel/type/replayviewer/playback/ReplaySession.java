@@ -15,6 +15,7 @@ import net.minestom.server.network.packet.server.play.UpdateScorePacket;
 import net.minestom.server.scoreboard.BelowNameTag;
 import net.minestom.server.timer.Task;
 import net.minestom.server.timer.TaskSchedule;
+import com.deyo.hypixel.commons.StringUtility;
 import com.deyo.hypixel.commons.TeamColorUtil;
 import com.deyo.hypixel.commons.text.Text;
 import com.deyo.hypixel.type.game.replay.ReplayMetadata;
@@ -62,6 +63,7 @@ public class ReplaySession {
     private volatile boolean rebuildingState = false;
     private volatile float playbackSpeed = 1.0f;
     private volatile int skipSeconds = 30;
+    private String lastActionBarText;
 
     private Task playbackTask;
 
@@ -110,6 +112,7 @@ public class ReplaySession {
         TypeReplayViewerLoader.registerSession(viewer.getUuid(), this);
         sendEquipmentSync(viewer);
         ScheduleUtility.delay(() -> sendEquipmentSync(viewer), 1);
+        lastActionBarText = null;
         updateActionBar();
 
         ScheduleUtility.delay(() -> autoFollowForViewer(viewer), 20);
@@ -154,7 +157,10 @@ public class ReplaySession {
             entryName = playerEntity.getScoreboardEntryName();
         }
         PlayerNameTag tag = new PlayerNameTag(entryName, prefix, suffix, nameColor);
-        playerNameTags.put(entityId, tag);
+        PlayerNameTag previous = playerNameTags.put(entityId, tag);
+        if (tag.equals(previous)) {
+            return;
+        }
         sendNameTagTeam(entityId, tag, null);
     }
 
@@ -213,6 +219,8 @@ public class ReplaySession {
             playbackTask.cancel();
             playbackTask = null;
         }
+
+        updateActionBar();
     }
 
     public void togglePlayPause() {
@@ -302,6 +310,7 @@ public class ReplaySession {
         for (Player viewer : viewers) {
             ((HypixelPlayer) viewer).sendMessage("<b>Speed: {}x", playbackSpeed);
         }
+        updateActionBar();
     }
 
     public int getTotalTicks() {
@@ -309,17 +318,11 @@ public class ReplaySession {
     }
 
     public String getFormattedTime() {
-        int seconds = currentTick / 20;
-        int minutes = seconds / 60;
-        int secs = seconds % 60;
-        return String.format("%d:%02d", minutes, secs);
+        return StringUtility.formatTicks(currentTick);
     }
 
     public String getFormattedTotalTime() {
-        int seconds = getTotalTicks() / 20;
-        int minutes = seconds / 60;
-        int secs = seconds % 60;
-        return String.format("%d:%02d", minutes, secs);
+        return StringUtility.formatTicks(getTotalTicks());
     }
 
     private void playTick(int tick) {
@@ -336,11 +339,19 @@ public class ReplaySession {
         dynamicTextManager.tick(tick);
         npcManager.tick();
 
-        // TODO: move this to update even when it's not playing, because now we can't ever see paused state
         updateActionBar();
     }
 
     private void updateActionBar() {
+        String key = (playing ? "playing" : "paused")
+                + "|" + getFormattedTime()
+                + "|" + getFormattedTotalTime()
+                + "|" + playbackSpeed;
+        if (key.equals(lastActionBarText)) {
+            return;
+        }
+        lastActionBarText = key;
+
         Text actionBar = Text.of(
                 (playing ? "<a>Playing" : "<c>Paused") + "    <e>{} / {}    <6>{}",
                 getFormattedTime(), getFormattedTotalTime(), String.format("%.1fx", playbackSpeed)
@@ -458,7 +469,7 @@ public class ReplaySession {
         pause();
         Title title = Titles.title(
                 "<6>Replay Ended",
-                "<7>Use /replay restart to watch again",
+                "<7>Use /viewer restart to watch again",
                 Title.Times.times(Duration.ofMillis(200), Duration.ofSeconds(3), Duration.ofMillis(500))
         );
         for (Player viewer : viewers) {
@@ -531,7 +542,6 @@ public class ReplaySession {
         }
     }
 
-    // todo: sloppy method
     private void applyTeamGlow(Player viewer, Entity entity, int entityId) {
         UUID entityUuid = null;
         if (entity instanceof ReplayPlayerEntity playerEntity) {
@@ -540,13 +550,7 @@ public class ReplaySession {
 
         if (entityUuid == null) return;
 
-        String teamId = null;
-        for (Map.Entry<String, List<UUID>> entry : metadata.getTeams().entrySet()) {
-            if (entry.getValue().contains(entityUuid)) {
-                teamId = entry.getKey();
-                break;
-            }
-        }
+        String teamId = metadata.getTeamId(entityUuid);
 
         if (teamId == null) return;
 

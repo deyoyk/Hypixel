@@ -19,7 +19,7 @@ import java.util.TreeMap;
 
 public class ReplayData {
     // Tick -> List of recordables at that tick
-    private final Map<Integer, List<Recordable>> recordablesByTick = new TreeMap<>();
+    private final TreeMap<Integer, List<Recordable>> recordablesByTick = new TreeMap<>();
 
     // All recordables in order
     private final List<Recordable> allRecordables = new ArrayList<>();
@@ -141,10 +141,18 @@ public class ReplayData {
      */
     public List<Recordable> getRecordablesBetween(int startTick, int endTick) {
         List<Recordable> result = new ArrayList<>();
-        for (int tick = startTick; tick <= endTick; tick++) {
-            result.addAll(getRecordablesAt(tick));
+        for (List<Recordable> tickRecordables : recordablesByTick.subMap(startTick, true, endTick, true).values()) {
+            result.addAll(tickRecordables);
         }
         return result;
+    }
+
+    public void forEachRecordableBetween(int startTick, int endTick, java.util.function.Consumer<Recordable> consumer) {
+        for (List<Recordable> tickRecordables : recordablesByTick.subMap(startTick, true, endTick, true).values()) {
+            for (Recordable recordable : tickRecordables) {
+                consumer.accept(recordable);
+            }
+        }
     }
 
     /**

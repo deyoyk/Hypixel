@@ -38,6 +38,7 @@ public class LobbyParkourEvents implements HypixelEventClass {
 	public void onPlayerDisconnect(PlayerDisconnectEvent event) {
 		HypixelPlayer player = (HypixelPlayer) event.getPlayer();
 		lastClickedTimes.remove(player.getUuid());
+		LobbyParkourManager.removePlayerHolograms(player.getUuid());
 
 		LobbyTypeLoader loader = (LobbyTypeLoader) HypixelConst.getTypeLoader();
 		LobbyParkourManager parkourManager = loader.getParkourManager();

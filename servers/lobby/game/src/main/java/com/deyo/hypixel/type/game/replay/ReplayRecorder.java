@@ -39,6 +39,7 @@ public class ReplayRecorder {
 	private final Consumer<Object> serviceSender;
 
 	private final ConcurrentLinkedQueue<Recordable> buffer = new ConcurrentLinkedQueue<>();
+	private final AtomicInteger bufferedCount = new AtomicInteger();
 	private final AtomicInteger batchIndex = new AtomicInteger(0);
 
 	@Getter
@@ -119,8 +120,9 @@ public class ReplayRecorder {
 
 		recordable.setTick(currentTick);
 		buffer.offer(recordable);
+		bufferedCount.incrementAndGet();
 
-		if (buffer.size() >= BATCH_SIZE) {
+		if (bufferedCount.get() >= BATCH_SIZE) {
 			sendBatch();
 		}
 	}
@@ -132,8 +134,9 @@ public class ReplayRecorder {
 			recordable.setTick(currentTick);
 			buffer.offer(recordable);
 		}
+		bufferedCount.addAndGet(recordables.size());
 
-		if (buffer.size() >= BATCH_SIZE) {
+		if (bufferedCount.get() >= BATCH_SIZE) {
 			sendBatch();
 		}
 	}
@@ -148,6 +151,7 @@ public class ReplayRecorder {
 		List<Recordable> toSend = new ArrayList<>();
 		Recordable r;
 		while ((r = buffer.poll()) != null) {
+			bufferedCount.decrementAndGet();
 			toSend.add(r);
 		}
 
@@ -227,7 +231,7 @@ public class ReplayRecorder {
 	 * @return The number of recordables in the buffer
 	 */
 	public int getRecordableCount() {
-		return buffer.size();
+		return bufferedCount.get();
 	}
 
 	/**
@@ -240,6 +244,7 @@ public class ReplayRecorder {
 		List<Recordable> toFlush = new ArrayList<>();
 		Recordable r;
 		while ((r = buffer.poll()) != null) {
+			bufferedCount.decrementAndGet();
 			toFlush.add(r);
 		}
 

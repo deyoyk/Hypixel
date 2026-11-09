@@ -8,6 +8,7 @@ import com.deyo.hypixel.type.generic.gui.v2.StatelessView;
 import com.deyo.hypixel.type.generic.gui.v2.ViewConfiguration;
 import com.deyo.hypixel.type.generic.gui.v2.ViewLayout;
 import com.deyo.hypixel.type.generic.gui.v2.context.ViewContext;
+import com.deyo.hypixel.type.generic.utility.WebLinks;
 
 public class GUITheDeliveryMan extends StatelessView {
 
@@ -25,16 +26,10 @@ public class GUITheDeliveryMan extends StatelessView {
 
     @Override
     public void layout(ViewLayout<DefaultState> layout, DefaultState state, ViewContext ctx) {
-        layout.slot(20, ItemStacks.item(Material.MINECART, MYSTERY_DUST_DELIVERY),
-            (defaultStateClickContext, _) -> defaultStateClickContext.player().notImplemented());
-        layout.slot(21, ItemStacks.item(Material.MINECART, MYSTERY_DUST_DELIVERY),
-            (defaultStateClickContext, _) -> defaultStateClickContext.player().notImplemented());
-        layout.slot(22, ItemStacks.item(Material.MINECART, MYSTERY_DUST_DELIVERY),
-            (defaultStateClickContext, _) -> defaultStateClickContext.player().notImplemented());
-        layout.slot(23, ItemStacks.item(Material.MINECART, MYSTERY_DUST_DELIVERY),
-            (defaultStateClickContext, _) -> defaultStateClickContext.player().notImplemented());
-        layout.slot(24, ItemStacks.item(Material.MINECART, MYSTERY_DUST_DELIVERY),
-            (defaultStateClickContext, _) -> defaultStateClickContext.player().notImplemented());
+        for (int slot = 20; slot <= 24; slot++) {
+            layout.slot(slot, ItemStacks.item(Material.MINECART, MYSTERY_DUST_DELIVERY),
+                (_, c) -> c.player().sendMessage("<c>You already picked up this delivery, come back later!"));
+        }
         layout.slot(29, ItemStacks.item(Material.CHEST, """
                 <c>Survey
                 <7>There isn't a survey available right
@@ -43,7 +38,7 @@ public class GUITheDeliveryMan extends StatelessView {
                 <6>Social Media Rewards
                 <7>Click to view all available Social Media
                 <7>Rewards!"""),
-            (defaultStateClickContext, _) -> defaultStateClickContext.player().notImplemented());
+            (_, c) -> WebLinks.sendSocialMediaRewardsLink(c.player()));
         layout.slot(31, ItemStacks.item(Material.GOLD_BLOCK, """
                 <a>Daily Reward
 
@@ -55,22 +50,23 @@ public class GUITheDeliveryMan extends StatelessView {
                 <7>Current Streak: <b>0
 
                 <e>Click here to get the link in chat!"""),
-            (defaultStateClickContext, _) -> defaultStateClickContext.player().notImplemented());
+            (_, c) -> WebLinks.sendDailyRewardLink(c.player()));
         layout.slot(32, ItemStacks.item(Material.MINECART, """
                 <6>Website Link
                 <7>You have linked your account to the
                 <7>forums."""),
-            (defaultStateClickContext, _) -> defaultStateClickContext.player().notImplemented());
+            (_, c) -> WebLinks.sendForumsLink(c.player()));
         layout.slot(33, ItemStacks.item(Material.CHEST_MINECART, """
                 <a>Daily Reward
                 <7>Free 2,200 Network Experience
                 <7>and 3,000 Arcade Coins!
 
-                <e>Click here to claim!"""));
+                <e>Click here to claim!"""),
+            (_, c) -> WebLinks.sendDailyRewardLink(c.player()));
         layout.slot(40, ItemStacks.item(Material.MINECART, """
                 <c>Hardware Survey
                 <7>You have already completed this
                 <7>Hardware Survey, thank you!"""),
-            (defaultStateClickContext, _) -> defaultStateClickContext.player().notImplemented());
+            (_, c) -> c.player().sendMessage("<c>You have already completed this Hardware Survey, thank you!"));
     }
 }

@@ -3,6 +3,7 @@ package com.deyo.hypixel.type.generic.gui.impl.replay;
 import lombok.Builder;
 import lombok.With;
 import com.deyo.hypixel.commons.ServerType;
+import com.deyo.hypixel.commons.StringUtility;
 
 import java.util.Map;
 import java.util.UUID;
@@ -30,10 +31,7 @@ public record ReplayEntry(
     }
 
     public String formattedDuration() {
-        int seconds = durationSeconds();
-        int minutes = seconds / 60;
-        int secs = seconds % 60;
-        return String.format("%d:%02d", minutes, secs);
+        return StringUtility.formatTicks(durationTicks);
     }
 
     public String displayName() {

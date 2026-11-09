@@ -20,10 +20,9 @@ public class ReplaySeeker {
             }
         }
 
-        List<Recordable> recordables = data.getRecordablesBetween(currentTick + 1, targetTick);
-        applyPersistentRecordables(session, recordables);
+        int recordables = applyPersistentRecordables(session, currentTick + 1, targetTick);
 
-        Logger.debug("Seeked forward from {} to {} ({} recordables)", currentTick, targetTick, recordables.size());
+        Logger.debug("Seeked forward from {} to {} ({} recordables)", currentTick, targetTick, recordables);
     }
 
     public static void seekBackward(ReplaySession session, int currentTick, int targetTick) {
@@ -54,34 +53,37 @@ public class ReplaySeeker {
             session.getNpcManager().cleanup();
             session.getStateTracker().clear();
 
-            List<Recordable> recordables = data.getRecordablesBetween(0, targetTick);
-            applyPersistentRecordables(session, recordables);
+            int recordables = applyPersistentRecordables(session, 0, targetTick);
 
-            Logger.debug("Rebuilt replay state at tick {} ({} recordables)", targetTick, recordables.size());
+            Logger.debug("Rebuilt replay state at tick {} ({} recordables)", targetTick, recordables);
         } finally {
             session.endStateRebuild();
         }
     }
 
-    private static void applyPersistentRecordables(ReplaySession session, List<Recordable> recordables) {
-        for (Recordable recordable : recordables) {
+    private static int applyPersistentRecordables(ReplaySession session, int startTick, int endTick) {
+        int[] count = {0};
+        session.getReplayData().forEachRecordableBetween(startTick, endTick, recordable -> {
             if (!isPersistentRecordable(recordable)) {
-                continue;
+                return;
             }
 
+            count[0]++;
             try {
                 RecordablePlayer.play(recordable, session);
             } catch (Exception e) {
                 Logger.error(e, "Failed to apply seek recordable {} at tick {}", recordable.getType(), recordable.getTick());
             }
-        }
+        });
+        return count[0];
     }
 
-    private static boolean isPersistentRecordable(Recordable recordable) {
+    static boolean isPersistentRecordable(Recordable recordable) {
         return switch (recordable.getType()) {
             case ENTITY_SPAWN,
                  ENTITY_DESPAWN,
                  ITEM_PICKUP,
+                 PLAYER_DEATH,
                  PLAYER_RESPAWN,
                  ENTITY_EFFECT -> true;
             default -> recordable.isEntityState();

@@ -271,10 +271,32 @@ public class RecordablePlayer {
     }
 
     private static void playPlayerDeath(RecordablePlayerDeath rec, ReplaySession session) {
-        // TODO: death
+        Entity entity = session.getEntityManager().getEntity(rec.getEntityId());
+        if (entity instanceof ReplayPlayerEntity playerEntity) {
+            playerEntity.setDead(true);
+        }
+
+        if (session.isRebuildingState()
+            || rec.getDeathMessage() == null
+            || rec.getDeathMessage().isBlank()) {
+            return;
+        }
+
+        Text message = Text.read(rec.getDeathMessage());
+        for (var viewer : session.getViewers()) {
+            if (viewer instanceof HypixelPlayer hypixelPlayer
+                && !ReplaySettingsUtil.getSettings(hypixelPlayer).isChatMessages()) {
+                continue;
+            }
+            viewer.sendMessage(message);
+        }
     }
 
     private static void playPlayerRespawn(RecordablePlayerRespawn rec, ReplaySession session) {
+        Entity entity = session.getEntityManager().getEntity(rec.getEntityId());
+        if (entity instanceof ReplayPlayerEntity playerEntity) {
+            playerEntity.setDead(false);
+        }
         Pos pos = new Pos(rec.getX(), rec.getY(), rec.getZ(), rec.getYaw(), rec.getPitch());
         session.getEntityManager().updateEntityPosition(rec.getEntityId(), pos);
     }
@@ -558,41 +580,41 @@ public class RecordablePlayer {
             return NamedTextColor.GRAY;
         }
 
-        for (Map.Entry<String, List<UUID>> entry : session.getMetadata().getTeams().entrySet()) {
-            if (!entry.getValue().contains(playerUuid)) {
-                continue;
-            }
-            try {
-                byte teamId = Byte.parseByte(entry.getKey());
-                return getTeamColor(teamId);
-            } catch (NumberFormatException ignored) {
-                switch (entry.getKey().toUpperCase()) {
-                    case "RED" -> {
-                        return getTeamColor((byte) 0);
-                    }
-                    case "BLUE" -> {
-                        return getTeamColor((byte) 1);
-                    }
-                    case "GREEN" -> {
-                        return getTeamColor((byte) 2);
-                    }
-                    case "YELLOW" -> {
-                        return getTeamColor((byte) 3);
-                    }
-                    case "AQUA" -> {
-                        return getTeamColor((byte) 4);
-                    }
-                    case "WHITE" -> {
-                        return getTeamColor((byte) 5);
-                    }
-                    case "PINK" -> {
-                        return getTeamColor((byte) 6);
-                    }
-                    case "GRAY", "GREY" -> {
-                        return getTeamColor((byte) 7);
-                    }
-                    default -> {
-                    }
+        String teamId = session.getMetadata().getTeamId(playerUuid);
+        if (teamId == null) {
+            return NamedTextColor.GRAY;
+        }
+
+        try {
+            byte id = Byte.parseByte(teamId);
+            return getTeamColor(id);
+        } catch (NumberFormatException ignored) {
+            switch (teamId.toUpperCase()) {
+                case "RED" -> {
+                    return getTeamColor((byte) 0);
+                }
+                case "BLUE" -> {
+                    return getTeamColor((byte) 1);
+                }
+                case "GREEN" -> {
+                    return getTeamColor((byte) 2);
+                }
+                case "YELLOW" -> {
+                    return getTeamColor((byte) 3);
+                }
+                case "AQUA" -> {
+                    return getTeamColor((byte) 4);
+                }
+                case "WHITE" -> {
+                    return getTeamColor((byte) 5);
+                }
+                case "PINK" -> {
+                    return getTeamColor((byte) 6);
+                }
+                case "GRAY", "GREY" -> {
+                    return getTeamColor((byte) 7);
+                }
+                default -> {
                 }
             }
         }

@@ -2,38 +2,21 @@ package com.deyo.hypixel.type.prototypelobby.npcs;
 
 import net.minestom.server.coordinate.Pos;
 import com.deyo.hypixel.commons.ServerType;
-import com.deyo.hypixel.commons.UnderstandableProxyServer;
 import com.deyo.hypixel.commons.text.Text;
-import com.deyo.hypixel.proxyapi.ProxyInformation;
 import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
 import com.deyo.hypixel.type.generic.entity.npc.configuration.HumanConfiguration;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
-
-import java.util.ArrayList;
-import java.util.List;
+import com.deyo.hypixel.type.generic.utility.ServerInfoCache;
 
 import com.deyo.hypixel.type.generic.event.custom.NPCInteractEvent;
 
 public class NPCSkyBlock extends HypixelNPC {
-    private static List<UnderstandableProxyServer> cacheServers = new ArrayList<>();
-    private static long lastCacheTime = 0;
 
     public NPCSkyBlock() {
         super(new HumanConfiguration() {
             @Override
             public String[] holograms(HypixelPlayer player) {
-                if (System.currentTimeMillis() - lastCacheTime > 5000) {
-                    ProxyInformation information = new ProxyInformation();
-                    List<UnderstandableProxyServer> servers = information.getAllServersInformation().join();
-                    cacheServers.clear();
-                    cacheServers.addAll(servers);
-                    lastCacheTime = System.currentTimeMillis();
-                }
-
-                int amountOnline = cacheServers.stream().map((server) -> {
-                    if (!server.type().isSkyBlock()) return 0;
-                    return server.players().size();
-                }).reduce(0, Integer::sum);
+                int amountOnline = ServerInfoCache.getTotalSkyBlockPlayers();
 
                 return new String[]{
                         Text.of("<e>{:,} Playing", amountOnline).serialize(),
