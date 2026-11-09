@@ -64,6 +64,12 @@ public class BedWarsPlayer extends HypixelPlayer implements CombatPlayer, GamePa
 	private long hypixelXpThisGame = 0;
 	@Getter
 	@Setter
+	private boolean spectatorNightVision = false;
+	@Getter
+	@Setter
+	private int spectatorFlySpeed = 1;
+	@Getter
+	@Setter
 	private boolean shouldShowTrueIdentity = false;
 	@Getter
 	private UUID fakeUuid;
