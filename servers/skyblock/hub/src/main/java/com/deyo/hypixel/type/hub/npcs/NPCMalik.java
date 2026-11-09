@@ -7,6 +7,7 @@ import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
 import com.deyo.hypixel.type.generic.entity.npc.configuration.HumanConfiguration;
 import com.deyo.hypixel.type.generic.event.custom.NPCInteractEvent;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.skyblockgeneric.gui.inventories.GUIReforge;
 
 public class NPCMalik extends HypixelNPC {
 
@@ -41,7 +42,11 @@ public class NPCMalik extends HypixelNPC {
 
     @Override
     public void onClick(NPCInteractEvent e) {
-        e.player().notImplemented();
+        reforgeGui().open(e.player());
+    }
+
+    static GUIReforge reforgeGui() {
+        return new GUIReforge();
     }
 
 }
