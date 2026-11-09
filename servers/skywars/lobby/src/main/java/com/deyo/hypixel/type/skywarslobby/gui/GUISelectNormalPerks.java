@@ -14,6 +14,7 @@ import com.deyo.hypixel.type.generic.gui.inventory.ItemStacks;
 import com.deyo.hypixel.type.generic.gui.inventory.item.GUIClickableItem;
 import com.deyo.hypixel.type.generic.gui.inventory.item.GUIItem;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.generic.utility.WebLinks;
 import com.deyo.hypixel.type.skywarslobby.perk.SkywarsPerk;
 import com.deyo.hypixel.type.skywarslobby.perk.SkywarsPerkRegistry;
 
@@ -154,12 +155,18 @@ public class GUISelectNormalPerks extends HypixelInventoryGUI {
         set(GUIClickableItem.getGoBackItem(48, new GUIKitsPerks()));
 
         // Total Coins display (slot 49)
-        set(new GUIItem(49) {
+        set(new GUIClickableItem(49) {
             @Override
             public ItemStack.Builder getItem(HypixelPlayer player) {
                 return ItemStacks.item(Material.EMERALD, 1, """
                         <7>Total Coins: <6>{:,}
-                        <6>https://store.hypixel.net""", coins);
+
+                        <e>Click to visit the Hypixel Store!""", coins);
+            }
+
+            @Override
+            public void run(InventoryPreClickEvent e, HypixelPlayer player) {
+                WebLinks.sendStoreLink(player);
             }
         });
 
