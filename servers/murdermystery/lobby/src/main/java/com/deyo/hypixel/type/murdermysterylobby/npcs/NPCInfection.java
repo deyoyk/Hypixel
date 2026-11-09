@@ -7,6 +7,8 @@ import com.deyo.hypixel.type.generic.event.custom.NPCInteractEvent;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 
 public class NPCInfection extends HypixelNPC {
+    static final String UNAVAILABLE_MESSAGE = "<7>Infection is coming soon...";
+
     public NPCInfection() {
         super(new HumanConfiguration() {
             @Override
@@ -43,7 +45,6 @@ public class NPCInfection extends HypixelNPC {
 
     @Override
     public void onClick(NPCInteractEvent event) {
-        event.player().sendMessage("<7>Infection is coming soon...");
-        event.player().notImplemented();
+        event.player().sendMessage(UNAVAILABLE_MESSAGE);
     }
 }
