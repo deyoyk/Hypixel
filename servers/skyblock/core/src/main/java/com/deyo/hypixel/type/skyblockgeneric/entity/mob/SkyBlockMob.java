@@ -252,6 +252,7 @@ public abstract class SkyBlockMob extends EntityCreature {
         if (getLootTable() == null) return;
 
         Map<ItemType, SkyBlockLootTable.LootRecord> drops = new HashMap<>();
+        ItemStatistics combatStatistics = player.getStatistics().allStatistics(player, this);
 
         for (SkyBlockLootTable.LootRecord record : getLootTable().getLootTable()) {
             ItemType itemType = record.getItemType();
@@ -269,7 +270,7 @@ public abstract class SkyBlockMob extends EntityCreature {
             double adjustedChance = record.getChancePercent();
 
             for (LootAffector affector : affectors) {
-                adjustedChance = affector.getAffector().apply(player, adjustedChance, this);
+                adjustedChance = affector.apply(player, adjustedChance, this, combatStatistics);
             }
 
             if (Math.random() * 100 < adjustedChance && record.getShouldCalculate().apply(player)) {

@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import com.deyo.hypixel.commons.skyblock.item.ItemType;
+import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistics;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 
 import java.util.*;
@@ -95,13 +96,14 @@ public abstract class SkyBlockLootTable {
                 }
             }
         } else if (mode == CalculationMode.CALCULATE_INDIVIDUAL) {
+            ItemStatistics statistics = affectors.length == 0 ? null : player.getStatistics().allStatistics();
             for (LootRecord record : getLootTable()) {
                 if (record.shouldCalculate.apply(player)) {
                     double adjustedChancePercent = record.chancePercent;
 
                     // Apply LootAffectors to the chance percentage
                     for (LootAffector affector : affectors) {
-                        adjustedChancePercent = affector.getAffector().apply(player, adjustedChancePercent, null);
+                        adjustedChancePercent = affector.apply(player, adjustedChancePercent, null, statistics);
                     }
 
                     if (Math.random() * 100 < adjustedChancePercent) {

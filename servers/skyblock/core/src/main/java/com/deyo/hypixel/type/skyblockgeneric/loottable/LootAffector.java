@@ -1,8 +1,8 @@
 package com.deyo.hypixel.type.skyblockgeneric.loottable;
 
-import lombok.Getter;
 import net.minestom.server.entity.LivingEntity;
 import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistic;
+import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistics;
 import com.deyo.hypixel.type.skyblockgeneric.enchantment.EnchantmentType;
 import com.deyo.hypixel.type.skyblockgeneric.enchantment.impl.EnchantmentLooting;
 import com.deyo.hypixel.type.skyblockgeneric.enchantment.impl.EnchantmentLuck;
@@ -10,59 +10,62 @@ import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 
 import java.util.Map;
 
-@Getter
 public enum LootAffector {
 
-    MAGIC_FIND((player, original, mob) -> {
-        if (mob != null) {
-            return original + (original * player.getStatistics().allStatistics(player, mob).getOverall(ItemStatistic.MAGIC_FIND) * 0.01);
-        } else {
-            return original + (original * player.getStatistics().allStatistics().getOverall(ItemStatistic.MAGIC_FIND) * 0.01);
+    MAGIC_FIND {
+        @Override
+        public double apply(SkyBlockPlayer player, double original, LivingEntity mob, ItemStatistics statistics) {
+            return applyStatistic(original, statistics(player, mob, statistics).getOverall(ItemStatistic.MAGIC_FIND));
         }
-    }),
+    },
 
-    PET_LUCK((player, original, mob) -> {
-        if (mob != null) {
-            return original + (original * player.getStatistics().allStatistics(player, mob).getOverall(ItemStatistic.PET_LUCK) * 0.01);
-        } else {
-            return original + (original * player.getStatistics().allStatistics().getOverall(ItemStatistic.PET_LUCK) * 0.01);
+    PET_LUCK {
+        @Override
+        public double apply(SkyBlockPlayer player, double original, LivingEntity mob, ItemStatistics statistics) {
+            return applyStatistic(original, statistics(player, mob, statistics).getOverall(ItemStatistic.PET_LUCK));
         }
-    }),
+    },
 
-    ENCHANTMENT_LUCK((player, original, mob) -> {
-        Map<Integer, Integer> enchants = player.getStatistics().getAllOfEnchants(EnchantmentType.LUCK, true);
-        int total = 0;
-        for (int level : enchants.keySet()) {
-            total += EnchantmentLuck.MULTIPLIERS[level - 1] * enchants.get(level);
+    ENCHANTMENT_LUCK {
+        @Override
+        public double apply(SkyBlockPlayer player, double original, LivingEntity mob, ItemStatistics statistics) {
+            Map<Integer, Integer> enchants = player.getStatistics().getAllOfEnchants(EnchantmentType.LUCK, true);
+            int total = 0;
+            for (int level : enchants.keySet()) {
+                total += EnchantmentLuck.MULTIPLIERS[level - 1] * enchants.get(level);
+            }
+            return applyStatistic(original, total);
         }
-        return original + (original * total * 0.01);
-    }),
+    },
 
-    ENCHANTMENT_LOOTING((player, original, mob) -> {
-        Map<Integer, Integer> enchants = player.getStatistics().getAllOfEnchants(EnchantmentType.LOOTING, true);
-        int total = 0;
-        for (int level : enchants.keySet()) {
-            total += EnchantmentLooting.MULTIPLIERS[level - 1] * enchants.get(level);
+    ENCHANTMENT_LOOTING {
+        @Override
+        public double apply(SkyBlockPlayer player, double original, LivingEntity mob, ItemStatistics statistics) {
+            Map<Integer, Integer> enchants = player.getStatistics().getAllOfEnchants(EnchantmentType.LOOTING, true);
+            int total = 0;
+            for (int level : enchants.keySet()) {
+                total += EnchantmentLooting.MULTIPLIERS[level - 1] * enchants.get(level);
+            }
+            return applyStatistic(original, total);
         }
-        return original + (original * total * 0.01);
-    });
-
-    private final LootAffectorFunction affector;
-
-    LootAffector(LootAffectorFunction affector) {
-        this.affector = affector;
-    }
+    };
 
     public double apply(SkyBlockPlayer player, double original) {
-        return affector.apply(player, original, null);
+        return apply(player, original, null, null);
     }
 
     public double apply(SkyBlockPlayer player, double original, LivingEntity mob) {
-        return affector.apply(player, original, mob);
+        return apply(player, original, mob, null);
     }
 
-    @FunctionalInterface
-    public interface LootAffectorFunction {
-        double apply(SkyBlockPlayer player, double original, LivingEntity mob);
+    public abstract double apply(SkyBlockPlayer player, double original, LivingEntity mob, ItemStatistics statistics);
+
+    static double applyStatistic(double original, double statistic) {
+        return original + (original * statistic * 0.01);
+    }
+
+    private static ItemStatistics statistics(SkyBlockPlayer player, LivingEntity mob, ItemStatistics statistics) {
+        if (statistics != null) return statistics;
+        return mob == null ? player.getStatistics().allStatistics() : player.getStatistics().allStatistics(player, mob);
     }
 }
