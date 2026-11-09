@@ -50,6 +50,7 @@ public class SetPetRarityCommand extends HypixelCommand {
                     return;
                 }
                 handler.setRarity(rarity);
+                player.getPetData().refreshCachedAbilities();
                 sender.sendMessage(Text.of("<a>Set rarity to <color:{}>{}<a>.",
                         rarity.getColor(), rarity.name()));
             });

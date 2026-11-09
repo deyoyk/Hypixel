@@ -148,7 +148,6 @@ public class DatapointPetData extends SkyBlockDatapoint<DatapointPetData.UserPet
             return event;
         }
 
-        // TODO: need to be called by Tier Boost
         public void refreshCachedAbilities() {
             SkyBlockItem activePet = getEnabledPet();
             if (activePet != null) {
