@@ -90,7 +90,7 @@ public class VanillaFoodFeature implements FoodFeature, RegistrableFeature {
                     sound, Sound.Source.PLAYER,
                     1.0f, 1.0f
                 ),
-                entity.getPosition().x(), entity.getPosition().y(), entity.getPosition().z() // TODO: emitter
+                entity.getPosition().x(), entity.getPosition().y(), entity.getPosition().z()
             );
 			default -> throw new IllegalArgumentException("Unexpected value: " + effect);
 		}
@@ -164,7 +164,7 @@ public class VanillaFoodFeature implements FoodFeature, RegistrableFeature {
 					SoundEvent.ENTITY_PLAYER_BURP, Sound.Source.PLAYER,
 					0.5f, random.nextFloat() * 0.1f + 0.9f
 				),
-				player.getPosition().x(), player.getPosition().y(), player.getPosition().z() // TODO: emitter
+				player.getPosition().x(), player.getPosition().y(), player.getPosition().z()
 			);
 		}
 
