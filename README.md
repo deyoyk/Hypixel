@@ -1,5 +1,7 @@
 # Hypixel
 
+<small>Fork of [Swofty-Developments/HypixelRecreation](https://github.com/Swofty-Developments/HypixelRecreation).</small>
+
 ## Run
 
 Build all jars once (needs Docker):
