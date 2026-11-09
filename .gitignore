@@ -76,6 +76,7 @@ buck-out/
 /server/proxy/replay_pid*.log
 /server/forwarding.secret
 /configuration/config.yml
+configuration/config.yml
 /server/proxy/configuration/config.yml
 .claude/
 server/proxy/ViaLoader/
