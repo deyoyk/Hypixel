@@ -702,23 +702,48 @@ public class PlayerStatistics {
         scheduler.submitTask(() -> {
             SkyBlockGenericLoader.getLoadedPlayers().forEach(player -> {
                 SkyBlockActionBar actionBar = SkyBlockActionBar.getFor(player);
+                ItemStatistics statistics = player.getStatistics().allStatistics();
+                RuntimeValues values = runtimeValues(
+                        player.getHealth(),
+                        player.getAdditionalHearts(),
+                        player.getMana(),
+                        player.getMaxHealth(statistics),
+                        player.getDefense(statistics),
+                        player.getMaxMana(statistics)
+                );
 
-                float absorption = player.getAdditionalHearts();
-                int hearts = Math.round(player.getHealth() + absorption);
-                int maxHearts = Math.round(player.getMaxHealth());
-                actionBar.setDefaultDisplay(SkyBlockActionBar.BarSection.HEALTH, absorption > 0.0f
-                        ? Text.of("<6>{}/{}❤", hearts, maxHearts)
-                        : Text.of("<c>{}/{}❤", hearts, maxHearts));
+                actionBar.setDefaultDisplay(SkyBlockActionBar.BarSection.HEALTH, values.absorption() > 0.0f
+                        ? Text.of("<6>{}/{}❤", values.hearts(), values.maxHearts())
+                        : Text.of("<c>{}/{}❤", values.hearts(), values.maxHearts()));
                 actionBar.setDefaultDisplay(SkyBlockActionBar.BarSection.DEFENSE,
-                        player.getDefense() == 0 ? Text.empty()
-                                : Text.of("<a>{}❈ Defense", Math.round(player.getDefense())));
+                        values.defense() == 0 ? Text.empty()
+                                : Text.of("<a>{}❈ Defense", Math.round(values.defense())));
                 actionBar.setDefaultDisplay(SkyBlockActionBar.BarSection.MANA,
-                        Text.of("<b>{}/{}✎ Mana", Math.round(player.getMana()), Math.round(player.getMaxMana())));
-
+                        Text.of("<b>{}/{}✎ Mana", values.mana(), values.maxMana()));
                 player.sendActionBar(actionBar.render());
             });
             return TaskSchedule.tick(4);
         }, ExecutionType.TICK_END);
+    }
+
+    record RuntimeValues(int hearts, int maxHearts, double defense, int mana, int maxMana, float absorption) {
+    }
+
+    static RuntimeValues runtimeValues(float health, float absorption, float mana,
+                                       float maxHealth, double defense, float maxMana) {
+        return new RuntimeValues(
+                Math.round(health + absorption),
+                Math.round(maxHealth),
+                defense,
+                Math.round(mana),
+                Math.round(maxMana),
+                absorption
+        );
+    }
+
+    static float healthRegenerationAmount(float maxHealth, double regenerationBonus) {
+        double base = 1.5 + ((int) maxHealth * 0.01);
+        return (float) (base + (base * regenerationBonus));
     }
 
     public static void statisticsLoop() {
@@ -747,18 +772,22 @@ public class PlayerStatistics {
         Scheduler scheduler = MinecraftServer.getSchedulerManager();
         scheduler.submitTask(() -> {
             SkyBlockGenericLoader.getLoadedPlayers().forEach(player -> {
-                if (player.getHealth() > player.getMaxHealth())
-                    player.setHealth(player.getMaxHealth());
+                ItemStatistics statistics = player.getStatistics().allStatistics();
+                float maxHealth = player.getMaxHealth(statistics);
 
-                if (player.getHealth() < player.getMaxHealth()) {
-                    float healthToIncreaseBy = (float) (1.5 + ((int) player.getMaxHealth() * 0.01) +
-                            ((1.5 + ((int) player.getMaxHealth() * 0.01)) * player.getStatistics().getHealthRegenerationPercentBonus()));
+                if (player.getHealth() > maxHealth)
+                    player.setHealth(maxHealth);
+
+                if (player.getHealth() < maxHealth) {
+                    float healthToIncreaseBy = healthRegenerationAmount(
+                            maxHealth,
+                            player.getStatistics().getHealthRegenerationPercentBonus());
 
                     RegenerationValueUpdateEvent event = new RegenerationValueUpdateEvent(player, healthToIncreaseBy);
                     SkyBlockValueEvent.callValueUpdateEvent(event);
                     healthToIncreaseBy = (float) event.getValue();
 
-                    player.setHealth(Math.min(player.getMaxHealth(), player.getHealth() + healthToIncreaseBy));
+                    player.setHealth(Math.min(maxHealth, player.getHealth() + healthToIncreaseBy));
                 }
             });
             return TaskSchedule.tick(30);

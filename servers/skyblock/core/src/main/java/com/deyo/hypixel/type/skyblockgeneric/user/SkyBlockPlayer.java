@@ -25,6 +25,7 @@ import com.deyo.hypixel.commons.skyblock.item.ItemType;
 import com.deyo.hypixel.commons.skyblock.item.Rarity;
 import com.deyo.hypixel.commons.skyblock.item.UnderstandableSkyBlockItem;
 import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistic;
+import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistics;
 import com.deyo.hypixel.commons.text.Text;
 import com.deyo.hypixel.type.generic.HypixelConst;
 import com.deyo.hypixel.type.generic.data.HypixelDataHandler;
@@ -738,7 +739,11 @@ public class SkyBlockPlayer extends HypixelPlayer {
     }
 
     public float getMaxMana() {
-        return (float) (100 + getStatistics().allStatistics().getOverall(ItemStatistic.INTELLIGENCE));
+        return getMaxMana(getStatistics().allStatistics());
+    }
+
+    public float getMaxMana(ItemStatistics statistics) {
+        return (float) (100 + statistics.getOverall(ItemStatistic.INTELLIGENCE));
     }
 
     public boolean hasCustomCollectionAward(CustomCollectionAward award) {
@@ -818,7 +823,11 @@ public class SkyBlockPlayer extends HypixelPlayer {
     }
 
     public @NonNull Double getDefense() {
-        return this.getStatistics().allStatistics().getOverall(ItemStatistic.DEFENSE);
+        return getDefense(this.getStatistics().allStatistics());
+    }
+
+    public @NonNull Double getDefense(ItemStatistics statistics) {
+        return statistics.getOverall(ItemStatistic.DEFENSE);
     }
 
     public void playSuccessSound() {
@@ -1003,8 +1012,11 @@ public class SkyBlockPlayer extends HypixelPlayer {
     }
 
     public float getMaxHealth() {
-        PlayerStatistics statistics = this.getStatistics();
-        float maxHealth = statistics.allStatistics().getOverall(ItemStatistic.HEALTH).floatValue();
+        return getMaxHealth(this.getStatistics().allStatistics());
+    }
+
+    public float getMaxHealth(ItemStatistics statistics) {
+        float maxHealth = statistics.getOverall(ItemStatistic.HEALTH).floatValue();
         MaxHealthValueUpdateEvent event = new MaxHealthValueUpdateEvent(this, maxHealth);
         SkyBlockValueEvent.callValueUpdateEvent(event);
         return (float) event.getValue();
