@@ -2,6 +2,7 @@ package com.deyo.hypixel.type.skywarslobby.hologram;
 
 import lombok.Getter;
 import net.minestom.server.coordinate.Pos;
+import com.deyo.hypixel.commons.leaderboard.LeaderboardPlayerFilter;
 import com.deyo.hypixel.commons.skywars.SkywarsLeaderboardMode;
 import com.deyo.hypixel.commons.skywars.SkywarsLeaderboardPeriod;
 import com.deyo.hypixel.commons.skywars.SkywarsLeaderboardView;
@@ -9,6 +10,7 @@ import com.deyo.hypixel.commons.skywars.SkywarsStatType;
 import com.deyo.hypixel.commons.skywars.SkywarsTextAlignment;
 import com.deyo.hypixel.commons.text.Text;
 import com.deyo.hypixel.type.generic.HypixelGenericLoader;
+import com.deyo.hypixel.type.generic.leaderboard.LeaderboardPlayerFilterResolver;
 import com.deyo.hypixel.type.generic.leaderboard.LeaderboardService;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 import com.deyo.hypixel.type.skywarslobby.hologram.LeaderboardHologramManager.PlayerLeaderboardState;
@@ -45,6 +47,7 @@ public enum SkywarsLeaderboardHologram {
         SkywarsLeaderboardMode mode = state.mode();
         SkywarsLeaderboardView view = state.view();
         SkywarsTextAlignment alignment = state.textAlignment();
+        LeaderboardPlayerFilter filter = state.playerFilter();
 
         List<String> lines = new ArrayList<>();
 
@@ -59,9 +62,13 @@ public enum SkywarsLeaderboardHologram {
         List<LeaderboardService.LeaderboardEntry> entries;
 
         if (view == SkywarsLeaderboardView.PLAYERS_AROUND_YOU) {
-            entries = getPlayersInLobby(player, leaderboardKey);
-        } else {
+            entries = getPlayersInLobby(player, leaderboardKey, filter);
+        } else if (filter == LeaderboardPlayerFilter.ALL) {
             entries = LeaderboardService.getTopN(leaderboardKey, 10);
+        } else {
+            LeaderboardPlayerFilterResolver.AllowedPlayers allowed =
+                    LeaderboardPlayerFilterResolver.resolve(player, filter);
+            entries = LeaderboardService.getTopNForPlayers(leaderboardKey, allowed.playerUuids(), 10);
         }
 
         int maxNameWidth = 0;
@@ -113,10 +120,14 @@ public enum SkywarsLeaderboardHologram {
         return lines.toArray(new String[0]);
     }
 
-    private List<LeaderboardService.LeaderboardEntry> getPlayersInLobby(HypixelPlayer viewer, String leaderboardKey) {
+    private List<LeaderboardService.LeaderboardEntry> getPlayersInLobby(HypixelPlayer viewer, String leaderboardKey,
+                                                                        LeaderboardPlayerFilter filter) {
         List<LeaderboardService.LeaderboardEntry> lobbyEntries = new ArrayList<>();
+        LeaderboardPlayerFilterResolver.AllowedPlayers allowed =
+                LeaderboardPlayerFilterResolver.resolve(viewer, filter);
 
         for (HypixelPlayer lobbyPlayer : HypixelGenericLoader.getLoadedPlayers()) {
+            if (!allowed.allows(lobbyPlayer.getUuid())) continue;
             if (lobbyPlayer.getInstance() != null &&
                     lobbyPlayer.getInstance().equals(viewer.getInstance())) {
                 LeaderboardService.LeaderboardEntry entry =

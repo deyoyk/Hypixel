@@ -5,6 +5,7 @@ import net.minestom.server.inventory.InventoryType;
 import net.minestom.server.inventory.click.Click;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
+import com.deyo.hypixel.commons.leaderboard.LeaderboardPlayerFilter;
 import com.deyo.hypixel.commons.skywars.SkywarsLeaderboardMode;
 import com.deyo.hypixel.commons.skywars.SkywarsLeaderboardPeriod;
 import com.deyo.hypixel.commons.skywars.SkywarsLeaderboardView;
@@ -25,6 +26,7 @@ public class GUILeaderboardSettings extends HypixelInventoryGUI {
     private SkywarsLeaderboardPeriod selectedPeriod;
     private SkywarsLeaderboardView selectedView;
     private SkywarsTextAlignment selectedAlignment;
+    private LeaderboardPlayerFilter selectedPlayerFilter;
 
     public GUILeaderboardSettings() {
         super("Leaderboard Settings", InventoryType.CHEST_5_ROW);
@@ -39,6 +41,7 @@ public class GUILeaderboardSettings extends HypixelInventoryGUI {
         selectedPeriod = currentState.period();
         selectedView = currentState.view();
         selectedAlignment = currentState.textAlignment();
+        selectedPlayerFilter = currentState.playerFilter();
 
         setupItems(player);
         updateItemStacks(getInventory(), player);
@@ -151,21 +154,33 @@ public class GUILeaderboardSettings extends HypixelInventoryGUI {
         set(new GUIClickableItem(14) {
             @Override
             public ItemStack.Builder getItem(HypixelPlayer player) {
-                return ItemStacks.item(Material.SKELETON_SKULL, 1, """
-                        <a>Select the Players!
+                List<Text> lore = new ArrayList<>();
+                lore.add(Text.empty());
+                for (LeaderboardPlayerFilter filter : LeaderboardPlayerFilter.values()) {
+                    if (filter == selectedPlayerFilter) {
+                        lore.add(Text.of("<a>\u279C <7>{}", filter.getDisplayName()));
+                    } else {
+                        lore.add(Text.of("   <7>{}", filter.getDisplayName()));
+                    }
+                }
+                lore.add(Text.empty());
+                lore.add(Text.of("<8><o>Leaderboard data is cached and"));
+                lore.add(Text.of("<8><o>does not update immediately."));
+                lore.add(Text.empty());
+                lore.add(Text.of("<e>Left/Right Click to change!"));
 
-                        <a>\u279C <7>All
-                           <7>Friends
-                           <7>Best Friends
-                           <7>Guild Members
-
-                        <8><o>Leaderboard data is cached and</o>
-                        <8><o>does not update immediately.""");
+                return ItemStacks.item(Material.SKELETON_SKULL, 1, Text.of("<a>Select the Players!"), lore);
             }
 
             @Override
             public void run(InventoryPreClickEvent e, HypixelPlayer player) {
-                player.sendMessage("<c>This feature is coming soon!");
+                if (e.getClick() instanceof Click.Left) {
+                    selectedPlayerFilter = selectedPlayerFilter.next();
+                } else if (e.getClick() instanceof Click.Right) {
+                    selectedPlayerFilter = selectedPlayerFilter.previous();
+                }
+                setupItems(player);
+                updateItemStacks(getInventory(), player);
             }
         });
 
@@ -220,7 +235,7 @@ public class GUILeaderboardSettings extends HypixelInventoryGUI {
             @Override
             public void run(InventoryPreClickEvent e, HypixelPlayer player) {
                 PlayerLeaderboardState newState = new PlayerLeaderboardState(
-                        selectedPeriod, selectedMode, selectedView, selectedAlignment);
+                        selectedPeriod, selectedMode, selectedView, selectedAlignment, selectedPlayerFilter);
 
                 LeaderboardHologramManager.setState(player.getUuid(), newState);
                 LeaderboardHologramManager.refreshAllHologramsForPlayer(player);

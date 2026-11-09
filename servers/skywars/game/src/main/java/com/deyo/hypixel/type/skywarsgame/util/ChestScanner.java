@@ -3,7 +3,9 @@ package com.deyo.hypixel.type.skywarsgame.util;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.instance.Chunk;
 import net.minestom.server.instance.Instance;
+import net.minestom.server.instance.Section;
 import net.minestom.server.instance.block.Block;
+import net.minestom.server.instance.palette.Palette;
 import com.deyo.hypixel.commons.skywars.map.SkywarsMapsConfig;
 import org.tinylog.Logger;
 
@@ -35,8 +37,12 @@ public class ChestScanner {
 
         int minX = (int) Math.min(bounds.min().x(), bounds.max().x());
         int maxX = (int) Math.max(bounds.min().x(), bounds.max().x());
-        int minY = voidY;
-        int maxY = voidY + SCAN_HEIGHT;
+        int minY = Math.max((int) Math.min(bounds.min().y(), bounds.max().y()), voidY);
+        int maxY = Math.min((int) Math.max(bounds.min().y(), bounds.max().y()), voidY + SCAN_HEIGHT);
+        if (maxY < minY) {
+            minY = voidY;
+            maxY = voidY + SCAN_HEIGHT;
+        }
         int minZ = (int) Math.min(bounds.min().z(), bounds.max().z());
         int maxZ = (int) Math.max(bounds.min().z(), bounds.max().z());
 
@@ -45,19 +51,39 @@ public class ChestScanner {
 
         int chestsFound = 0;
 
-        for (int x = minX; x <= maxX; x++) {
-            for (int y = minY; y <= maxY; y++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    Block block = instance.getBlock(x, y, z);
+        for (int chunkX = minX >> 4; chunkX <= maxX >> 4; chunkX++) {
+            for (int chunkZ = minZ >> 4; chunkZ <= maxZ >> 4; chunkZ++) {
+                Chunk chunk = instance.getChunk(chunkX, chunkZ);
+                if (chunk == null) continue;
 
-                    if (block.compare(Block.CHEST) || block.compare(Block.TRAPPED_CHEST)) {
-                        Pos chestPos = new Pos(x, y, z);
-                        chestsFound++;
+                for (int sectionIndex = chunk.getMinSection(); sectionIndex <= chunk.getMaxSection(); sectionIndex++) {
+                    int sectionBaseY = sectionIndex << 4;
+                    if (sectionBaseY + 15 < minY || sectionBaseY > maxY) continue;
 
-                        if (isIslandChest(chestPos, islandSpawns)) {
-                            islandChests.add(chestPos);
-                        } else {
-                            centerChests.add(chestPos);
+                    Section section = chunk.getSectionAt(sectionBaseY);
+                    Palette palette = section.blockPalette();
+                    if (!paletteContainsChest(palette)) {
+                        continue;
+                    }
+
+                    int sectionMinY = Math.max(sectionBaseY, minY);
+                    int sectionMaxY = Math.min(sectionBaseY + 15, maxY);
+                    for (int x = Math.max(minX, chunkX << 4); x <= Math.min(maxX, (chunkX << 4) + 15); x++) {
+                        for (int y = sectionMinY; y <= sectionMaxY; y++) {
+                            for (int z = Math.max(minZ, chunkZ << 4); z <= Math.min(maxZ, (chunkZ << 4) + 15); z++) {
+                                Block block = instance.getBlock(x, y, z);
+
+                                if (block.compare(Block.CHEST) || block.compare(Block.TRAPPED_CHEST)) {
+                                    Pos chestPos = new Pos(x, y, z);
+                                    chestsFound++;
+
+                                    if (isIslandChest(chestPos, islandSpawns)) {
+                                        islandChests.add(chestPos);
+                                    } else {
+                                        centerChests.add(chestPos);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -68,6 +94,11 @@ public class ChestScanner {
                 chestsFound, islandChests.size(), centerChests.size());
 
         return new ChestScanResult(islandChests, centerChests);
+    }
+
+    static boolean paletteContainsChest(Palette palette) {
+        return !palette.isEmpty()
+                && (palette.any(Block.CHEST.stateId()) || palette.any(Block.TRAPPED_CHEST.stateId()));
     }
 
     private static boolean isIslandChest(Pos chestPos, List<Pos> islandSpawns) {

@@ -14,6 +14,7 @@ import com.deyo.hypixel.type.generic.utility.AnimatedExplosion;
 import com.deyo.hypixel.type.skywarsgame.game.SkywarsGame;
 import com.deyo.hypixel.type.skywarsgame.user.SkywarsPlayer;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -39,6 +40,7 @@ public class DragonManager {
     private final Pos centerPos;
     private DragonEntity dragon;
     private Task behaviorTask;
+    private final List<Task> scheduledTasks = new ArrayList<>();
     private boolean dragonSpawned = false;
 
     private enum DragonState { IDLE, DIVING, RETURNING }
@@ -63,13 +65,13 @@ public class DragonManager {
     }
 
     public void scheduleDragonSpawn(Consumer<Text> broadcaster) {
-        MinecraftServer.getSchedulerManager().buildTask(() -> {
+        scheduledTasks.add(MinecraftServer.getSchedulerManager().buildTask(() -> {
             broadcaster.accept(Text.of("<c>The Ender Dragon will spawn in 1 minute!"));
-        }).delay(TaskSchedule.seconds(SkywarsGame.DRAGON_SPAWN_SECONDS - 60)).schedule();
+        }).delay(TaskSchedule.seconds(SkywarsGame.DRAGON_SPAWN_SECONDS - 60)).schedule());
 
-        MinecraftServer.getSchedulerManager().buildTask(() -> {
+        scheduledTasks.add(MinecraftServer.getSchedulerManager().buildTask(() -> {
             spawnDragon(broadcaster);
-        }).delay(TaskSchedule.seconds(SkywarsGame.DRAGON_SPAWN_SECONDS)).schedule();
+        }).delay(TaskSchedule.seconds(SkywarsGame.DRAGON_SPAWN_SECONDS)).schedule());
     }
 
     private void spawnDragon(Consumer<Text> broadcaster) {
@@ -230,6 +232,10 @@ public class DragonManager {
         if (behaviorTask != null) {
             behaviorTask.cancel();
         }
+        for (Task task : scheduledTasks) {
+            task.cancel();
+        }
+        scheduledTasks.clear();
         if (dragon != null && !dragon.isDead()) {
             dragon.remove();
         }

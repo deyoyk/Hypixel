@@ -721,9 +721,18 @@ public class SkywarsGame {
                 .toList();
     }
 
+    private static final int MAX_DESTROY_WAIT_ATTEMPTS = 120;
+    private int destroyWaitAttempts;
+
     private void waitForEmptyThenDestroy() {
         if (instanceContainer.getPlayers().isEmpty()) {
             destroyAndRecreate();
+            return;
+        }
+
+        if (++destroyWaitAttempts > MAX_DESTROY_WAIT_ATTEMPTS) {
+            org.tinylog.Logger.warn("Skywars instance {} still has players after waiting to destroy it",
+                    gameId);
             return;
         }
 

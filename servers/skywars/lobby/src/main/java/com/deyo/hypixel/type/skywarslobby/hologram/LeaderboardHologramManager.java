@@ -3,6 +3,7 @@ package com.deyo.hypixel.type.skywarslobby.hologram;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.event.player.PlayerEntityInteractEvent;
 import net.minestom.server.instance.Instance;
+import com.deyo.hypixel.commons.leaderboard.LeaderboardPlayerFilter;
 import com.deyo.hypixel.commons.skywars.*;
 import com.deyo.hypixel.commons.text.Text;
 import com.deyo.hypixel.type.generic.data.datapoints.DatapointSkywarsLeaderboardPreferences;
@@ -29,14 +30,16 @@ public class LeaderboardHologramManager {
             SkywarsLeaderboardPeriod period,
             SkywarsLeaderboardMode mode,
             SkywarsLeaderboardView view,
-            SkywarsTextAlignment textAlignment
+            SkywarsTextAlignment textAlignment,
+            LeaderboardPlayerFilter playerFilter
     ) {
         public static PlayerLeaderboardState defaults() {
             return new PlayerLeaderboardState(
                     SkywarsLeaderboardPeriod.WEEKLY,
                     SkywarsLeaderboardMode.ALL,
                     SkywarsLeaderboardView.TOP_10,
-                    SkywarsTextAlignment.CENTER
+                    SkywarsTextAlignment.CENTER,
+                    LeaderboardPlayerFilter.ALL
             );
         }
     }
@@ -93,7 +96,8 @@ public class LeaderboardHologramManager {
                     state.period(),
                     state.mode(),
                     state.view(),
-                    state.textAlignment()
+                    state.textAlignment(),
+                    state.playerFilter()
             );
             handler.get(SkywarsDataHandler.Data.LEADERBOARD_PREFS, DatapointSkywarsLeaderboardPreferences.class)
                     .setValue(prefs);
@@ -112,7 +116,8 @@ public class LeaderboardHologramManager {
                     prefs.period(),
                     prefs.mode(),
                     prefs.view(),
-                    prefs.textAlignment()
+                    prefs.textAlignment(),
+                    prefs.playerFilter()
             ));
         }
 
@@ -173,7 +178,7 @@ public class LeaderboardHologramManager {
                 Text.of("<7>Mode: <a>{}", state.mode().getDisplayName()).serialize(),
                 Text.of("<7>Time: <a>{}", state.period().getDisplayName()).serialize(),
                 Text.of("<7>View: <a>{}", viewDisplay).serialize(),
-                "<7>Players: <a>All",
+                Text.of("<7>Players: <a>{}", state.playerFilter().getDisplayName()).serialize(),
                 "<6>Click to change settings!"
         };
     }

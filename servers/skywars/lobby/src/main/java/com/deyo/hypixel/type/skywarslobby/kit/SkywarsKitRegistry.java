@@ -3,19 +3,20 @@ package com.deyo.hypixel.type.skywarslobby.kit;
 import org.tinylog.Logger;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Registry for all SkyWars kits.
  * Loads kits from YAML configuration.
  */
 public class SkywarsKitRegistry {
-    private static final Map<String, SkywarsKit> KITS = new HashMap<>();
-    private static boolean initialized = false;
+    private static final Map<String, SkywarsKit> KITS = new ConcurrentHashMap<>();
+    private static volatile boolean initialized = false;
 
     /**
      * Initialize the kit registry by loading from YAML file.
      */
-    public static void initialize() {
+    public static synchronized void initialize() {
         if (initialized) return;
 
         KITS.clear();
@@ -32,7 +33,7 @@ public class SkywarsKitRegistry {
     /**
      * Reinitialize the registry (useful for config reloading)
      */
-    public static void reload() {
+    public static synchronized void reload() {
         initialized = false;
         initialize();
     }

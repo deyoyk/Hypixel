@@ -3,22 +3,22 @@ package com.deyo.hypixel.type.skywarslobby.soulwell;
 import org.jetbrains.annotations.Nullable;
 import org.tinylog.Logger;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Static registry for Soul Well upgrade definitions.
  * Should be initialized during server startup.
  */
 public class SoulWellUpgradeRegistry {
-    private static final Map<String, SoulWellUpgrade> upgrades = new HashMap<>();
-    private static boolean initialized = false;
+    private static final Map<String, SoulWellUpgrade> upgrades = new ConcurrentHashMap<>();
+    private static volatile boolean initialized = false;
 
     /**
      * Initialize the upgrade registry by loading from YAML
      */
-    public static void initialize() {
+    public static synchronized void initialize() {
         if (initialized) {
             Logger.warn("SoulWellUpgradeRegistry already initialized, skipping...");
             return;

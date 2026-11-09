@@ -6,7 +6,9 @@ import net.minestom.server.instance.Instance;
 import net.minestom.server.inventory.Inventory;
 import net.minestom.server.inventory.InventoryType;
 import net.minestom.server.item.ItemStack;
+import net.minestom.server.timer.Task;
 import net.minestom.server.timer.TaskSchedule;
+import com.deyo.hypixel.commons.StringUtility;
 import com.deyo.hypixel.commons.skywars.SkywarsGameType;
 import com.deyo.hypixel.commons.text.Text;
 import com.deyo.hypixel.type.generic.entity.hologram.HologramEntity;
@@ -24,6 +26,8 @@ public class ChestManager {
     private final Map<Pos, Inventory> openedChests = new HashMap<>();
     private final Set<Pos> refilledOnce = new HashSet<>();
     private final Map<Pos, HologramEntity> chestHolograms = new HashMap<>();
+    private final List<Task> scheduledTasks = new ArrayList<>();
+    private Task hologramTask;
     private boolean refillScheduled = false;
     private int refillCount = 0;
     private long gameStartTime = 0;
@@ -73,23 +77,24 @@ public class ChestManager {
         refillScheduled = true;
         gameStartTime = System.currentTimeMillis();
 
-        MinecraftServer.getSchedulerManager().buildTask(() -> {
+        scheduledTasks.add(MinecraftServer.getSchedulerManager().buildTask(() -> {
             refillAllChests();
             removeAllHolograms();
             refillCount = 1;
             broadcastFirst.run();
-        }).delay(TaskSchedule.seconds(SkywarsGame.FIRST_REFILL_SECONDS)).schedule();
+        }).delay(TaskSchedule.seconds(SkywarsGame.FIRST_REFILL_SECONDS)).schedule());
 
-        MinecraftServer.getSchedulerManager().buildTask(() -> {
+        scheduledTasks.add(MinecraftServer.getSchedulerManager().buildTask(() -> {
             refillAllChests();
             removeAllHolograms();
             refillCount = 2;
             broadcastSecond.run();
-        }).delay(TaskSchedule.seconds(SkywarsGame.SECOND_REFILL_SECONDS)).schedule();
+        }).delay(TaskSchedule.seconds(SkywarsGame.SECOND_REFILL_SECONDS)).schedule());
 
-        MinecraftServer.getSchedulerManager().buildTask(this::updateAllHolograms)
+        hologramTask = MinecraftServer.getSchedulerManager().buildTask(this::updateAllHolograms)
                 .repeat(TaskSchedule.tick(20))
                 .schedule();
+        scheduledTasks.add(hologramTask);
     }
 
     private void refillAllChests() {
@@ -104,6 +109,11 @@ public class ChestManager {
     }
 
     public void reset() {
+        for (Task task : scheduledTasks) {
+            task.cancel();
+        }
+        scheduledTasks.clear();
+        hologramTask = null;
         removeAllHolograms();
         openedChests.clear();
         refilledOnce.clear();
@@ -160,13 +170,17 @@ public class ChestManager {
     }
 
     private String formatTime(long seconds) {
-        long minutes = seconds / 60;
-        long secs = seconds % 60;
-        return String.format("%d:%02d", minutes, secs);
+        return StringUtility.formatSeconds(seconds);
     }
 
     private void updateAllHolograms() {
-        if (refillCount >= 2) return;
+        if (refillCount >= 2) {
+            if (hologramTask != null) {
+                hologramTask.cancel();
+                hologramTask = null;
+            }
+            return;
+        }
 
         Text newText = getHologramText();
         for (HologramEntity hologram : chestHolograms.values()) {

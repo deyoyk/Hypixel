@@ -3,19 +3,20 @@ package com.deyo.hypixel.type.skywarslobby.perk;
 import org.tinylog.Logger;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Registry for all SkyWars perks.
  * Loads perks from YAML configuration.
  */
 public class SkywarsPerkRegistry {
-    private static final Map<String, SkywarsPerk> PERKS = new HashMap<>();
-    private static boolean initialized = false;
+    private static final Map<String, SkywarsPerk> PERKS = new ConcurrentHashMap<>();
+    private static volatile boolean initialized = false;
 
     /**
      * Initialize the perk registry by loading from YAML file.
      */
-    public static void initialize() {
+    public static synchronized void initialize() {
         if (initialized) return;
 
         PERKS.clear();
@@ -32,7 +33,7 @@ public class SkywarsPerkRegistry {
     /**
      * Reinitialize the registry (useful for config reloading)
      */
-    public static void reload() {
+    public static synchronized void reload() {
         initialized = false;
         initialize();
     }
