@@ -83,18 +83,23 @@ public class PlayerWorld {
     }
 
     private static class Chunk {
-        private Block[][][] blocks;
-
-        public Chunk() {
-            this.blocks = new Block[CHUNK_SIZE][256][CHUNK_SIZE];
-        }
+        private final Map<Integer, Block> blocks = new HashMap<>();
 
         public void setBlock(int x, int y, int z, Block block) {
-            blocks[x][y][z] = block;
+            int key = key(x, y, z);
+            if (block == null) {
+                blocks.remove(key);
+            } else {
+                blocks.put(key, block);
+            }
         }
 
         public Block getBlock(int x, int y, int z) {
-            return blocks[x][y][z];
+            return blocks.get(key(x, y, z));
+        }
+
+        private static int key(int x, int y, int z) {
+            return (x << 12) | (z << 8) | y;
         }
     }
 }

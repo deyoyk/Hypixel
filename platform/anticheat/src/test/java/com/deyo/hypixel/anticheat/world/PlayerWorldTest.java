@@ -50,4 +50,16 @@ class PlayerWorldTest {
         assertNull(world.getBlockNow(0, 0, 0));
         assertNull(world.getBlockNow(-1, 0, -1));
     }
+
+    @Test
+    void onlyUpdatedBlockCoordinatesAreStored() throws Exception {
+        Block block = new Block(true, false, null);
+
+        world.updateBlock(2, 64, 3, block).get(5, TimeUnit.SECONDS);
+
+        assertSame(block, world.getBlockNow(2, 64, 3));
+        assertNull(world.getBlockNow(2, 65, 3));
+        assertNull(world.getBlockNow(3, 64, 3));
+        assertNull(world.getBlockNow(2, 64, 4));
+    }
 }
