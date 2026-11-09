@@ -124,7 +124,12 @@ public class GUIMyProfile extends HypixelInventoryGUI {
                 return ItemStacks.item(Material.DARK_OAK_DOOR, "<a>Go to Housing");
             }
         });
-        set(new GUIItem(21) {
+        set(new GUIClickableItem(21) {
+            @Override
+            public void run(InventoryPreClickEvent e, HypixelPlayer player) {
+                WebLinks.sendSocialMediaRewardsLink(player);
+            }
+
             @Override
             public ItemStack.Builder getItem(HypixelPlayer player) {
                 return ItemStacks.head("3685a0be743e9067de95cd8c6d1ba21ab21d37371b3d597211bb75e43279", """
