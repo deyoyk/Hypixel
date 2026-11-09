@@ -6,8 +6,7 @@ import com.deyo.hypixel.pvp.feature.CombatFeature;
 import org.jetbrains.annotations.NotNull;
 
 public interface SoundProvider extends CombatFeature {
-    SoundProvider DEFAULT = Audience::playSound;
+    SoundProvider DEFAULT = (audience, sound, x, y, z) -> audience.playSound(sound, x, y, z);
 
-    // TODO: support emitters
     void playSound(Audience audience, final @NotNull Sound original, final double x, final double y, final double z);
 }
