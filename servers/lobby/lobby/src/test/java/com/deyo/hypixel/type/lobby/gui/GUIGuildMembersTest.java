@@ -42,6 +42,17 @@ class GUIGuildMembersTest {
         assertEquals(GUIGuildMembers.MemberSort.LAST_ONLINE, sort);
     }
 
+    @Test
+    void stateCreationUsesTheMemberViewPageSizeAndClampsThePage() {
+        GuildData guild = new GuildData(UUID.randomUUID(), "Test", UUID.randomUUID());
+
+        assertEquals(28, GUIGuildMembers.pageSize());
+        assertEquals(2, GUIGuildMembers.createState(
+                guild, GUIGuildMembers.MemberSort.LAST_ONLINE, false, 2).page());
+        assertEquals(0, GUIGuildMembers.createState(
+                guild, GUIGuildMembers.MemberSort.LAST_ONLINE, false, -1).page());
+    }
+
     private static GuildMember member(GuildData guild, String rank, long joinedAt, long lastLogin, long weeklyGexp) {
         GuildMember member = new GuildMember(UUID.randomUUID(), rank, joinedAt);
         member.setLastLogin(lastLogin);

@@ -287,15 +287,20 @@ public class GUIGuild implements View<GUIGuild.GuildState> {
             (click, viewCtx) -> viewCtx.push(new GUIGuildMembers(),
                 GUIGuildMembers.createState(guild, state.sort(), state.reversed())));
 
+        int pageSize = GUIGuildMembers.pageSize();
+        int memberPages = Math.max(1, (guild.getMembers().size() + pageSize - 1) / pageSize);
         layout.slot(35, ItemStacks.item(Material.ARROW, """
                 <a>Next Page
                 <e>LEFT CLICK<7> to go to the next
                 <7>page
                 <e>RIGHT CLICK<7> to go to the last
                 <7>page
-                <7>Page 1/{}""", Math.max(1, (int) Math.ceil(guild.getMembers().size() / 18.0))),
-            (click, viewCtx) -> viewCtx.push(new GUIGuildMembers(),
-                GUIGuildMembers.createState(guild, state.sort(), state.reversed())));
+                <7>Page 1/{}""", memberPages),
+            (click, viewCtx) -> {
+                int page = click.click() instanceof Click.Right ? memberPages - 1 : Math.min(1, memberPages - 1);
+                viewCtx.push(new GUIGuildMembers(),
+                    GUIGuildMembers.createState(guild, state.sort(), state.reversed(), page));
+            });
 
         int[] previewSlots = {36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53};
         List<GuildMember> members = GUIGuildMembers.sortedMembers(guild, state.sort(), state.reversed());

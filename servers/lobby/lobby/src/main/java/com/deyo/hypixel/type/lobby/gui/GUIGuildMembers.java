@@ -102,12 +102,20 @@ public class GUIGuildMembers extends PaginatedView<GuildMember, GUIGuildMembers.
         return false;
     }
 
+    public static int pageSize() {
+        return MEMBER_SLOTS.length;
+    }
+
     public static MembersState createState(GuildData guild) {
         return createState(guild, MemberSort.LAST_ONLINE, false);
     }
 
     public static MembersState createState(GuildData guild, MemberSort sort, boolean reversed) {
-        return new MembersState(sortedMembers(guild, sort, reversed), 0);
+        return createState(guild, sort, reversed, 0);
+    }
+
+    public static MembersState createState(GuildData guild, MemberSort sort, boolean reversed, int page) {
+        return new MembersState(sortedMembers(guild, sort, reversed), Math.max(0, page));
     }
 
     static List<GuildMember> sortedMembers(GuildData guild, MemberSort sort, boolean reversed) {
