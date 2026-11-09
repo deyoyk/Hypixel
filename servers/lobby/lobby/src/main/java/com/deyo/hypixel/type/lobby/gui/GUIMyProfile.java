@@ -277,7 +277,12 @@ public class GUIMyProfile extends HypixelInventoryGUI {
             }
         });
 
-        set(new GUIItem(33) {
+        set(new GUIClickableItem(33) {
+            @Override
+            public void run(InventoryPreClickEvent e, HypixelPlayer player) {
+                new GUISettings().open(player);
+            }
+
             @Override
             public ItemStack.Builder getItem(HypixelPlayer player) {
                 return ItemStacks.item(Material.COMPARATOR, """
