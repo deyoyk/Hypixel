@@ -120,6 +120,25 @@ public class GUIBanker extends HypixelInventoryGUI implements RefreshingGUI {
             }
         });
 
+        set(new GUIClickableItem(29) {
+            @Override
+            public void run(InventoryPreClickEvent e, HypixelPlayer p) {
+                SkyBlockPlayer player = (SkyBlockPlayer) p;
+                if (unlockPersonalVault(player, bankData)) {
+                    player.openView(new GUIPersonalVault());
+                }
+            }
+
+            @Override
+            public ItemStack.Builder getItem(HypixelPlayer p) {
+                return ItemStacks.item(Material.ENDER_CHEST, 1,
+                    Text.key("gui_banker.main.personal_vault"),
+                    bankData.isPersonalVaultUnlocked()
+                        ? Text.keyLines("gui_banker.main.personal_vault.unlocked.lore")
+                        : Text.keyLines("gui_banker.main.personal_vault.locked.lore"));
+            }
+        });
+
         set(new GUIClickableItem(35) {
             @Override
             public void run(InventoryPreClickEvent e, HypixelPlayer p) {
@@ -136,6 +155,24 @@ public class GUIBanker extends HypixelInventoryGUI implements RefreshingGUI {
                         StringUtility.commaify(bankData.getBalanceLimit())));
             }
         });
+    }
+
+    static boolean unlockPersonalVault(SkyBlockPlayer player, DatapointBankData.BankData bankData) {
+        if (bankData.isPersonalVaultUnlocked()) return true;
+
+        int cost = 10_000;
+        if (player.getCoins() < cost) {
+            player.sendMessage("<c>You do not have enough coins to unlock the Personal Vault!");
+            return false;
+        }
+
+        player.removeCoins(cost);
+        bankData.setPersonalVaultUnlocked(true);
+        player.getSkyblockDataHandler()
+            .get(SkyBlockDataHandler.Data.BANK_DATA, DatapointBankData.class)
+            .setValue(bankData);
+        player.sendMessage("<a>You unlocked the <6>Personal Vault<l>!");
+        return true;
     }
 
     @Override
