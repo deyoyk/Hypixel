@@ -596,11 +596,25 @@ public record SkyBlockGenericLoader(HypixelTypeLoader typeLoader) {
     }
 
     public static @Nullable SkyBlockPlayer getFromUUID(UUID uuid) {
-        return getLoadedPlayers().stream().filter(player -> player.getUuid().toString().equalsIgnoreCase(uuid.toString())).findFirst().orElse(null);
+        return find(getLoadedPlayers(), uuid);
+    }
+
+    static @Nullable SkyBlockPlayer find(Iterable<? extends SkyBlockPlayer> players, UUID uuid) {
+        for (SkyBlockPlayer player : players) {
+            if (player.getUuid().equals(uuid)) {
+                return player;
+            }
+        }
+        return null;
     }
 
     public static @Nullable SkyBlockPlayer getPlayerFromProfileUUID(UUID uuid) {
-        return getLoadedPlayers().stream().filter(player -> player.getProfiles().getCurrentlySelected().equals(uuid)).findFirst().orElse(null);
+        for (SkyBlockPlayer player : getLoadedPlayers()) {
+            if (player.getProfiles().getCurrentlySelected().equals(uuid)) {
+                return player;
+            }
+        }
+        return null;
     }
 
     public static <T> Stream<T> loopThroughPackage(String packageName, Class<T> clazz) {
