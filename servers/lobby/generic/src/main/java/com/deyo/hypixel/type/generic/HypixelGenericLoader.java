@@ -365,7 +365,16 @@ public record HypixelGenericLoader(HypixelTypeLoader loader) {
     }
 
     public static @Nullable HypixelPlayer getFromUUID(UUID uuid) {
-        return getLoadedPlayers().stream().filter(player -> player.getUuid().toString().equalsIgnoreCase(uuid.toString())).findFirst().orElse(null);
+        return find(getLoadedPlayers(), uuid);
+    }
+
+    static @Nullable HypixelPlayer find(Iterable<? extends HypixelPlayer> players, UUID uuid) {
+        for (HypixelPlayer player : players) {
+            if (player.getUuid().equals(uuid)) {
+                return player;
+            }
+        }
+        return null;
     }
 
     public static <T> Stream<T> loopThroughPackage(String packageName, Class<T> clazz) {

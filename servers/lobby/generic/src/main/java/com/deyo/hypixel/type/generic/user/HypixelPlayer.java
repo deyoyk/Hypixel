@@ -74,23 +74,25 @@ public class HypixelPlayer extends Player {
 	}
 
 	public static Text getDisplayName(UUID uuid) {
-		if (HypixelGenericLoader.getLoadedPlayers().stream().anyMatch(player -> player.getUuid().equals(uuid))) {
-			return HypixelGenericLoader.getLoadedPlayers().stream().filter(player -> player.getUuid().equals(uuid)).findFirst().get().getFullDisplayName();
-		} else {
-			// Fallback for offline name display: use Hypixel account data (rank + ign)
-			HypixelDataHandler account = HypixelDataHandler.getOfOfflinePlayer(uuid);
-			return Text.of("{}", account.get(HypixelDataHandler.Data.RANK, DatapointRank.class).getValue()
-					.displayName(account.get(HypixelDataHandler.Data.IGN, DatapointString.class).getValue()));
+		HypixelPlayer online = HypixelGenericLoader.getFromUUID(uuid);
+		if (online != null) {
+			return online.getFullDisplayName();
 		}
+
+		// Fallback for offline name display: use Hypixel account data (rank + ign)
+		HypixelDataHandler account = HypixelDataHandler.getOfOfflinePlayer(uuid);
+		return Text.of("{}", account.get(HypixelDataHandler.Data.RANK, DatapointRank.class).getValue()
+				.displayName(account.get(HypixelDataHandler.Data.IGN, DatapointString.class).getValue()));
 	}
 
 	public static String getRawName(UUID uuid) {
-		if (HypixelGenericLoader.getLoadedPlayers().stream().anyMatch(player -> player.getUuid().equals(uuid))) {
-			return HypixelGenericLoader.getLoadedPlayers().stream().filter(player -> player.getUuid().equals(uuid)).findFirst().get().getUsername();
-		} else {
-			HypixelDataHandler account = HypixelDataHandler.getOfOfflinePlayer(uuid);
-			return account.get(HypixelDataHandler.Data.IGN, DatapointString.class).getValue();
+		HypixelPlayer online = HypixelGenericLoader.getFromUUID(uuid);
+		if (online != null) {
+			return online.getUsername();
 		}
+
+		HypixelDataHandler account = HypixelDataHandler.getOfOfflinePlayer(uuid);
+		return account.get(HypixelDataHandler.Data.IGN, DatapointString.class).getValue();
 	}
 
 	public HypixelDataHandler getDataHandler() {
