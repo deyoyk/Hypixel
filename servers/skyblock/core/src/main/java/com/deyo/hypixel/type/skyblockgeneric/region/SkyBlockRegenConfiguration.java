@@ -19,7 +19,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public abstract class SkyBlockRegenConfiguration {
 
-    public ArrayList<MiningTask> activeMiningTasks = new ArrayList<>();
+    public final Map<Pos, MiningTask> activeMiningTasks = new LinkedHashMap<>();
 
     public abstract MiningTask handleStageOne(MiningTask task, Pos brokenBlock);
 
@@ -42,7 +42,7 @@ public abstract class SkyBlockRegenConfiguration {
                     instance,
                     System.currentTimeMillis() + getRegenerationTime(),
                     2,
-                    getInitialBlockFromPos(block).get(),
+                    taskExists.get().getInitialReviveBlock(),
                     taskExists.get().getInitialMinedBlock()), block);
             if (task.getIntermediaryBlock() == null || task.getReviveBlock() == null) {
                 // There is no stage 2 for this MiningConfiguration
@@ -50,8 +50,7 @@ public abstract class SkyBlockRegenConfiguration {
             }
 
             instance.setBlock(block, task.getIntermediaryBlock());
-            removeExistingTask(block);
-            activeMiningTasks.add(task);
+            putTask(task);
         } else {
             // Stage 1 Handler
             var task = handleStageOne(new MiningTask(
@@ -65,56 +64,60 @@ public abstract class SkyBlockRegenConfiguration {
                     null,
                     instance.getBlock(block)), block);
             task.setInitialReviveBlock(task.getReviveBlock());
-            activeMiningTasks.add(task);
+            putTask(task);
             instance.setBlock(block, task.getIntermediaryBlock());
         }
     }
 
-    private Optional<MiningTask> findMiningTask(Pos block) {
-        return activeMiningTasks.stream().filter(task -> task.getPosition().equals(block)).findFirst();
+    void putTask(MiningTask task) {
+        activeMiningTasks.put(task.getPosition(), task);
+    }
+
+    Optional<MiningTask> findMiningTask(Pos block) {
+        return Optional.ofNullable(activeMiningTasks.get(block));
     }
 
     public Optional<Block> getInitialBlockFromPos(Pos block) {
-        return activeMiningTasks.stream()
-                .filter(task -> task.getPosition().equals(block))
-                .map(MiningTask::getInitialReviveBlock)
-                .findFirst();
+        return findMiningTask(block).map(MiningTask::getInitialReviveBlock);
     }
 
     public void removeExistingTask(Pos block) {
-        activeMiningTasks.removeIf(task -> task.getPosition().equals(block));
+        activeMiningTasks.remove(block);
     }
 
     public static void startRepeater(Scheduler scheduler) {
         scheduler.submitTask(() -> {
+            long now = System.currentTimeMillis();
             for (RegionType regionType : RegionType.values()) {
                 SkyBlockRegenConfiguration mining = regionType.getMiningHandler();
                 if (mining == null) continue;
 
-                List<Pos> toRemove = new ArrayList<>();
-                List<MiningTask> toAdd = new ArrayList<>();
-
-                mining.activeMiningTasks.forEach(task -> {
-                    if (task.getRegenerationTime() <= System.currentTimeMillis()) {
-                        task.getInstance().setBlock(task.getPosition(), task.getReviveBlock());
-
-                        toRemove.add(task.getPosition());
-
-                        if (task.getStage() == 2) {
-                            task.setStage(1);
-                            task.setRegenerationTime(System.currentTimeMillis() + mining.getRegenerationTime());
-                            task.setIntermediaryBlock(task.getReviveBlock());
-                            task.setReviveBlock(task.getInitialReviveBlock());
-                            toAdd.add(task);
-                        }
-                    }
-                });
-
-                toRemove.forEach(mining::removeExistingTask);
-                mining.activeMiningTasks.addAll(toAdd);
+                mining.tickTasks(now);
             }
             return TaskSchedule.tick(20);
         });
+    }
+
+    void tickTasks(long now) {
+        Iterator<Map.Entry<Pos, MiningTask>> iterator = activeMiningTasks.entrySet().iterator();
+        while (iterator.hasNext()) {
+            MiningTask task = iterator.next().getValue();
+            if (task.getRegenerationTime() > now) continue;
+
+            task.getInstance().setBlock(task.getPosition(), task.getReviveBlock());
+            if (task.getStage() == 2) {
+                reschedule(task, now, getRegenerationTime());
+            } else {
+                iterator.remove();
+            }
+        }
+    }
+
+    static void reschedule(MiningTask task, long now, long regenerationTime) {
+        task.setStage(1);
+        task.setRegenerationTime(now + regenerationTime);
+        task.setIntermediaryBlock(task.getReviveBlock());
+        task.setReviveBlock(task.getInitialReviveBlock());
     }
 
     public static Block getRandomBlock(RegenerationConfig... regenerationConfigs) {

@@ -1,40 +1,84 @@
 package com.deyo.hypixel.type.skyblockgeneric.region;
 
+import net.minestom.server.coordinate.Point;
+import net.minestom.server.coordinate.Pos;
+import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.block.Block;
+import net.minestom.server.item.Material;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SkyBlockRegenConfigurationTest {
 
-    private static final SkyBlockRegenConfiguration.RegenerationConfig DIORITE =
-            new SkyBlockRegenConfiguration.RegenerationConfig(3, Block.POLISHED_DIORITE);
-    private static final SkyBlockRegenConfiguration.RegenerationConfig ORIGINAL =
-            new SkyBlockRegenConfiguration.RegenerationConfig(97, Block.GRAY_WOOL);
-
     @Test
-    void weightedSelectionUsesHalfOpenRanges() {
-        assertEquals(Block.POLISHED_DIORITE, SkyBlockRegenConfiguration.getRandomBlock(0, DIORITE, ORIGINAL));
-        assertEquals(Block.POLISHED_DIORITE, SkyBlockRegenConfiguration.getRandomBlock(2, DIORITE, ORIGINAL));
-        assertEquals(Block.GRAY_WOOL, SkyBlockRegenConfiguration.getRandomBlock(3, DIORITE, ORIGINAL));
-        assertEquals(Block.GRAY_WOOL, SkyBlockRegenConfiguration.getRandomBlock(99, DIORITE, ORIGINAL));
+    void stageTwoTasksAreRescheduledWithoutDuplicatingTheBlock() {
+        SkyBlockRegenConfiguration.MiningTask task = SkyBlockRegenConfiguration.MiningTask.builder()
+                .position(new Pos(0, 64, 0))
+                .stage(2)
+                .reviveBlock(Block.STONE)
+                .initialReviveBlock(Block.DIRT)
+                .build();
+
+        SkyBlockRegenConfiguration.reschedule(task, 5_000L, 1_000L);
+
+        assertEquals(1, task.getStage());
+        assertEquals(6_000L, task.getRegenerationTime());
+        assertSame(Block.STONE, task.getIntermediaryBlock());
+        assertSame(Block.DIRT, task.getReviveBlock());
     }
 
     @Test
-    void zeroChanceEntriesAreSkipped() {
-        var never = new SkyBlockRegenConfiguration.RegenerationConfig(0, Block.BEDROCK);
-        var always = new SkyBlockRegenConfiguration.RegenerationConfig(5, Block.STONE);
+    void tasksAreKeyedByTheirBlockPosition() {
+        TestConfiguration configuration = new TestConfiguration();
+        Pos position = new Pos(1, 64, -3);
+        SkyBlockRegenConfiguration.MiningTask first = SkyBlockRegenConfiguration.MiningTask.builder()
+                .position(position)
+                .stage(1)
+                .initialReviveBlock(Block.DIRT)
+                .build();
+        SkyBlockRegenConfiguration.MiningTask second = SkyBlockRegenConfiguration.MiningTask.builder()
+                .position(position)
+                .stage(2)
+                .initialReviveBlock(Block.DIRT)
+                .build();
 
-        assertEquals(Block.STONE, SkyBlockRegenConfiguration.getRandomBlock(0, never, always));
-        assertEquals(Block.STONE, SkyBlockRegenConfiguration.getRandomBlock(4, never, always));
+        configuration.putTask(first);
+        configuration.putTask(second);
+
+        assertEquals(1, configuration.activeMiningTasks.size());
+        assertSame(second, configuration.findMiningTask(position).orElseThrow());
+        assertEquals(Optional.of(Block.DIRT), configuration.getInitialBlockFromPos(position));
+
+        configuration.removeExistingTask(position);
+
+        assertTrue(configuration.findMiningTask(position).isEmpty());
     }
 
-    @Test
-    void rollsOutsideTheTotalChanceReturnNull() {
-        assertNull(SkyBlockRegenConfiguration.getRandomBlock(100, DIORITE, ORIGINAL));
-        assertNull(SkyBlockRegenConfiguration.getRandomBlock(0));
-        assertNull(SkyBlockRegenConfiguration.getRandomBlock(0,
-                new SkyBlockRegenConfiguration.RegenerationConfig(0, Block.BEDROCK)));
+    private static final class TestConfiguration extends SkyBlockRegenConfiguration {
+        @Override
+        public SkyBlockRegenConfiguration.MiningTask handleStageOne(SkyBlockRegenConfiguration.MiningTask task, Pos brokenBlock) {
+            return task;
+        }
+
+        @Override
+        public SkyBlockRegenConfiguration.MiningTask handleStageTwo(SkyBlockRegenConfiguration.MiningTask task, Pos brokenBlock) {
+            return task;
+        }
+
+        @Override
+        public List<Material> getMineableBlocks(Instance instance, Point point) {
+            return List.of();
+        }
+
+        @Override
+        public long getRegenerationTime() {
+            return 1_000L;
+        }
     }
 }
