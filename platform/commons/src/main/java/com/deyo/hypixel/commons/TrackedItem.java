@@ -34,7 +34,7 @@ public class TrackedItem {
 
     @Override
     public TrackedItem clone() {
-        return new TrackedItem(itemUUID, created, attachedPlayers, itemType, numberMade);
+        return new TrackedItem(itemUUID, created, new ArrayList<>(attachedPlayers), itemType, numberMade);
     }
 
     public Document toDocument() {
@@ -71,13 +71,16 @@ public class TrackedItem {
     }
 
     public static TrackedItem fromDocument(Document document) {
+        Long created = document.getLong("created");
+        Integer numberMade = document.getInteger("number-made");
+        List<String> attachedPlayers = document.getList("attached-players", String.class);
         return new TrackedItem(
                 UUID.fromString(document.getString("_id")),
-                document.getLong("created"),
-                new ArrayList<>(document.getList("attached-players", String.class)
-                        .stream().map(JSONObject::new).map(TrackedItem::fromJson).toList()),
+                created != null ? created : 0L,
+                new ArrayList<>(attachedPlayers == null ? List.of()
+                        : attachedPlayers.stream().map(JSONObject::new).map(TrackedItem::fromJson).toList()),
                 document.getString("item-type"),
-                document.getInteger("number-made")
+                numberMade != null ? numberMade : 0
         );
     }
 

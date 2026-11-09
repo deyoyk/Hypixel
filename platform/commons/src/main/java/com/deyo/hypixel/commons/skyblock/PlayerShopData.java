@@ -11,6 +11,8 @@ import java.util.Map;
 
 public class PlayerShopData {
     public static final int MAXIMUM_STOCK = 640;
+    private static final UnderstandableSkyBlockItemSerializer ITEM_SERIALIZER =
+            new UnderstandableSkyBlockItemSerializer();
 
     private final Map<String, Tuple<Integer, Long>> itemData;
     private final List<Tuple<UnderstandableSkyBlockItem, Integer>> buybackData;
@@ -99,13 +101,14 @@ public class PlayerShopData {
     public Map<String, Object> serialize() {
         Map<String, Object> map = new HashMap<>();
         Map<String, Object> itemDataM = new HashMap<>();
-        Map<String, Object> buybacks = new HashMap<>();
+        List<Map<String, Object>> buybacks = new ArrayList<>();
         itemData.forEach((item, stockNTime) -> {
             itemDataM.put(item, stockNTime.getKey() + "/" + stockNTime.getValue());
         });
-        buybackData.forEach((tuple) -> buybacks.put(new UnderstandableSkyBlockItemSerializer().serialize(
-                tuple.getKey()
-        ), tuple.getValue()));
+        buybackData.forEach((tuple) -> buybacks.add(Map.of(
+                "item", ITEM_SERIALIZER.serialize(tuple.getKey()),
+                "amount", tuple.getValue()
+        )));
         map.put("purchases", itemDataM);
         map.put("buyback", buybacks);
         return map;
@@ -120,10 +123,21 @@ public class PlayerShopData {
             itemData.put(itemID, new Tuple<>(stockBought, lastPurchase));
         });
 
-        ((Map<String, Object>) map.get("buyback")).forEach((itemID, amount) -> {
-            UnderstandableSkyBlockItem item = new UnderstandableSkyBlockItemSerializer()
-                    .deserialize(itemID);
-            buybackData.add(new Tuple<>(item, Integer.parseInt(amount.toString())));
-        });
+        Object buybackObject = map.get("buyback");
+        if (buybackObject instanceof List<?> entries) {
+            for (Object rawEntry : entries) {
+                if (!(rawEntry instanceof Map<?, ?> entry)) continue;
+                Object itemJson = entry.get("item");
+                Object amount = entry.get("amount");
+                if (itemJson == null || amount == null) continue;
+                buybackData.add(new Tuple<>(
+                        ITEM_SERIALIZER.deserialize(itemJson.toString()),
+                        Integer.parseInt(amount.toString())));
+            }
+        } else if (buybackObject instanceof Map<?, ?> entries) {
+            entries.forEach((itemJson, amount) -> buybackData.add(new Tuple<>(
+                    ITEM_SERIALIZER.deserialize(itemJson.toString()),
+                    Integer.parseInt(amount.toString()))));
+        }
     }
 }

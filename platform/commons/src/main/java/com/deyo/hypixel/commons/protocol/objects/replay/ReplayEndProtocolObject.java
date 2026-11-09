@@ -9,15 +9,17 @@ import java.util.UUID;
 public class ReplayEndProtocolObject extends RedisProtocol<
         ReplayEndProtocolObject.EndMessage,
         ReplayEndProtocolObject.EndResponse> {
+    private static final Serializer<EndMessage> SERIALIZER = new JacksonSerializer<>(EndMessage.class);
+    private static final Serializer<EndResponse> RETURN_SERIALIZER = new JacksonSerializer<>(EndResponse.class);
 
     @Override
     public Serializer<EndMessage> getSerializer() {
-        return new JacksonSerializer<>(EndMessage.class);
+        return SERIALIZER;
     }
 
     @Override
     public Serializer<EndResponse> getReturnSerializer() {
-        return new JacksonSerializer<>(EndResponse.class);
+        return RETURN_SERIALIZER;
     }
 
     public record EndMessage(

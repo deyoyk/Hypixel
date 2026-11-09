@@ -8,13 +8,15 @@ import java.text.DecimalFormat;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class BedwarsLevelUtil {
 
-    private static final DecimalFormat FORMAT = new DecimalFormat("#,###.#");
+    private static final ThreadLocal<DecimalFormat> FORMAT = ThreadLocal.withInitial(() -> new DecimalFormat("#,###.#"));
+    private static final int LEVELS_PER_CYCLE = 100;
+    private static final long EXPERIENCE_PER_CYCLE = 487_000L;
 
     public static String suffix(double value) {
         if (value < 1000) {
-            return FORMAT.format(value);
+            return FORMAT.get().format(value);
         } else {
-            return FORMAT.format(value / 1000) + "k";
+            return FORMAT.get().format(value / 1000) + "k";
         }
     }
 
@@ -34,15 +36,17 @@ public final class BedwarsLevelUtil {
     }
 
     public static int calculateLevel(long experience) {
-        int level = 0;
-        int totalExperience = 0;
+        if (experience < 0) return 0;
 
-        while (totalExperience <= experience) {
-            int maxExperience = calculateMaxExperienceFromLevel(level);
-            totalExperience += maxExperience;
-            if (totalExperience <= experience) {
-                level++;
-            }
+        long completedCycles = experience / EXPERIENCE_PER_CYCLE;
+        long remaining = experience % EXPERIENCE_PER_CYCLE;
+        int level = Math.toIntExact(completedCycles * LEVELS_PER_CYCLE);
+
+        for (int index = 0; index < LEVELS_PER_CYCLE; index++) {
+            int required = calculateMaxExperienceFromLevel(index);
+            if (remaining < required) break;
+            remaining -= required;
+            level++;
         }
 
         return level;
@@ -50,17 +54,20 @@ public final class BedwarsLevelUtil {
 
     public static int calculateExperienceSinceLastLevel(long experience) {
         int level = calculateLevel(experience);
-        int totalExperience = 0;
-
-        for (int i = 0; i < level; i++) {
-            totalExperience += calculateMaxExperienceFromLevel(i);
-        }
-
-        return (int) (experience - totalExperience);
+        return (int) (experience - totalExperienceForLevel(level));
     }
 
     public static int calculateMaxExperienceFromExperience(long experience) {
-        int level = calculateLevel(experience);
-        return calculateMaxExperienceFromLevel(level);
+        return calculateMaxExperienceFromLevel(calculateLevel(experience));
+    }
+
+    static long totalExperienceForLevel(int level) {
+        long completedCycles = level / LEVELS_PER_CYCLE;
+        int remainingLevels = level % LEVELS_PER_CYCLE;
+        long total = completedCycles * EXPERIENCE_PER_CYCLE;
+        for (int index = 0; index < remainingLevels; index++) {
+            total += calculateMaxExperienceFromLevel(index);
+        }
+        return total;
     }
 }

@@ -10,6 +10,7 @@ import com.deyo.hypixel.commons.protocol.Serializer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Getter
 public class FriendData {
@@ -26,7 +27,7 @@ public class FriendData {
             @JsonProperty("friends") List<Friend> friends,
             @JsonProperty("settings") FriendSettings settings) {
         this.playerUuid = playerUuid;
-        this.friends = friends;
+        this.friends = new CopyOnWriteArrayList<>(friends != null ? friends : List.of());
         this.settings = settings;
     }
 
@@ -60,6 +61,7 @@ public class FriendData {
     }
 
     public void addFriend(Friend friend) {
+        if (isFriendWith(friend.getUuid())) return;
         friends.add(friend);
     }
 

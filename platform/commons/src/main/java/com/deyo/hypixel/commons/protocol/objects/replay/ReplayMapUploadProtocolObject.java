@@ -7,15 +7,17 @@ import com.deyo.hypixel.commons.protocol.Serializer;
 public class ReplayMapUploadProtocolObject extends RedisProtocol<
         ReplayMapUploadProtocolObject.MapUploadMessage,
         ReplayMapUploadProtocolObject.MapUploadResponse> {
+    private static final Serializer<MapUploadMessage> SERIALIZER = new JacksonSerializer<>(MapUploadMessage.class);
+    private static final Serializer<MapUploadResponse> RETURN_SERIALIZER = new JacksonSerializer<>(MapUploadResponse.class);
 
     @Override
     public Serializer<MapUploadMessage> getSerializer() {
-        return new JacksonSerializer<>(MapUploadMessage.class);
+        return SERIALIZER;
     }
 
     @Override
     public Serializer<MapUploadResponse> getReturnSerializer() {
-        return new JacksonSerializer<>(MapUploadResponse.class);
+        return RETURN_SERIALIZER;
     }
 
     public record MapUploadMessage(

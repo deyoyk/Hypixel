@@ -6,7 +6,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,9 +18,9 @@ public class AuctionItemListSerializer implements Serializer<List<AuctionItem>> 
         for (AuctionItem auctionItem : value) {
             jsonArray.put(new JSONObject(auctionItemSerializer.serialize(auctionItem)));
         }
-        return new JSONObject(new HashMap<String, Object>() {{
-            put("auctionItems", jsonArray);
-        }}).toString();
+        JSONObject result = new JSONObject();
+        result.put("auctionItems", jsonArray);
+        return result.toString();
     }
 
     @Override

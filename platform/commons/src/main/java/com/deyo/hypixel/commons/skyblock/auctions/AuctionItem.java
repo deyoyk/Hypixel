@@ -17,6 +17,8 @@ import java.util.UUID;
 @Getter
 @Setter
 public class AuctionItem {
+    private static final AuctionItemSerializer<AuctionItem> SERIALIZER = new AuctionItemSerializer<>();
+    private static final UnderstandableSkyBlockItemSerializer ITEM_SERIALIZER = new UnderstandableSkyBlockItemSerializer();
     private UUID uuid;
     private UUID originator;
     private UnderstandableSkyBlockItem item;
@@ -44,34 +46,39 @@ public class AuctionItem {
 
     @JsonValue
     public String toSerializedString() {
-        return new AuctionItemSerializer<>().serialize(this);
+        return SERIALIZER.serialize(this);
     }
 
     @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
     public static AuctionItem fromSerializedString(String json) {
-        return new AuctionItemSerializer<>().deserialize(json);
+        return SERIALIZER.deserialize(json);
     }
 
     public Document toDocument() {
+        List<String> serializedBids = bids == null
+                ? List.of()
+                : bids.stream().map(Bid::toString).toList();
         return new Document()
                 .append("_id", uuid.toString())
                 .append("originator", originator.toString())
-                .append("item", new UnderstandableSkyBlockItemSerializer().serialize(item))
+                .append("item", ITEM_SERIALIZER.serialize(item))
                 .append("end", endTime)
                 .append("bin", isBin)
                 .append("starting-price", startingPrice)
-                .append("bids", bids.stream().map(Bid::toString).toList());
+                .append("bids", serializedBids);
     }
 
     public static AuctionItem fromDocument(Document document) {
         AuctionItem item = new AuctionItem();
         item.setUuid(UUID.fromString(document.getString("_id")));
         item.setOriginator(UUID.fromString(document.getString("originator")));
-        item.setItem(new UnderstandableSkyBlockItemSerializer().deserialize(document.getString("item")));
-        item.setEndTime(document.getLong("end"));
-        item.setBin(document.getBoolean("bin"));
+        item.setItem(ITEM_SERIALIZER.deserialize(document.getString("item")));
+        Long end = document.getLong("end");
+        item.setEndTime(end != null ? end : 0L);
+        item.setBin(Boolean.TRUE.equals(document.getBoolean("bin")));
         item.setStartingPrice(document.getInteger("starting-price"));
-        item.setBids(document.getList("bids", String.class).stream().map(Bid::fromString).toList());
+        List<String> bids = document.getList("bids", String.class);
+        item.setBids(bids == null ? List.of() : bids.stream().map(Bid::fromString).toList());
         return item;
     }
 

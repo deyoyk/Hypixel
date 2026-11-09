@@ -21,13 +21,16 @@ public final class RedisConnectionPool {
         poolConfig.setMaxWait(settings.maxWait());
         poolConfig.setTestOnBorrow(true);
         poolConfig.setTestWhileIdle(true);
-        poolConfig.setBlockWhenExhausted(false);
+        poolConfig.setBlockWhenExhausted(true);
 
         JedisPool pool = new JedisPool(poolConfig, URI.create(redisUri));
         try (Jedis jedis = pool.getResource()) {
             jedis.ping();
+            return pool;
+        } catch (RuntimeException exception) {
+            pool.close();
+            throw exception;
         }
-        return pool;
     }
 
     public record Settings(int maxTotal, int maxIdle, int minIdle, Duration maxWait) {

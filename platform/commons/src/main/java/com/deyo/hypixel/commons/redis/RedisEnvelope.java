@@ -4,11 +4,23 @@ import org.json.JSONObject;
 
 public record RedisEnvelope(String id, String from, String payload) {
     public String serialize() {
-        JSONObject json = new JSONObject();
-        json.put("id", id);
-        json.put("from", from);
-        json.put("payload", payload);
+        StringBuilder json = new StringBuilder(payload != null ? payload.length() + 64 : 64);
+        json.append("{\"id\":").append(JSONObject.quote(id))
+                .append(",\"from\":").append(JSONObject.quote(from))
+                .append(",\"payload\":").append(rawPayload(payload))
+                .append('}');
         return json.toString();
+    }
+
+    private static String rawPayload(String payload) {
+        if (payload == null || payload.isEmpty()) {
+            return "\"\"";
+        }
+        char first = payload.charAt(0);
+        if (first == '{' || first == '[') {
+            return payload;
+        }
+        return JSONObject.quote(payload);
     }
 
     public static RedisEnvelope deserialize(String json) {

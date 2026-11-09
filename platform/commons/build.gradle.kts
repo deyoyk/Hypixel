@@ -80,6 +80,8 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
 
+    testImplementation(libs.minestom)
+
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
 }

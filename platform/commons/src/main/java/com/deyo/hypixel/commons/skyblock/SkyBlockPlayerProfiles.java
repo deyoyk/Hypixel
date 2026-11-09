@@ -35,29 +35,37 @@ public class SkyBlockPlayerProfiles {
 
     public void addProfile(UUID profile) {
         profiles.add(profile);
-        profilesCache.put(profile, this);
     }
 
     public void removeProfile(UUID profile) {
         profiles.remove(profile);
-        profilesCache.remove(profile);
     }
 
     public Map<String, Object> serialize() {
         return Map.of(
-                "selected", currentlySelected.toString(),
+                "selected", currentlySelected != null ? currentlySelected.toString() : "",
                 "profiles", profiles.stream().map(UUID::toString).toList()
         );
     }
 
     public static SkyBlockPlayerProfiles deserialize(Map<String, Object> map) {
         SkyBlockPlayerProfiles skyBlockPlayerProfiles = new SkyBlockPlayerProfiles(UUID.fromString((String) map.get("_id"))); // Player UUID
-        skyBlockPlayerProfiles.currentlySelected = UUID.fromString((String) map.get("selected")); // Profile UUID
+        Object selected = map.get("selected");
+        if (selected instanceof String string && !string.isEmpty()) {
+            skyBlockPlayerProfiles.currentlySelected = UUID.fromString(string); // Profile UUID
+        }
         skyBlockPlayerProfiles.profiles = new ArrayList<>();
-        for (String profile : (List<String>) map.get("profiles")) {
-            skyBlockPlayerProfiles.profiles.add(UUID.fromString(profile));
+        Object rawProfiles = map.get("profiles");
+        if (rawProfiles instanceof List<?> storedProfiles) {
+            for (Object profile : storedProfiles) {
+                skyBlockPlayerProfiles.profiles.add(UUID.fromString(profile.toString()));
+            }
         }
         return skyBlockPlayerProfiles;
+    }
+
+    public static void unload(UUID playerUuid) {
+        profilesCache.remove(playerUuid);
     }
 
     public static String getRandomName() {

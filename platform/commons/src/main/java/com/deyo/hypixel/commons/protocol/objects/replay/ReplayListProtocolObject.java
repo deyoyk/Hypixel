@@ -12,15 +12,17 @@ import java.util.UUID;
 public class ReplayListProtocolObject extends RedisProtocol<
         ReplayListProtocolObject.ListRequest,
         ReplayListProtocolObject.ListResponse> {
+    private static final Serializer<ListRequest> SERIALIZER = new JacksonSerializer<>(ListRequest.class);
+    private static final Serializer<ListResponse> RETURN_SERIALIZER = new JacksonSerializer<>(ListResponse.class);
 
     @Override
     public Serializer<ListRequest> getSerializer() {
-        return new JacksonSerializer<>(ListRequest.class);
+        return SERIALIZER;
     }
 
     @Override
     public Serializer<ListResponse> getReturnSerializer() {
-        return new JacksonSerializer<>(ListResponse.class);
+        return RETURN_SERIALIZER;
     }
 
     public record ListRequest(UUID playerId, int limit, ServerType filterType) {}

@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +28,7 @@ public final class RedisMessageBus {
     private static final Map<UUID, CompletableFuture<String>> pendingResponses = new ConcurrentHashMap<>();
     private static final Map<UUID, BroadcastCollector> pendingBroadcasts = new ConcurrentHashMap<>();
     private static final Map<String, Boolean> registeredChannels = new ConcurrentHashMap<>();
+    private static final ExecutorService dispatchExecutor = Executors.newVirtualThreadPerTaskExecutor();
     private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(r, "redis-message-bus-timeouts");
         thread.setDaemon(true);
@@ -40,7 +42,7 @@ public final class RedisMessageBus {
                                               Function<RedisEnvelope, String> responseTarget,
                                               Function<RedisEnvelope, String> responseChannel) {
         handlers.computeIfAbsent(channel, ignored -> new CopyOnWriteArrayList<>())
-                .add(new RegisteredHandler<>(localEndpoint, handler, contextFactory, responseTarget, responseChannel));
+                .add(new RegisteredHandler<>(localEndpoint, handler, handler.protocol(), contextFactory, responseTarget, responseChannel));
         ensureChannelRegistered(channel);
     }
 
@@ -106,7 +108,7 @@ public final class RedisMessageBus {
         }, timeoutMs, TimeUnit.MILLISECONDS);
 
         return collector.future().thenApply(rawResponses -> {
-            Map<UUID, R> typedResponses = new ConcurrentHashMap<>();
+            Map<UUID, R> typedResponses = new java.util.HashMap<>(rawResponses.size());
             rawResponses.forEach((uuid, payload) -> {
                 try {
                     typedResponses.put(uuid, protocol.translateReturnFromString(payload));
@@ -143,7 +145,7 @@ public final class RedisMessageBus {
             CompletableFuture<String> pendingResponse = pendingResponses.remove(requestId);
             if (pendingResponse != null) {
                 String payload = envelope.payload();
-                Thread.startVirtualThread(() -> pendingResponse.complete(payload));
+                dispatchExecutor.execute(() -> pendingResponse.complete(payload));
                 return;
             }
 
@@ -156,7 +158,7 @@ public final class RedisMessageBus {
             List<RegisteredHandler<?, ?>> channelHandlers = handlers.get(event.channel);
             if (channelHandlers == null) return;
 
-            channelHandlers.forEach(handler -> Thread.startVirtualThread(() -> handler.handle(envelope, event.channel)));
+            channelHandlers.forEach(handler -> dispatchExecutor.execute(() -> handler.handle(envelope, event.channel)));
         });
 
         subscribeIfListening(channel);
@@ -186,13 +188,12 @@ public final class RedisMessageBus {
     private record RegisteredHandler<T, R>(
             RedisEndpoint localEndpoint,
             RedisMessageHandler<T, R> handler,
+            RedisProtocol<T, R> protocol,
             ContextFactory contextFactory,
             Function<RedisEnvelope, String> responseTarget,
             Function<RedisEnvelope, String> responseChannel
     ) {
         private void handle(RedisEnvelope envelope, String channel) {
-            RedisProtocol<T, R> protocol = handler.protocol();
-
             try {
                 T message = protocol.translateFromString(envelope.payload());
                 RedisMessageContext context = contextFactory.create(envelope, channel);

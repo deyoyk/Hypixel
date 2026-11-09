@@ -9,11 +9,14 @@ import com.deyo.hypixel.commons.protocol.Serializer;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Getter
 @NoArgsConstructor
 public abstract class GuildEvent {
+    private static final Map<Class<?>, Serializer<GuildEvent>> SERIALIZERS = new ConcurrentHashMap<>();
     private GuildData guild;
 
     public GuildEvent(GuildData guild) {
@@ -23,7 +26,7 @@ public abstract class GuildEvent {
     @SuppressWarnings({"rawtypes", "unchecked"})
     @JsonIgnore
     public Serializer<GuildEvent> getSerializer() {
-        return (Serializer) new JacksonSerializer<>(getClass());
+        return SERIALIZERS.computeIfAbsent(getClass(), type -> (Serializer) new JacksonSerializer<>(type));
     }
 
     @JsonIgnore
@@ -99,12 +102,12 @@ public abstract class GuildEvent {
                 return (GuildEvent) c.newInstance(UUID.randomUUID(), "", "");
             }
             case "GuildMuteRequestEvent" -> {
-                var c = clazz.getDeclaredConstructor(UUID.class, String.class, long.class);
-                return (GuildEvent) c.newInstance(UUID.randomUUID(), "", 0L);
+                var c = clazz.getDeclaredConstructor(UUID.class, UUID.class, long.class);
+                return (GuildEvent) c.newInstance(UUID.randomUUID(), null, 0L);
             }
             case "GuildUnmuteRequestEvent" -> {
-                var c = clazz.getDeclaredConstructor(UUID.class, String.class);
-                return (GuildEvent) c.newInstance(UUID.randomUUID(), "");
+                var c = clazz.getDeclaredConstructor(UUID.class, UUID.class);
+                return (GuildEvent) c.newInstance(UUID.randomUUID(), null);
             }
             case "GuildSetRankRequestEvent" -> {
                 var c = clazz.getDeclaredConstructor(UUID.class, UUID.class, String.class);

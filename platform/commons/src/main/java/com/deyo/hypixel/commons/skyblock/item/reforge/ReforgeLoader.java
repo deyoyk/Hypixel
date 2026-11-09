@@ -17,7 +17,8 @@ import java.util.function.BiFunction;
 @Data
 public class ReforgeLoader {
     private static final File REFORGES_DIR = new File("./configuration/skyblock/reforges");
-    private static final Map<String, Reforge> LOADED_REFORGES = new HashMap<>();
+    private static volatile Map<String, Reforge> loadedReforges = Map.of();
+    private static volatile Map<String, Reforge> reforgesByName = Map.of();
 
     @Data
     public static class ReforgeConfig {
@@ -49,24 +50,27 @@ public class ReforgeLoader {
                 throw new IOException("Failed to create reforges directory");
             }
 
-            LOADED_REFORGES.clear();
-
             File[] reforgeFiles = REFORGES_DIR.listFiles((dir, name) -> name.toLowerCase().endsWith(".yml"));
             if (reforgeFiles == null) {
                 Logger.info("No reforge files found in {}", REFORGES_DIR.getPath());
                 return;
             }
 
+            Map<String, Reforge> byId = new HashMap<>();
+            Map<String, Reforge> byName = new HashMap<>();
             for (File file : reforgeFiles) {
                 try {
                     Reforge reforge = loadFromFile(file);
                     if (reforge != null) {
-                        LOADED_REFORGES.put(reforge.getId().toLowerCase(Locale.ROOT), reforge);
+                        byId.put(reforge.getId().toLowerCase(Locale.ROOT), reforge);
+                        byName.putIfAbsent(reforge.getName().toLowerCase(Locale.ROOT), reforge);
                     }
                 } catch (Exception e) {
                     Logger.error(e, "Failed to load reforge from file: {}", file.getName());
                 }
             }
+            loadedReforges = Map.copyOf(byId);
+            reforgesByName = Map.copyOf(byName);
         } catch (Exception e) {
             Logger.error(e, "Failed to load reforges from directory: {}", REFORGES_DIR.getPath());
         }
@@ -75,7 +79,10 @@ public class ReforgeLoader {
     private static Reforge loadFromFile(File file) {
         try {
             Yaml yaml = new Yaml();
-            ReforgeConfig config = yaml.loadAs(new FileReader(file), ReforgeConfig.class);
+            ReforgeConfig config;
+            try (FileReader reader = new FileReader(file)) {
+                config = yaml.loadAs(reader, ReforgeConfig.class);
+            }
 
             if (config == null) {
                 Logger.error("Failed to parse reforge config from: {}", file.getName());
@@ -210,33 +217,27 @@ public class ReforgeLoader {
 
     public static Reforge getReforge(String name) {
         if (name == null) return null;
-        Reforge byId = LOADED_REFORGES.get(name.toLowerCase(Locale.ROOT));
+        Reforge byId = loadedReforges.get(name.toLowerCase(Locale.ROOT));
         if (byId != null) return byId;
 
         // Compatibility with items saved before reforges received distinct IDs.
-        return LOADED_REFORGES.values().stream()
-                .filter(reforge -> reforge.getName().equalsIgnoreCase(name))
-                .findFirst()
-                .orElse(null);
+        return reforgesByName.get(name.toLowerCase(Locale.ROOT));
     }
 
     public static Reforge getReforge(String name, ReforgeType type) {
         Reforge exact = getReforge(name);
         if (exact != null && exact.isApplicableTo(type)) return exact;
 
-        return LOADED_REFORGES.values().stream()
-                .filter(reforge -> reforge.getName().equalsIgnoreCase(name))
-                .filter(reforge -> reforge.isApplicableTo(type))
-                .findFirst()
-                .orElse(null);
+        Reforge byName = reforgesByName.get(name.toLowerCase(Locale.ROOT));
+        return byName != null && byName.isApplicableTo(type) ? byName : null;
     }
 
     public static Collection<Reforge> getAllReforges() {
-        return LOADED_REFORGES.values();
+        return loadedReforges.values();
     }
 
     public static List<Reforge> getReforgesForType(ReforgeType type) {
-        return LOADED_REFORGES.values().stream()
+        return loadedReforges.values().stream()
                 .filter(reforge -> reforge.getApplicableTypes().contains(type))
                 .toList();
     }

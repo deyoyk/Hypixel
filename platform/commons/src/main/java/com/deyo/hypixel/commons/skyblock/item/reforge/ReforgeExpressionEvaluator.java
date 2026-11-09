@@ -45,7 +45,7 @@ public class ReforgeExpressionEvaluator {
 
     private static double evaluateMathExpression(String expression) {
         // Remove whitespace
-        expression = expression.replaceAll("\\s+", "");
+        expression = expression.replace(" ", "");
 
         // Handle parentheses first
         while (expression.contains("(")) {

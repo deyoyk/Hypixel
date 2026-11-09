@@ -1,83 +1,126 @@
 package com.deyo.hypixel.commons;
 
+import com.deyo.hypixel.commons.ChatUtility.FontInfo;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ChatUtilityTest {
 
     @Test
-    void stripTokensRemovesColorCodes() {
-        assertEquals("Hello", ChatUtility.FontInfo.stripTokens("§aHello"));
-        assertEquals("Plain", ChatUtility.FontInfo.stripTokens("Plain"));
-        assertEquals("Mixed text", ChatUtility.FontInfo.stripTokens("§cMixed §btext"));
-        assertEquals("", ChatUtility.FontInfo.stripTokens("§a§b§c"));
+    void fontLookupIsCaseSensitiveAndMatchesEnumWidths() {
+        assertSame(FontInfo.A, FontInfo.getDefaultFontInfo('A'));
+        assertSame(FontInfo.a, FontInfo.getDefaultFontInfo('a'));
+        assertSame(FontInfo.I, FontInfo.getDefaultFontInfo('I'));
+        assertSame(FontInfo.i, FontInfo.getDefaultFontInfo('i'));
+        assertSame(FontInfo.SPACE, FontInfo.getDefaultFontInfo(' '));
+        assertSame(FontInfo.DOUBLE_LEFT_ARROW, FontInfo.getDefaultFontInfo('«'));
     }
 
     @Test
-    void getDefaultFontInfoFindsKnownChars() {
-        assertEquals(ChatUtility.FontInfo.A, ChatUtility.FontInfo.getDefaultFontInfo('A'));
-        assertEquals(ChatUtility.FontInfo.i, ChatUtility.FontInfo.getDefaultFontInfo('i'));
-        assertEquals(ChatUtility.FontInfo.SPACE, ChatUtility.FontInfo.getDefaultFontInfo(' '));
-        assertEquals(ChatUtility.FontInfo.NUM_5, ChatUtility.FontInfo.getDefaultFontInfo('5'));
+    void unknownCharactersUseTheDefaultWidth() {
+        assertSame(FontInfo.DEFAULT, FontInfo.getDefaultFontInfo('\u4e2d'));
+        assertEquals(4, FontInfo.getDefaultFontInfo('\u4e2d').getLength());
     }
 
     @Test
-    void getDefaultFontInfoFallsBackForUnknown() {
-        // Characters that aren't in the table return DEFAULT
-        assertEquals(ChatUtility.FontInfo.DEFAULT, ChatUtility.FontInfo.getDefaultFontInfo('Ω'));
-        assertEquals(ChatUtility.FontInfo.DEFAULT, ChatUtility.FontInfo.getDefaultFontInfo('€'));
+    void stripTokensRemovesEachCodePair() {
+        assertEquals("Hello", FontInfo.stripTokens("§aHello"));
+        assertEquals("Hello", FontInfo.stripTokens("He§cl§alo"));
+        assertEquals("", FontInfo.stripTokens("§a§b"));
+        assertEquals("§", FontInfo.stripTokens("§"));
     }
 
     @Test
-    void getLengthEmptyStringIsZero() {
-        assertEquals(0, ChatUtility.FontInfo.getLength(""));
+    void getLengthIgnoresFormattingCodes() {
+        assertEquals(FontInfo.getLength("Hello"), FontInfo.getLength("§aHello"));
+        assertEquals(FontInfo.getLength("Hello"), FontInfo.getLength("§aHello§r"));
     }
 
     @Test
-    void getLengthIgnoresColorCodes() {
-        // Color codes don't contribute width
-        int plain = ChatUtility.FontInfo.getLength("Hello");
-        int colored = ChatUtility.FontInfo.getLength("§aHello");
-        int doubleColored = ChatUtility.FontInfo.getLength("§c§oHello");
-        assertEquals(plain, colored);
-        assertEquals(plain, doubleColored);
+    void boldCodesIncreaseMeasuredWidthUntilReset() {
+        int plain = FontInfo.getLength("A");
+        int bold = FontInfo.getLength("§lA");
+        int reset = FontInfo.getLength("§lA§rA");
+
+        assertTrue(bold > plain);
+        assertEquals(bold + plain, reset);
     }
 
     @Test
-    void getLengthCountsEachCharacter() {
-        // Each letter adds its declared length + 1 spacing pixel.
-        // 'H','e','l','l','o' -> 5+1 + 5+1 + 1+1 + 1+1 + 5+1 = 22
-        assertEquals(22, ChatUtility.FontInfo.getLength("Hello"));
-    }
+    void wrapMatchesTheOriginalReferenceAlgorithm() {
+        String[] messages = {
+                "",
+                "one two three",
+                "§lBOLD §rnormal words here",
+                "short §cword §lverylongwordthatcannotfitanywhere",
+                "§a§lAll bold and colored text with several words",
+                "trailing   spaces   here ",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa b c d",
+                "§r§l§m§n§o§k formatted codes only"
+        };
+        int[] widths = {20, 40, 80, 240};
 
-    @Test
-    void centerLinesPadsEachLine() {
-        List<String> input = List.of("Short", "A longer line");
-        List<String> output = ChatUtility.FontInfo.centerLines(input);
-        assertEquals(input.size(), output.size());
-        // Each output line ends with the input line
-        for (int i = 0; i < input.size(); i++) {
-            assertTrue(output.get(i).endsWith(input.get(i)),
-                    "Output line should end with input: " + output.get(i));
+        for (String message : messages) {
+            for (int width : widths) {
+                assertEquals(referenceWrap(message, width), FontInfo.wrap(message, width),
+                        "message=" + message + " width=" + width);
+            }
         }
     }
 
     @Test
-    void centerEmptyStringYieldsEmptyPad() {
-        // Implementation returns "" for null or empty
-        assertEquals("", ChatUtility.FontInfo.getCenterSpaces(""));
-        assertEquals("", ChatUtility.FontInfo.getCenterSpaces(null));
+    void wrapHandlesUnicodeAndLongSingleWords() {
+        assertEquals(List.of("«hello»"), FontInfo.wrap("«hello»", 240));
+        assertEquals(List.of("aaaa", "bbbb"), FontInfo.wrap("aaaa bbbb", 10));
+        assertEquals(List.of("§lAAAAAAAA"), FontInfo.wrap("§lAAAAAAAA", 5));
     }
 
-    @Test
-    void fontInfoCharacterAndLengthMatch() {
-        // Spot-check a few entries to lock down the data
-        assertEquals('A', ChatUtility.FontInfo.A.getCharacter());
-        assertEquals(5, ChatUtility.FontInfo.A.getLength());
-        assertEquals(1, ChatUtility.FontInfo.i.getLength());
-        assertEquals(3, ChatUtility.FontInfo.SPACE.getLength());
+    private static List<String> referenceWrap(String message, int maxPxWidth) {
+        List<String> lines = new ArrayList<>();
+        if (message == null || message.isEmpty()) {
+            return lines;
+        }
+
+        StringBuilder currentLine = new StringBuilder();
+        for (String word : message.split(" ")) {
+            String candidate = currentLine.isEmpty() ? word : currentLine + " " + word;
+            if (referenceLength(candidate) <= maxPxWidth) {
+                currentLine = new StringBuilder(candidate);
+            } else {
+                if (!currentLine.isEmpty()) {
+                    lines.add(currentLine.toString());
+                }
+                currentLine = new StringBuilder(word);
+            }
+        }
+        if (!currentLine.isEmpty()) {
+            lines.add(currentLine.toString());
+        }
+        return lines;
+    }
+
+    private static int referenceLength(String message) {
+        double messagePxSize = 0;
+        boolean previousCode = false;
+        boolean bold = false;
+
+        for (char c : message.toCharArray()) {
+            if (c == '§') {
+                previousCode = true;
+            } else if (previousCode) {
+                previousCode = false;
+                bold = bold ? c != 'r' : c == 'l';
+            } else {
+                FontInfo fontInfo = FontInfo.getDefaultFontInfo(c);
+                messagePxSize += bold ? fontInfo.getBoldLength() + 1.5 : fontInfo.getLength() + 1;
+            }
+        }
+        return (int) messagePxSize;
     }
 }

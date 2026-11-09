@@ -16,6 +16,7 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 public class GuildRank implements Comparable<GuildRank> {
+    private static final Serializer<GuildRank> SERIALIZER = new JacksonSerializer<>(GuildRank.class);
     private String name;
     private int priority;
     private boolean isDefault;
@@ -32,7 +33,7 @@ public class GuildRank implements Comparable<GuildRank> {
     }
 
     public boolean hasPermission(GuildPermission permission) {
-        return permissions.contains(permission);
+        return permissions != null && permissions.contains(permission);
     }
 
     public boolean isHigherThan(GuildRank other) {
@@ -65,6 +66,6 @@ public class GuildRank implements Comparable<GuildRank> {
     }
 
     public static Serializer<GuildRank> serializer() {
-        return new JacksonSerializer<>(GuildRank.class);
+        return SERIALIZER;
     }
 }

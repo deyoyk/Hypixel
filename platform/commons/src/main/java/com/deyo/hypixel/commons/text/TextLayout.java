@@ -56,6 +56,15 @@ final class TextLayout {
     }
 
     static List<Component> lines(Component component) {
+        List<List<Run>> split = splitLines(component);
+        List<Component> out = new ArrayList<>(split.size());
+        for (List<Run> line : split) {
+            out.add(fromRuns(line));
+        }
+        return out;
+    }
+
+    private static List<List<Run>> splitLines(Component component) {
         List<List<Run>> split = new ArrayList<>();
         List<Run> current = new ArrayList<>();
         for (Run run : flatten(component)) {
@@ -82,11 +91,7 @@ final class TextLayout {
             }
         }
         split.add(current);
-        List<Component> out = new ArrayList<>(split.size());
-        for (List<Run> line : split) {
-            out.add(fromRuns(line));
-        }
-        return out;
+        return split;
     }
 
     static Component join(List<Component> lines) {
@@ -104,11 +109,12 @@ final class TextLayout {
     }
 
     static Component center(Component component) {
-        List<Component> lines = lines(component);
-        List<Component> out = new ArrayList<>(lines.size());
-        for (Component line : lines) {
-            String spaces = ChatUtility.FontInfo.getCenterSpaces(plain(line));
-            out.add(spaces.isEmpty() ? line : Component.text(spaces).append(line));
+        List<List<Run>> split = splitLines(component);
+        List<Component> out = new ArrayList<>(split.size());
+        for (List<Run> line : split) {
+            String spaces = ChatUtility.FontInfo.getCenterSpaces(plainOfRuns(line));
+            Component lineComponent = fromRuns(line);
+            out.add(spaces.isEmpty() ? lineComponent : Component.text(spaces).append(lineComponent));
         }
         return join(out);
     }
@@ -150,8 +156,12 @@ final class TextLayout {
     }
 
     static String plain(Component component) {
+        return plainOfRuns(flatten(component));
+    }
+
+    private static String plainOfRuns(List<Run> runs) {
         StringBuilder builder = new StringBuilder();
-        for (Run run : flatten(component)) {
+        for (Run run : runs) {
             if (run.special() == null) {
                 builder.append(run.text());
             } else if (run.special() instanceof TranslatableComponent translatable) {

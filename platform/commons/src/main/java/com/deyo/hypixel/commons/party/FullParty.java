@@ -9,6 +9,7 @@ import com.deyo.hypixel.commons.StringUtility;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Getter
 public final class FullParty implements Party {
@@ -20,7 +21,7 @@ public final class FullParty implements Party {
             @JsonProperty("uuid") UUID uuid,
             @JsonProperty("members") List<Member> members) {
         this.uuid = uuid;
-        this.members = members;
+        this.members = new CopyOnWriteArrayList<>(members != null ? members : List.of());
     }
 
     public Member getFromUuid(UUID uuid) {
@@ -47,8 +48,8 @@ public final class FullParty implements Party {
     @Getter
     public static class Member {
         private final UUID uuid;
-        private Role role;
-        private boolean joined;
+        private volatile Role role;
+        private volatile boolean joined;
 
         @JsonCreator
         public Member(

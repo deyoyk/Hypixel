@@ -9,15 +9,17 @@ import java.util.UUID;
 public class ReplayDataBatchProtocolObject extends RedisProtocol<
         ReplayDataBatchProtocolObject.BatchMessage,
         ReplayDataBatchProtocolObject.BatchResponse> {
+    private static final Serializer<BatchMessage> SERIALIZER = new JacksonSerializer<>(BatchMessage.class);
+    private static final Serializer<BatchResponse> RETURN_SERIALIZER = new JacksonSerializer<>(BatchResponse.class);
 
     @Override
     public Serializer<BatchMessage> getSerializer() {
-        return new JacksonSerializer<>(BatchMessage.class);
+        return SERIALIZER;
     }
 
     @Override
     public Serializer<BatchResponse> getReturnSerializer() {
-        return new JacksonSerializer<>(BatchResponse.class);
+        return RETURN_SERIALIZER;
     }
 
     public record BatchMessage(

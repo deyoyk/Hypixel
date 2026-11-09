@@ -5,14 +5,17 @@ import com.deyo.hypixel.commons.protocol.RedisProtocol;
 import com.deyo.hypixel.commons.protocol.Serializer;
 
 public class SendGuildEventToServiceProtocolObject extends RedisProtocol<SendGuildEventToServiceProtocolObject.SendGuildEventToServiceMessage, SendGuildEventToServiceProtocolObject.SendGuildEventToServiceResponse> {
+    private static final Serializer<SendGuildEventToServiceMessage> SERIALIZER = new JacksonSerializer<>(SendGuildEventToServiceMessage.class);
+    private static final Serializer<SendGuildEventToServiceResponse> RETURN_SERIALIZER = new JacksonSerializer<>(SendGuildEventToServiceResponse.class);
+
     @Override
     public Serializer<SendGuildEventToServiceMessage> getSerializer() {
-        return new JacksonSerializer<>(SendGuildEventToServiceMessage.class);
+        return SERIALIZER;
     }
 
     @Override
     public Serializer<SendGuildEventToServiceResponse> getReturnSerializer() {
-        return new JacksonSerializer<>(SendGuildEventToServiceResponse.class);
+        return RETURN_SERIALIZER;
     }
 
     public record SendGuildEventToServiceMessage(String eventType, String eventData) {

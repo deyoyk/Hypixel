@@ -5,9 +5,11 @@ import lombok.Getter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 @Getter
 public final class ScoreboardData {
+    private static final Pattern COLOR_PATTERN = Pattern.compile("§[0-9a-fk-orA-FK-OR]");
     private final String title;
     private final List<Line> lines;
 
@@ -38,7 +40,7 @@ public final class ScoreboardData {
         }
 
         public String plainText() {
-            return text.replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+            return COLOR_PATTERN.matcher(text).replaceAll("");
         }
     }
 

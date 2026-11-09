@@ -5,10 +5,12 @@ import com.deyo.hypixel.commons.skyblock.item.UnderstandableSkyBlockItem;
 import com.deyo.hypixel.commons.protocol.Serializer;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class AuctionItemSerializer<T> implements Serializer<AuctionItem> {
+    private static final UnderstandableSkyBlockItemSerializer ITEM_SERIALIZER = new UnderstandableSkyBlockItemSerializer();
 
     @Override
     public String serialize(AuctionItem value) {
@@ -22,7 +24,7 @@ public class AuctionItemSerializer<T> implements Serializer<AuctionItem> {
         JSONObject obj = new JSONObject();
         obj.put("uuid", uuid.toString());
         obj.put("originator", originator.toString());
-        obj.put("item", new UnderstandableSkyBlockItemSerializer().serialize(item));
+        obj.put("item", ITEM_SERIALIZER.serialize(item));
         obj.put("end", endTime);
         obj.put("bin", isBin);
         obj.put("starting-price", startingPrice);
@@ -35,7 +37,7 @@ public class AuctionItemSerializer<T> implements Serializer<AuctionItem> {
         JSONObject obj = new JSONObject(json);
         UUID uuid = UUID.fromString(obj.getString("uuid"));
         UUID originator = UUID.fromString(obj.getString("originator"));
-        UnderstandableSkyBlockItem item = new UnderstandableSkyBlockItemSerializer().deserialize(obj.getString("item"));
+        UnderstandableSkyBlockItem item = ITEM_SERIALIZER.deserialize(obj.getString("item"));
         long endTime = obj.getLong("end");
         boolean isBin = obj.getBoolean("bin");
         Integer startingPrice = obj.getInt("starting-price");
@@ -57,6 +59,14 @@ public class AuctionItemSerializer<T> implements Serializer<AuctionItem> {
 
     @Override
     public AuctionItem clone(AuctionItem value) {
-        return new AuctionItem(value.getItem(), value.getOriginator(), value.getEndTime(), value.isBin(), Long.valueOf(value.getStartingPrice()));
+        AuctionItem clone = new AuctionItem();
+        clone.setUuid(value.getUuid());
+        clone.setOriginator(value.getOriginator());
+        clone.setItem(value.getItem());
+        clone.setEndTime(value.getEndTime());
+        clone.setBin(value.isBin());
+        clone.setStartingPrice(value.getStartingPrice());
+        clone.setBids(value.getBids() == null ? new ArrayList<>() : new ArrayList<>(value.getBids()));
+        return clone;
     }
 }

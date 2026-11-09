@@ -12,15 +12,17 @@ import java.util.UUID;
 public class ReplayLoadProtocolObject extends RedisProtocol<
         ReplayLoadProtocolObject.LoadRequest,
         ReplayLoadProtocolObject.LoadResponse> {
+    private static final Serializer<LoadRequest> SERIALIZER = new JacksonSerializer<>(LoadRequest.class);
+    private static final Serializer<LoadResponse> RETURN_SERIALIZER = new JacksonSerializer<>(LoadResponse.class);
 
     @Override
     public Serializer<LoadRequest> getSerializer() {
-        return new JacksonSerializer<>(LoadRequest.class);
+        return SERIALIZER;
     }
 
     @Override
     public Serializer<LoadResponse> getReturnSerializer() {
-        return new JacksonSerializer<>(LoadResponse.class);
+        return RETURN_SERIALIZER;
     }
 
     public record LoadRequest(UUID replayId) {}

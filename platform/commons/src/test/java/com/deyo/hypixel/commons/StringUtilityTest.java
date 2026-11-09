@@ -3,7 +3,9 @@ package com.deyo.hypixel.commons;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StringUtilityTest {
 
@@ -90,5 +92,97 @@ class StringUtilityTest {
         assertEquals("Hello", StringUtility.stripColor("§aHello"));
         assertEquals("Plain", StringUtility.stripColor("Plain"));
         assertEquals("Mixed text", StringUtility.stripColor("§cMixed §btext"));
+    }
+
+    @Test
+    void commaifyAndThUsesOrdinalSuffixes() {
+        assertEquals("1st", StringUtility.commaifyAndTh(1));
+        assertEquals("2nd", StringUtility.commaifyAndTh(2));
+        assertEquals("3rd", StringUtility.commaifyAndTh(3));
+        assertEquals("4th", StringUtility.commaifyAndTh(4));
+        assertEquals("11th", StringUtility.commaifyAndTh(11));
+        assertEquals("12th", StringUtility.commaifyAndTh(12));
+        assertEquals("13th", StringUtility.commaifyAndTh(13));
+        assertEquals("21st", StringUtility.commaifyAndTh(21));
+        assertEquals("1,022nd", StringUtility.commaifyAndTh(1022));
+    }
+
+    @Test
+    void decimalifyRoundsUpWithoutAllocatingPerCall() {
+        assertEquals("1.24", StringUtility.decimalify(1.231, 2));
+        assertEquals("1.3", StringUtility.decimalify(1.21, 1));
+        assertEquals("0.01", StringUtility.decimalify(0.001, 2));
+    }
+
+    @Test
+    void parseDurationSupportsCombinedUnits() {
+        assertEquals(0, StringUtility.parseDuration(""));
+        assertEquals(1000, StringUtility.parseDuration("1s"));
+        assertEquals(90_000, StringUtility.parseDuration("1m30s"));
+        assertEquals(90_061_000, StringUtility.parseDuration("1d1h1m1s"));
+        assertEquals(0, StringUtility.parseDuration("nonsense"));
+    }
+
+    @Test
+    void formatAsDateProducesAReadableDate() {
+        long epochMillis = 1_704_067_200_000L;
+        String formatted = StringUtility.formatAsDate(epochMillis);
+        assertTrue(formatted.matches("[A-Z][a-z]+ \\d{2}, \\d{4}"), formatted);
+    }
+
+    @Test
+    void auctionTimeDropsSpacesAndTrailingSecondsMarker() {
+        assertEquals("1m30", StringUtility.getAuctionSetupFormattedTime(90_000));
+        assertEquals("1m", StringUtility.getAuctionSetupFormattedTime(60_000));
+        assertEquals("45", StringUtility.getAuctionSetupFormattedTime(45_000));
+    }
+
+    @Test
+    void toNormalCaseReplacesUnderscoresAndNormalizesCasing() {
+        assertEquals("Skyblock", StringUtility.toNormalCase("skyblock"));
+        assertEquals("Sky Block", StringUtility.toNormalCase("SKY_BLOCK"));
+        assertEquals("S", StringUtility.toNormalCase("s"));
+    }
+
+    @Test
+    void commaifyIsSafeUnderConcurrentUse() throws Exception {
+        int threads = 8;
+        int iterations = 2_000;
+        Thread[] workers = new Thread[threads];
+        boolean[] failed = new boolean[1];
+
+        for (int i = 0; i < threads; i++) {
+            workers[i] = Thread.ofPlatform().start(() -> {
+                for (int iteration = 0; iteration < iterations; iteration++) {
+                    String expected = iteration % 2 == 0 ? "1,234,567" : "0";
+                    String actual = StringUtility.commaify(iteration % 2 == 0 ? 1_234_567 : 0);
+                    if (!expected.equals(actual)) {
+                        failed[0] = true;
+                        return;
+                    }
+                }
+            });
+        }
+
+        for (Thread worker : workers) {
+            worker.join();
+        }
+
+        assertFalse(failed[0], "commaify produced corrupted output under concurrency");
+    }
+
+    @Test
+    void formatSecondsPadsSeconds() {
+        assertEquals("0:00", StringUtility.formatSeconds(0));
+        assertEquals("0:05", StringUtility.formatSeconds(5));
+        assertEquals("1:05", StringUtility.formatSeconds(65));
+        assertEquals("10:00", StringUtility.formatSeconds(600));
+    }
+
+    @Test
+    void formatTicksConvertsTicksToMinutesAndSeconds() {
+        assertEquals("0:00", StringUtility.formatTicks(0));
+        assertEquals("0:05", StringUtility.formatTicks(100));
+        assertEquals("1:05", StringUtility.formatTicks(1300));
     }
 }

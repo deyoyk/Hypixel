@@ -6,7 +6,9 @@ import lombok.NoArgsConstructor;
 import lombok.Getter;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ChatUtility {
@@ -113,6 +115,22 @@ public final class ChatUtility {
 		DEFAULT('a', 4);
 
 		private final static int CENTER_PX = 320 / 2 - 6;
+		private static final FontInfo[] ASCII_BY_CHAR = new FontInfo[128];
+		private static final Map<Character, FontInfo> EXTRA_BY_CHAR = new HashMap<>();
+
+		static {
+			for (FontInfo fontInfo : values()) {
+				char character = fontInfo.character;
+				if (character < ASCII_BY_CHAR.length) {
+					if (ASCII_BY_CHAR[character] == null) {
+						ASCII_BY_CHAR[character] = fontInfo;
+					}
+				} else {
+					EXTRA_BY_CHAR.putIfAbsent(character, fontInfo);
+				}
+			}
+		}
+
 		@Getter
 		private final char character;
 		@Getter
@@ -124,12 +142,8 @@ public final class ChatUtility {
 		}
 
 		public static FontInfo getDefaultFontInfo(char c) {
-			for (FontInfo fontInfo : values()) {
-				if (fontInfo.getCharacter() == c) {
-					return fontInfo;
-				}
-			}
-			return DEFAULT;
+			FontInfo fontInfo = c < ASCII_BY_CHAR.length ? ASCII_BY_CHAR[c] : EXTRA_BY_CHAR.get(c);
+			return fontInfo != null ? fontInfo : DEFAULT;
 		}
 
 		public static String center(String message) {
@@ -170,19 +184,31 @@ public final class ChatUtility {
 			}
 
 			StringBuilder currentLine = new StringBuilder();
+			double currentWidth = 0;
+			boolean bold = false;
 
 			for (String word : message.split(" ")) {
-				String candidate = currentLine.isEmpty()
-					? word
-					: currentLine + " " + word;
+				double wordWidth = measure(word, bold);
+				char[] wordChars = word.toCharArray();
 
-				if (getLength(candidate) <= maxPxWidth) {
-					currentLine = new StringBuilder(candidate);
+				if (currentLine.isEmpty()) {
+					currentLine.append(word);
+					currentWidth = wordWidth;
+					bold = measureBoldState(wordChars, false);
+					continue;
+				}
+
+				double spaceWidth = bold ? SPACE.getBoldLength() + 1.5 : SPACE.getLength() + 1;
+				if ((int) (currentWidth + spaceWidth + wordWidth) <= maxPxWidth) {
+					currentLine.append(' ').append(word);
+					currentWidth += spaceWidth + wordWidth;
+					bold = measureBoldState(wordChars, bold);
 				} else {
-					if (!currentLine.isEmpty()) {
-						lines.add(currentLine.toString());
-					}
-					currentLine = new StringBuilder(word);
+					lines.add(currentLine.toString());
+					currentLine.setLength(0);
+					currentLine.append(word);
+					currentWidth = measure(word, false);
+					bold = measureBoldState(wordChars, false);
 				}
 			}
 
@@ -194,30 +220,53 @@ public final class ChatUtility {
 		}
 
 		public static String stripTokens(String input) {
-			return input.replaceAll("§.", "");
+			StringBuilder stripped = new StringBuilder(input.length());
+			for (int i = 0; i < input.length(); i++) {
+				char c = input.charAt(i);
+				if (c == '§' && i + 1 < input.length()) {
+					i++;
+					continue;
+				}
+				stripped.append(c);
+			}
+			return stripped.toString();
 		}
 
 		public static int getLength(String message) {
-			message = stripTokens(message);
+			return (int) measure(message, false);
+		}
 
+		private static double measure(String message, boolean bold) {
 			double messagePxSize = 0;
-			boolean previousCode = false;
-			boolean bold = false;
-
-			for (char c : message.toCharArray()) {
+			for (int i = 0; i < message.length(); i++) {
+				char c = message.charAt(i);
 				if (c == '§') {
-					previousCode = true;
+					if (i + 1 < message.length()) {
+						bold = updateBold(bold, message.charAt(i + 1));
+						i++;
+					}
+					continue;
+				}
+				FontInfo fontInfo = getDefaultFontInfo(c);
+				messagePxSize += bold ? fontInfo.getBoldLength() + 1.5 : fontInfo.getLength() + 1;
+			}
+			return messagePxSize;
+		}
 
-				} else if (previousCode) {
-					previousCode = false;
-					bold = bold ? c != 'r' : c == 'l';
-
-				} else {
-					FontInfo fontInfo = getDefaultFontInfo(c);
-					messagePxSize += bold ? fontInfo.getBoldLength() + 1.5 : fontInfo.getLength() + 1;
+		private static boolean measureBoldState(char[] chars, boolean bold) {
+			for (int i = 0; i < chars.length; i++) {
+				if (chars[i] == '§' && i + 1 < chars.length) {
+					bold = updateBold(bold, chars[i + 1]);
+					i++;
 				}
 			}
-			return (int) messagePxSize;
+			return bold;
+		}
+
+		private static boolean updateBold(boolean bold, char code) {
+			if (code == 'r') return false;
+			if (code == 'l') return true;
+			return bold;
 		}
 
 		public int getBoldLength() {

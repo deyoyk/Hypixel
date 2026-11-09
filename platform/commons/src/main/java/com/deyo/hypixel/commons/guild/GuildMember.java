@@ -16,6 +16,7 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor(force = true)
 public class GuildMember {
+    private static final Serializer<GuildMember> SERIALIZER = new JacksonSerializer<>(GuildMember.class);
     private final UUID uuid;
     private String rankName;
     private long joinedAt;
@@ -58,6 +59,6 @@ public class GuildMember {
     }
 
     public static Serializer<GuildMember> serializer() {
-        return new JacksonSerializer<>(GuildMember.class);
+        return SERIALIZER;
     }
 }

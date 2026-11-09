@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import com.deyo.hypixel.commons.guild.GuildEvent;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.UUID;
@@ -13,10 +14,10 @@ import java.util.UUID;
 public class GuildUnmuteRequestEvent extends GuildEvent {
     @NotNull
     private UUID actor;
-    @NotNull
-    private String target; // TODO: UUID
+    @Nullable
+    private UUID target;
 
-    public GuildUnmuteRequestEvent(@NotNull UUID actor, @NotNull String target) {
+    public GuildUnmuteRequestEvent(@NotNull UUID actor, @Nullable UUID target) {
         super(null);
         this.actor = actor;
         this.target = target;

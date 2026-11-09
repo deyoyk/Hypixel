@@ -10,10 +10,15 @@ import net.minestom.server.item.Material;
 
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,8 +29,14 @@ public final class StringUtility {
 	public static final char[] ALPHABET = {
 			'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'W', 'X', 'Y', 'Z'
 	};
-	private static final DecimalFormat INTEGER_FORMAT = new DecimalFormat("#,###");
+	private static final ThreadLocal<DecimalFormat> INTEGER_FORMAT =
+			ThreadLocal.withInitial(() -> new DecimalFormat("#,###"));
+	private static final ThreadLocal<Map<Integer, DecimalFormat>> DECIMAL_FORMATS =
+			ThreadLocal.withInitial(HashMap::new);
 	private static final Pattern COLOR_PATTERN = Pattern.compile("§[0-9a-fk-or]");
+	private static final Pattern DURATION_PATTERN = Pattern.compile("(\\d+)([dhms])");
+	private static final DateTimeFormatter DATE_FORMAT =
+			DateTimeFormatter.ofPattern("MMMM dd, yyyy", Locale.getDefault()).withZone(ZoneId.systemDefault());
 
 	public static String formatTimeAsAgo(long millis) {
 		long timeDifference = System.currentTimeMillis() - millis;
@@ -41,14 +52,15 @@ public final class StringUtility {
 	}
 
 	public static String commaifyAndTh(double d) {
+		String formatted = INTEGER_FORMAT.get().format(d);
 		// "th" suffix for numbers ending in 11, 12, 13
 		return switch ((int) d % 100) {
-			case 11, 12, 13 -> INTEGER_FORMAT.format(d) + "th";
+			case 11, 12, 13 -> formatted + "th";
 			default -> switch ((int) d % 10) {
-				case 1 -> INTEGER_FORMAT.format(d) + "st";
-				case 2 -> INTEGER_FORMAT.format(d) + "nd";
-				case 3 -> INTEGER_FORMAT.format(d) + "rd";
-				default -> INTEGER_FORMAT.format(d) + "th";
+				case 1 -> formatted + "st";
+				case 2 -> formatted + "nd";
+				case 3 -> formatted + "rd";
+				default -> formatted + "th";
 			};
 		};
 	}
@@ -66,8 +78,19 @@ public final class StringUtility {
 		return "Just now";
 	}
 
+	public static String formatSeconds(long totalSeconds) {
+		long minutes = totalSeconds / 60;
+		long seconds = totalSeconds % 60;
+		return minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+	}
+
+	public static String formatTicks(int ticks) {
+		return formatSeconds(ticks / 20L);
+	}
+
 	public static double roundTo(double d, int decimalPlaces) {
-		return Math.round(d * Math.pow(10, decimalPlaces)) / Math.pow(10, decimalPlaces);
+		double factor = Math.pow(10, decimalPlaces);
+		return Math.round(d * factor) / factor;
 	}
 
 	public static String stripColor(String s) {
@@ -119,7 +142,7 @@ public final class StringUtility {
 	}
 
 	public static String commaify(int i) {
-		return INTEGER_FORMAT.format(i);
+		return INTEGER_FORMAT.get().format(i);
 	}
 
 	public static Material getMaterialFromBlock(Block block) {
@@ -243,19 +266,17 @@ public final class StringUtility {
 	}
 
 	public static String getAuctionSetupFormattedTime(long millis) {
-		return formatTimeLeft(millis).replace(" ", "")
-				.replaceAll("s$", "");
+		String formatted = formatTimeLeft(millis).replace(" ", "");
+		return formatted.endsWith("s") ? formatted.substring(0, formatted.length() - 1) : formatted;
 	}
 
 	public static String formatAsDate(long millis) {
-		// Month as display, Day, Year
-		SimpleDateFormat sdf = new SimpleDateFormat("MMMM dd, yyyy");
-		return sdf.format(millis);
+		return DATE_FORMAT.format(Instant.ofEpochMilli(millis));
 	}
 
 	public static String toNormalCase(String string) {
 		if (Acronym.isAcronym(string)) return string.toUpperCase();
-		string = string.replaceAll("_", " ");
+		string = string.replace('_', ' ');
 		String[] spl = string.split(" ");
 		StringBuilder sb = new StringBuilder();
 
@@ -280,16 +301,18 @@ public final class StringUtility {
 	}
 
 	public static String commaify(double d) {
-		return d < 1 ? "0" : INTEGER_FORMAT.format(d);
+		return d < 1 ? "0" : INTEGER_FORMAT.get().format(d);
 	}
 
 	public static String decimalify(double d, int decimalPlaces) {
 		if (decimalPlaces < 1)
 			throw new IllegalArgumentException();
-		String builder = "#." + "#".repeat(decimalPlaces);
-		DecimalFormat df = new DecimalFormat(builder);
-		df.setRoundingMode(RoundingMode.CEILING);
-		return df.format(d);
+		DecimalFormat format = DECIMAL_FORMATS.get().computeIfAbsent(decimalPlaces, places -> {
+			DecimalFormat created = new DecimalFormat("#." + "#".repeat(places));
+			created.setRoundingMode(RoundingMode.CEILING);
+			return created;
+		});
+		return format.format(d);
 	}
 
 	public static List<String> splitByNewLine(String string) {
@@ -311,7 +334,7 @@ public final class StringUtility {
 	}
 
 	public static String commaify(long l) {
-		return INTEGER_FORMAT.format(l);
+		return INTEGER_FORMAT.get().format(l);
 	}
 
 	public static String limitStringLength(String s, int charLimit) {
@@ -351,8 +374,7 @@ public final class StringUtility {
 
 	public static long parseDuration(String duration) {
 		long totalMillis = 0;
-		Pattern pattern = Pattern.compile("(\\d+)([dhms])");
-		Matcher matcher = pattern.matcher(duration);
+		Matcher matcher = DURATION_PATTERN.matcher(duration);
 		while (matcher.find()) {
 			int value = Integer.parseInt(matcher.group(1));
 			char unit = matcher.group(2).charAt(0);

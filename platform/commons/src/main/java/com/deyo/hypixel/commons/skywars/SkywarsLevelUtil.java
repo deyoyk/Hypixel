@@ -8,13 +8,14 @@ import java.text.DecimalFormat;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SkywarsLevelUtil {
 
-    private static final DecimalFormat FORMAT = new DecimalFormat("#,###.#");
+    private static final ThreadLocal<DecimalFormat> FORMAT = ThreadLocal.withInitial(() -> new DecimalFormat("#,###.#"));
+    private static final long EXPERIENCE_TO_LEVEL_15 = 3_000L;
 
     public static String suffix(double value) {
         if (value < 1000) {
-            return FORMAT.format(value);
+            return FORMAT.get().format(value);
         } else {
-            return FORMAT.format(value / 1000) + "k";
+            return FORMAT.get().format(value / 1000) + "k";
         }
     }
 
@@ -33,41 +34,36 @@ public final class SkywarsLevelUtil {
     }
 
     public static int calculateLevel(long experience) {
-        int level = 0;
-        long totalExperience = 0;
-
-        while (totalExperience <= experience) {
-            int maxExperience = calculateMaxExperienceFromLevel(level);
-            totalExperience += maxExperience;
-            if (totalExperience <= experience) {
-                level++;
-            }
+        if (experience < 0) return 0;
+        if (experience >= EXPERIENCE_TO_LEVEL_15) {
+            return (int) (15 + (experience - EXPERIENCE_TO_LEVEL_15) / 500);
         }
 
+        int level = 0;
+        long totalExperience = 0;
+        while (true) {
+            int required = calculateMaxExperienceFromLevel(level);
+            if (totalExperience + required > experience) break;
+            totalExperience += required;
+            level++;
+        }
         return level;
     }
 
     public static int calculateExperienceSinceLastLevel(long experience) {
         int level = calculateLevel(experience);
-        long totalExperience = 0;
-
-        for (int i = 0; i < level; i++) {
-            totalExperience += calculateMaxExperienceFromLevel(i);
-        }
-
-        return (int) (experience - totalExperience);
+        return (int) (experience - calculateTotalExperienceForLevel(level));
     }
 
     public static int calculateMaxExperienceFromExperience(long experience) {
-        int level = calculateLevel(experience);
-        return calculateMaxExperienceFromLevel(level);
+        return calculateMaxExperienceFromLevel(calculateLevel(experience));
     }
 
     public static long calculateTotalExperienceForLevel(int targetLevel) {
-        long total = 0;
-        for (int i = 0; i < targetLevel; i++) {
-            total += calculateMaxExperienceFromLevel(i);
-        }
-        return total;
+        int firstTier = Math.min(targetLevel, 5);
+        int secondTier = Math.clamp(targetLevel - 5, 0, 5);
+        int thirdTier = Math.clamp(targetLevel - 10, 0, 5);
+        int finalTier = Math.max(0, targetLevel - 15);
+        return firstTier * 100L + secondTier * 200L + thirdTier * 300L + finalTier * 500L;
     }
 }

@@ -6,6 +6,7 @@ import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistics;
 import org.jetbrains.annotations.Nullable;
 import org.reflections.Reflections;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -16,7 +17,7 @@ import java.util.stream.Stream;
 @Setter
 @Getter
 public abstract class ItemAttribute<T> {
-    private static final ArrayList<ItemAttribute> attributes = new ArrayList<>();
+    private static volatile List<Constructor<? extends ItemAttribute>> constructors = List.of();
 
     public T value;
 
@@ -33,24 +34,29 @@ public abstract class ItemAttribute<T> {
     public abstract String saveIntoString();
 
     public static void registerItemAttributes() {
+        List<Constructor<? extends ItemAttribute>> discovered = new ArrayList<>();
         loopThroughPackage(
                 "com.deyo.hypixel.commons.skyblock.item.attribute.attributes", ItemAttribute.class
-        ).forEach(attributes::add);
+        ).forEach(attribute -> {
+            try {
+                discovered.add(attribute.getClass().getDeclaredConstructor());
+            } catch (NoSuchMethodException exception) {
+                throw new RuntimeException(exception);
+            }
+        });
+        constructors = List.copyOf(discovered);
     }
 
     public static Collection<ItemAttribute> getPossibleAttributes() {
-        // Create a new list to store the results
-        List<ItemAttribute> result = new ArrayList<>();
-
-        // Iterate safely using a traditional for loop
-        for (ItemAttribute attribute : attributes) {
+        List<Constructor<? extends ItemAttribute>> current = constructors;
+        List<ItemAttribute> result = new ArrayList<>(current.size());
+        for (Constructor<? extends ItemAttribute> constructor : current) {
             try {
-                result.add(attribute.getClass().getDeclaredConstructor().newInstance());
-            } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
-                throw new RuntimeException(e);
+                result.add(constructor.newInstance());
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException exception) {
+                throw new RuntimeException(exception);
             }
         }
-
         return result;
     }
 

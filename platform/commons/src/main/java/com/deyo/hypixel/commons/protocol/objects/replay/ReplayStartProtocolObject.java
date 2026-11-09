@@ -12,15 +12,17 @@ import java.util.UUID;
 public class ReplayStartProtocolObject extends RedisProtocol<
         ReplayStartProtocolObject.StartMessage,
         ReplayStartProtocolObject.StartResponse> {
+    private static final Serializer<StartMessage> SERIALIZER = new JacksonSerializer<>(StartMessage.class);
+    private static final Serializer<StartResponse> RETURN_SERIALIZER = new JacksonSerializer<>(StartResponse.class);
 
     @Override
     public Serializer<StartMessage> getSerializer() {
-        return new JacksonSerializer<>(StartMessage.class);
+        return SERIALIZER;
     }
 
     @Override
     public Serializer<StartResponse> getReturnSerializer() {
-        return new JacksonSerializer<>(StartResponse.class);
+        return RETURN_SERIALIZER;
     }
 
     public record StartMessage(

@@ -7,14 +7,17 @@ import com.deyo.hypixel.commons.protocol.Serializer;
 import java.util.UUID;
 
 public class IsPlayerInGuildProtocolObject extends RedisProtocol<IsPlayerInGuildProtocolObject.IsPlayerInGuildMessage, IsPlayerInGuildProtocolObject.IsPlayerInGuildResponse> {
+    private static final Serializer<IsPlayerInGuildMessage> SERIALIZER = new JacksonSerializer<>(IsPlayerInGuildMessage.class);
+    private static final Serializer<IsPlayerInGuildResponse> RETURN_SERIALIZER = new JacksonSerializer<>(IsPlayerInGuildResponse.class);
+
     @Override
     public Serializer<IsPlayerInGuildMessage> getSerializer() {
-        return new JacksonSerializer<>(IsPlayerInGuildMessage.class);
+        return SERIALIZER;
     }
 
     @Override
     public Serializer<IsPlayerInGuildResponse> getReturnSerializer() {
-        return new JacksonSerializer<>(IsPlayerInGuildResponse.class);
+        return RETURN_SERIALIZER;
     }
 
     public record IsPlayerInGuildMessage(UUID playerUUID) {

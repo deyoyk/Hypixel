@@ -9,6 +9,7 @@ import com.deyo.hypixel.commons.bedwars.BedWarsGameType;
 import com.deyo.hypixel.commons.mc.HypixelPosition;
 import com.deyo.hypixel.commons.mc.Vec3i;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -115,6 +116,14 @@ public class BedWarsMapsConfig {
         @NotNull
         public Material woolMaterial() {
             return woolMaterial;
+        }
+
+        public static @Nullable TeamKey fromName(@Nullable String name) {
+            if (name == null || name.isBlank()) return null;
+            for (TeamKey key : values()) {
+                if (key.name().equalsIgnoreCase(name)) return key;
+            }
+            return null;
         }
     }
 

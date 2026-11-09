@@ -19,6 +19,7 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor(force = true)
 public class GuildData {
+    private static final Serializer<GuildData> SERIALIZER = new JacksonSerializer<>(GuildData.class);
     private final UUID guildId;
     private String name;
     private String tag;
@@ -92,8 +93,12 @@ public class GuildData {
         this.name = name;
         this.tag = tag;
         this.tagColor = tagColor;
-        this.members = members;
-        this.ranks = ranks;
+        this.members = members != null ? members : new ArrayList<>();
+        this.ranks = ranks != null ? ranks : new ArrayList<>(List.of(
+                GuildRank.guildMaster(),
+                GuildRank.officer(),
+                GuildRank.member()
+        ));
         this.totalGexp = totalGexp;
         this.level = level;
         this.motd = motd;
@@ -223,6 +228,7 @@ public class GuildData {
     }
 
     public GuildRank getNextRankUp(GuildRank currentRank) {
+        if (currentRank == null) return null;
         return ranks.stream()
             .filter(r -> r.getPriority() < currentRank.getPriority())
             .max(Comparator.comparingInt(GuildRank::getPriority))
@@ -230,6 +236,7 @@ public class GuildData {
     }
 
     public GuildRank getNextRankDown(GuildRank currentRank) {
+        if (currentRank == null) return null;
         return ranks.stream()
             .filter(r -> r.getPriority() > currentRank.getPriority())
             .min(Comparator.comparingInt(GuildRank::getPriority))
@@ -242,6 +249,6 @@ public class GuildData {
     }
 
     public static Serializer<GuildData> getStaticSerializer() {
-        return new JacksonSerializer<>(GuildData.class);
+        return SERIALIZER;
     }
 }

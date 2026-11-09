@@ -10,15 +10,17 @@ import java.util.UUID;
 public class ChooseReplayProtocolObject extends RedisProtocol
         <ChooseReplayProtocolObject.ChooseReplayMessage,
             ChooseReplayProtocolObject.ChooseReplayResponse> {
+    private static final Serializer<ChooseReplayMessage> SERIALIZER = new JacksonSerializer<>(ChooseReplayMessage.class);
+    private static final Serializer<ChooseReplayResponse> RETURN_SERIALIZER = new JacksonSerializer<>(ChooseReplayResponse.class);
 
     @Override
     public Serializer<ChooseReplayMessage> getSerializer() {
-        return new JacksonSerializer<>(ChooseReplayMessage.class);
+        return SERIALIZER;
     }
 
     @Override
     public Serializer<ChooseReplayResponse> getReturnSerializer() {
-        return new JacksonSerializer<>(ChooseReplayResponse.class);
+        return RETURN_SERIALIZER;
     }
 
     public record ChooseReplayMessage(UUID player, String replayId, @Nullable String shareCode) {

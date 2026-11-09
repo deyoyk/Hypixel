@@ -39,6 +39,7 @@ public final class Text implements ComponentLike {
     private final TextNode node;
     private volatile Component component;
     private volatile String serialized;
+    private volatile String plainText;
 
     private Text(Object[] arguments, TextNode node) {
         this.arguments = arguments;
@@ -182,7 +183,12 @@ public final class Text implements ComponentLike {
     }
 
     public String plain() {
-        return TextLayout.plain(asComponent());
+        String local = plainText;
+        if (local == null) {
+            local = TextLayout.plain(asComponent());
+            plainText = local;
+        }
+        return local;
     }
 
     public String plain(Locale locale) {
