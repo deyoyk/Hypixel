@@ -3,9 +3,11 @@ package com.deyo.hypixel.type.bedwarsgame.item.impl;
 import net.minestom.server.event.trait.PlayerInstanceEvent;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
+import com.deyo.hypixel.type.bedwarsgame.game.v2.BedWarsGame;
+import com.deyo.hypixel.type.bedwarsgame.gui.GUIBedWarsTeleporter;
 import com.deyo.hypixel.type.bedwarsgame.item.SimpleInteractableItem;
+import com.deyo.hypixel.type.bedwarsgame.user.BedWarsPlayer;
 import com.deyo.hypixel.type.generic.gui.inventory.ItemStacks;
-import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 
 public class TeleporterItem extends SimpleInteractableItem {
 
@@ -22,7 +24,11 @@ public class TeleporterItem extends SimpleInteractableItem {
 
     @Override
     public void onItemInteract(PlayerInstanceEvent event) {
-        HypixelPlayer player = (HypixelPlayer) event.getPlayer();
-        player.sendMessage("<click:url:'https://github.com/deyo/Hypixel-v2'><c>This Feature is not there yet. <a>Open a Pull request HERE to get it added quickly!");
+        if (!(event.getPlayer() instanceof BedWarsPlayer player)) return;
+
+        BedWarsGame game = player.getGame();
+        if (game == null) return;
+
+        player.openView(new GUIBedWarsTeleporter(game.getPlayers()));
     }
 }
