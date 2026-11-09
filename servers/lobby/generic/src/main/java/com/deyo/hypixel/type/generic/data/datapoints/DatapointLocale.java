@@ -66,12 +66,12 @@ public class DatapointLocale extends Datapoint<DatapointLocale.LocaleType> {
                 return ENGLISH;
             }
             for (SupportedLocale sl : values()) {
-                if (locale.equals(sl.locale)) {
+                if (sl != UNSET && locale.equals(sl.locale)) {
                     return sl;
                 }
             }
             for (SupportedLocale sl : values()) {
-                if (sl.locale != null && sl.locale.getLanguage().equals(locale.getLanguage())) {
+                if (sl != UNSET && sl.locale != null && sl.locale.getLanguage().equals(locale.getLanguage())) {
                     return sl;
                 }
             }
