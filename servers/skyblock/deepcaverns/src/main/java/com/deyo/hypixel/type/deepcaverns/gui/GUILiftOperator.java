@@ -88,6 +88,7 @@ public class GUILiftOperator extends HypixelInventoryGUI {
 
 	@Override
 	public void onBottomClick(InventoryPreClickEvent e) {
+		e.setCancelled(true);
 	}
 
 	enum LiftLocation {

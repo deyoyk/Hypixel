@@ -129,6 +129,6 @@ public class GUIGemstoneGuide extends HypixelPaginatedGUI<SkyBlockItem> {
 
     @Override
     public void onBottomClick(InventoryPreClickEvent e) {
-
+        e.setCancelled(true);
     }
 }
