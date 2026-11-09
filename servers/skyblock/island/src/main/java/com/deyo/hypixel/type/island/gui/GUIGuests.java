@@ -10,6 +10,7 @@ import com.deyo.hypixel.type.generic.gui.inventory.HypixelInventoryGUI;
 import com.deyo.hypixel.type.generic.gui.inventory.ItemStacks;
 import com.deyo.hypixel.type.generic.gui.inventory.item.GUIClickableItem;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.generic.utility.WebLinks;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 
 public class GUIGuests extends HypixelInventoryGUI {
@@ -58,7 +59,7 @@ public class GUIGuests extends HypixelInventoryGUI {
             public void run(InventoryPreClickEvent e, HypixelPlayer p) {
                 SkyBlockPlayer player = (SkyBlockPlayer) p;
                 player.closeInventory();
-                player.sendMessage("<e>Visit our web store: <6>https://store.hypixel.net");
+                WebLinks.sendStoreLink(player);
             }
 
             @Override
@@ -141,5 +142,6 @@ public class GUIGuests extends HypixelInventoryGUI {
 
     @Override
     public void onBottomClick(InventoryPreClickEvent e) {
+        e.setCancelled(true);
     }
 }
