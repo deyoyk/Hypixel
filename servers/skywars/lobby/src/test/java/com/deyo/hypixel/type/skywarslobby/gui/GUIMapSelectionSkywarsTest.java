@@ -1,6 +1,7 @@
 package com.deyo.hypixel.type.skywarslobby.gui;
 
 import com.deyo.hypixel.commons.skywars.SkywarsGameType;
+import com.deyo.hypixel.type.generic.gui.inventory.HypixelInventoryGUI;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.inventory.InventoryPreClickEvent;
@@ -26,8 +27,16 @@ class GUIMapSelectionSkywarsTest {
     }
 
     @Test
-    void bottomClicksAreCancelled() {
-        GUIMapSelectionSkywars gui = new GUIMapSelectionSkywars(SkywarsGameType.SOLO_NORMAL);
+    void mapSelectionCancelsBottomClicks() {
+        assertCancelsBottomClicks(new GUIMapSelectionSkywars(SkywarsGameType.SOLO_NORMAL));
+    }
+
+    @Test
+    void playMenuCancelsBottomClicks() {
+        assertCancelsBottomClicks(new GUIPlaySkywars(SkywarsGameType.SOLO_NORMAL, false));
+    }
+
+    private static void assertCancelsBottomClicks(HypixelInventoryGUI gui) {
         Inventory inventory = new Inventory(InventoryType.CHEST_4_ROW, "test");
         PlayerConnection connection = new PlayerConnection() {
             @Override
