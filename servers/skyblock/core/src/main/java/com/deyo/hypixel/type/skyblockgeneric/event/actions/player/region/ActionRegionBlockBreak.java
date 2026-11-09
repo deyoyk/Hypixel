@@ -150,22 +150,21 @@ public class ActionRegionBlockBreak implements HypixelEventClass {
             ));
 
             // Process each drop with fortune multiplier
+            MineableBlock mineableBlock = MineableBlock.get(block);
+            double dropMultiplier = 1;
+            if (mineableBlock != null && !customDrops.isEmpty()) {
+                try {
+                    var statistics = player.getStatistics().allStatistics();
+                    double baseFortune = statistics.getOverall(mineableBlock.getBlockType().baseSkillFortune());
+                    double specificFortune = statistics.getOverall(mineableBlock.getBlockType().specificBlockFortune());
+                    dropMultiplier = fortuneMultiplier(baseFortune, specificFortune);
+                } catch (NullPointerException ignored) {
+                }
+            }
+
             for (SkyBlockItem dropItem : customDrops) {
                 // Calculate drop amount with fortune multiplier
-                int dropAmount = dropItem.getAmount(); // Base amount from CustomDropComponent
-
-                try {
-                    MineableBlock mineableBlock = MineableBlock.get(block);
-                    if (mineableBlock != null) {
-                        double baseFortune = player.getStatistics().allStatistics().getOverall(mineableBlock.getBlockType().baseSkillFortune());
-                        double specificFortune = player.getStatistics().allStatistics().getOverall(mineableBlock.getBlockType().specificBlockFortune());
-                        double fortune = baseFortune + specificFortune;
-                        double dropMultiplier = (1 + (fortune * 0.01));
-                        dropAmount = (int) Math.ceil(dropAmount * dropMultiplier);
-                    }
-                } catch (NullPointerException e) {
-                    // Keep base amount if fortune calculation fails
-                }
+                int dropAmount = fortuneAmount(dropItem.getAmount(), dropMultiplier);
 
                 // Update the drop item amount
                 dropItem.setAmount(dropAmount);
@@ -214,9 +213,16 @@ public class ActionRegionBlockBreak implements HypixelEventClass {
         }
     }
 
+    static double fortuneMultiplier(double baseFortune, double specificFortune) {
+        return 1 + ((baseFortune + specificFortune) * 0.01);
+    }
+
+    static int fortuneAmount(int baseAmount, double multiplier) {
+        return (int) Math.ceil(baseAmount * multiplier);
+    }
+
     private void processTreeLog(SkyBlockPlayer player, SkyBlockItem heldItem, SkyBlockRegion region,
-                                ForagingTreeManager.HarvestedLog harvested) {
-        Material originalMaterial = Material.fromKey(harvested.originalBlock().key());
+                                ForagingTreeManager.HarvestedLog harvested) {        Material originalMaterial = Material.fromKey(harvested.originalBlock().key());
         if (originalMaterial == null) return;
 
         SkyBlockItem brokenItem = harvested.dropType() == null
@@ -231,22 +237,23 @@ public class ActionRegionBlockBreak implements HypixelEventClass {
                 false
         );
 
-        double fortune = player.getStatistics().allStatistics().getOverall(
+        var statistics = player.getStatistics().allStatistics();
+        double fortune = statistics.getOverall(
                 com.deyo.hypixel.commons.skyblock.statistics.ItemStatistic.FORAGING_FORTUNE
         );
         if (harvested.dropType() == ItemType.FIG_LOG) {
-            fortune += player.getStatistics().allStatistics().getOverall(
+            fortune += statistics.getOverall(
                     com.deyo.hypixel.commons.skyblock.statistics.ItemStatistic.FIG_FORTUNE
             );
         } else if (harvested.dropType() == ItemType.MANGROVE_LOG) {
-            fortune += player.getStatistics().allStatistics().getOverall(
+            fortune += statistics.getOverall(
                     com.deyo.hypixel.commons.skyblock.statistics.ItemStatistic.MANGROVE_FORTUNE
             );
         }
 
         double multiplier = 1 + fortune * 0.01;
         for (SkyBlockItem drop : drops) {
-            drop.setAmount((int) Math.ceil(drop.getAmount() * multiplier));
+            drop.setAmount(fortuneAmount(drop.getAmount(), multiplier));
         }
 
         // Fire after fortune is applied so collection gains match the items actually awarded.
