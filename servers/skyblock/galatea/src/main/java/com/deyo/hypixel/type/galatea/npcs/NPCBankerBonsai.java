@@ -5,6 +5,7 @@ import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
 import com.deyo.hypixel.type.generic.entity.npc.configuration.HumanConfiguration;
 import com.deyo.hypixel.type.generic.event.custom.NPCInteractEvent;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.skyblockgeneric.gui.inventories.banker.GUIBanker;
 
 public class NPCBankerBonsai extends HypixelNPC {
 
@@ -39,6 +40,10 @@ public class NPCBankerBonsai extends HypixelNPC {
 
     @Override
     public void onClick(NPCInteractEvent event) {
-        event.player().notImplemented();
+        bankerGui().open(event.player());
+    }
+
+    static GUIBanker bankerGui() {
+        return new GUIBanker();
     }
 }

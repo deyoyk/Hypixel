@@ -44,6 +44,8 @@ dependencies {
 
     }
 
+    testImplementation(libs.minestom)
+
     implementation(libs.tinylog.api)
 
     implementation(libs.tinylog.impl)
