@@ -77,6 +77,7 @@ public class GUIPlay extends HypixelInventoryGUI {
 
     @Override
     public void onBottomClick(InventoryPreClickEvent e) {
+        e.setCancelled(true);
     }
 
     private String lore() {
