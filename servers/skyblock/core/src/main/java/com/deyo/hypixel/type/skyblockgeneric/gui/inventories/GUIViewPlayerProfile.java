@@ -19,6 +19,7 @@ import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 import com.deyo.hypixel.type.skyblockgeneric.data.SkyBlockDataHandler;
 import com.deyo.hypixel.type.skyblockgeneric.data.datapoints.DatapointSkyBlockExperience;
 import com.deyo.hypixel.type.skyblockgeneric.data.monogdb.CoopInviteService;
+import com.deyo.hypixel.type.skyblockgeneric.gui.inventories.banker.GUIPersonalVault;
 import com.deyo.hypixel.type.skyblockgeneric.gui.inventories.museum.GUIYourMuseum;
 import com.deyo.hypixel.type.skyblockgeneric.gui.inventories.sbmenu.levels.emblem.GUIEmblems;
 import com.deyo.hypixel.type.skyblockgeneric.item.SkyBlockItem;
@@ -203,7 +204,7 @@ public class GUIViewPlayerProfile extends HypixelInventoryGUI {
 			@Override
 			public void run(InventoryPreClickEvent e, HypixelPlayer p) {
 				SkyBlockPlayer player = (SkyBlockPlayer) p;
-				player.sendMessage(Text.key("gui_profile.feature_not_added"));
+				player.openView(new GUIPersonalVault(viewedPlayer));
 			}
 
 			@Override
