@@ -13,6 +13,7 @@ import com.deyo.hypixel.type.generic.gui.inventory.HypixelInventoryGUI;
 import com.deyo.hypixel.type.generic.gui.inventory.ItemStacks;
 import com.deyo.hypixel.type.generic.gui.inventory.item.GUIClickableItem;
 import com.deyo.hypixel.type.generic.gui.inventory.item.GUIItem;
+import com.deyo.hypixel.type.generic.gui.HypixelSignGUI;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 
 import java.util.List;
@@ -134,13 +135,23 @@ public class GUIAchievementsMenu extends HypixelInventoryGUI {
             }
         });
 
-        set(new GUIItem(53) {
+        set(new GUIClickableItem(53) {
             @Override
             public ItemStack.Builder getItem(HypixelPlayer player) {
                 return ItemStacks.item(Material.OAK_SIGN, """
                         <a>Search
                         <7>Search for an achievement by name,
                         <7>description or points value.""");
+            }
+
+            @Override
+            public void run(InventoryPreClickEvent e, HypixelPlayer player) {
+                new HypixelSignGUI(player)
+                        .open(new String[]{"Search Achievements", "Enter name, description or points"})
+                        .thenAccept(query -> {
+                            if (query == null || query.isBlank()) return;
+                            new GUIAchievementSearchResults(query.trim(), 0).open(player);
+                        });
             }
         });
 

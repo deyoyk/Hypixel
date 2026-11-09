@@ -42,4 +42,32 @@ class AchievementRegistryTest {
         assertEquals(List.of(bedwarsSeasonal),
                 AchievementRegistry.filterSeasonal(definitions, AchievementCategory.BEDWARS));
     }
+
+    @Test
+    void searchMatchesNameDescriptionCategoryAndPoints() {
+        AchievementDefinition bedwars = AchievementDefinition.builder()
+                .id("bw_search")
+                .name("Revenge")
+                .description("Kill a player after respawning")
+                .type(AchievementType.CHALLENGE)
+                .category(AchievementCategory.BEDWARS)
+                .points(10)
+                .build();
+        AchievementDefinition skywars = AchievementDefinition.builder()
+                .id("sw_search")
+                .name("Sky High")
+                .description("Win a game without touching the ground")
+                .type(AchievementType.CHALLENGE)
+                .category(AchievementCategory.SKYWARS)
+                .points(25)
+                .build();
+        List<AchievementDefinition> definitions = List.of(bedwars, skywars);
+
+        assertEquals(List.of(bedwars), AchievementRegistry.search(definitions, "revenge"));
+        assertEquals(List.of(bedwars), AchievementRegistry.search(definitions, "respawn"));
+        assertEquals(List.of(skywars), AchievementRegistry.search(definitions, "SkyWars"));
+        assertEquals(List.of(skywars), AchievementRegistry.search(definitions, "25"));
+        assertTrue(AchievementRegistry.search(definitions, "missing").isEmpty());
+        assertTrue(AchievementRegistry.search(definitions, " ").isEmpty());
+    }
 }

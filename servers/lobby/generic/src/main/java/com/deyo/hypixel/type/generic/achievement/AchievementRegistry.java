@@ -163,6 +163,29 @@ public class AchievementRegistry {
         return filterSeasonal(ACHIEVEMENTS.values(), category);
     }
 
+    public static List<AchievementDefinition> search(String query) {
+        return search(ACHIEVEMENTS.values(), query);
+    }
+
+    static List<AchievementDefinition> search(Collection<AchievementDefinition> definitions, String query) {
+        if (query == null || query.isBlank()) return List.of();
+
+        String normalized = query.trim().toLowerCase(Locale.ROOT);
+        return definitions.stream()
+                .filter(achievement -> matches(achievement, normalized))
+                .sorted(Comparator
+                        .comparing((AchievementDefinition achievement) -> achievement.getCategory().getDisplayName())
+                        .thenComparing(AchievementDefinition::getName))
+                .collect(Collectors.toList());
+    }
+
+    private static boolean matches(AchievementDefinition achievement, String query) {
+        return Objects.toString(achievement.getName(), "").toLowerCase(Locale.ROOT).contains(query)
+                || Objects.toString(achievement.getDescription(), "").toLowerCase(Locale.ROOT).contains(query)
+                || achievement.getCategory().getDisplayName().toLowerCase(Locale.ROOT).contains(query)
+                || Integer.toString(achievement.getTotalPoints()).equals(query);
+    }
+
     static List<AchievementDefinition> filterSeasonal(Collection<AchievementDefinition> definitions,
                                                        AchievementCategory category) {
         return definitions.stream()
