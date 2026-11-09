@@ -664,7 +664,6 @@ public class PlayerStatistics {
         missionLoop();
         statisticsLoop();
         experiencedStatisticsLoop();
-        speedLoop();
     }
 
     public static void experiencedStatisticsLoop() {
@@ -728,9 +727,17 @@ public class PlayerStatistics {
                 actionBar.setDefaultDisplay(SkyBlockActionBar.BarSection.MANA,
                         Text.of("<b>{}/{}✎ Mana", values.mana(), values.maxMana()));
                 player.sendActionBar(actionBar.render());
+
+                if (!player.isSpeedManaged()) {
+                    player.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue(movementSpeed(statistics));
+                }
             });
             return TaskSchedule.tick(4);
         }, ExecutionType.TICK_END);
+    }
+
+    static float movementSpeed(ItemStatistics statistics) {
+        return (float) (statistics.getOverall(ItemStatistic.SPEED) / 1000);
     }
 
     record RuntimeValues(int hearts, int maxHearts, double defense, int mana, int maxMana, float absorption) {
@@ -760,18 +767,6 @@ public class PlayerStatistics {
                 player.getStatistics().updateAccessoryStatistics();
             });
             return TaskSchedule.seconds(2);
-        });
-    }
-
-    public static void speedLoop() {
-        Scheduler scheduler = MinecraftServer.getSchedulerManager();
-        scheduler.submitTask(() -> {
-            SkyBlockGenericLoader.getLoadedPlayers().forEach(player -> {
-                double speed = player.getStatistics().allStatistics().getOverall(ItemStatistic.SPEED);
-                if (player.isSpeedManaged()) return; // if the Speed is currently managed by another source, don't override it
-                player.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue((float) (speed / 1000));
-            });
-            return TaskSchedule.tick(4);
         });
     }
 

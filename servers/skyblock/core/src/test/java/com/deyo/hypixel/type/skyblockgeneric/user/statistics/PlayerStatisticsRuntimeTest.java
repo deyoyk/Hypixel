@@ -1,5 +1,6 @@
 package com.deyo.hypixel.type.skyblockgeneric.user.statistics;
 
+import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistic;
 import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistics;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 import net.minestom.server.MinecraftServer;
@@ -52,6 +53,15 @@ class PlayerStatisticsRuntimeTest {
                 ItemStatistics.empty(), System.currentTimeMillis() + 10_000));
 
         assertTrue(statistics.hasTemporaryStatistics());
+    }
+
+    @Test
+    void movementSpeedUsesTheSpeedStatistic() {
+        ItemStatistics statistics = ItemStatistics.builder()
+                .withBase(ItemStatistic.SPEED, 250D)
+                .build();
+
+        assertEquals(0.25f, PlayerStatistics.movementSpeed(statistics));
     }
 
     private static SkyBlockPlayer player() {
