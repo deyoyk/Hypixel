@@ -9,68 +9,121 @@ import com.deyo.hypixel.velocity.gamemanager.BalanceConfiguration;
 import com.deyo.hypixel.velocity.gamemanager.GameManager;
 import com.deyo.hypixel.commons.redis.RedisClient;
 import org.bson.Document;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 public class IslandCheck extends BalanceConfiguration {
     private static final long LOOKUP_TIMEOUT_MILLIS = 3000;
+    private static final long CACHE_TTL_MILLIS = 10_000;
+    private static final Map<UUID, CachedIsland> ISLAND_CACHE = new ConcurrentHashMap<>();
+    private static final Map<UUID, CachedServer> SERVER_CACHE = new ConcurrentHashMap<>();
 
     @Override
     public GameManager.GameServer getServer(Player player, List<GameManager.GameServer> servers) {
-        Document userDatabase = new UserDatabase(player.getUniqueId()).getDocument();
-        if (userDatabase == null || !userDatabase.containsKey("selected")) {
+        UUID playerId = player.getUniqueId();
+        long now = System.currentTimeMillis();
+        CachedIsland cachedIsland = ISLAND_CACHE.get(playerId);
+        if (cachedIsland != null && isFresh(cachedIsland.cachedAt(), now)) {
+            return cachedIsland.islandUUID() == null ? null : findServerWithIsland(cachedIsland.islandUUID());
+        }
+
+        Document userDatabase = new UserDatabase(playerId).getDocument();
+        UUID activeProfile = selectedProfile(userDatabase);
+        if (activeProfile == null) {
+            ISLAND_CACHE.put(playerId, new CachedIsland(null, now));
             return null;
         }
 
-        UUID activeProfile = UUID.fromString(userDatabase.getString("selected"));
         Document document = new ProfilesDatabase(activeProfile.toString()).getDocument();
-        if (document == null || !document.containsKey("island_uuid") ||
-            document.getString("island_uuid").equals("null")) {
+        UUID islandUUID = islandUuid(document);
+        if (islandUUID == null) {
+            ISLAND_CACHE.put(playerId, new CachedIsland(null, now));
             return null;
         }
 
-        UUID islandUUID = UUID.fromString(document.getString("island_uuid").replace("\"", ""));
+        ISLAND_CACHE.put(playerId, new CachedIsland(islandUUID, now));
         return findServerWithIsland(islandUUID);
     }
 
+    static @Nullable UUID selectedProfile(Document userDatabase) {
+        return userDatabase == null ? null : parseUuid(userDatabase.getString("selected"));
+    }
+
+    static @Nullable UUID islandUuid(Document profileDocument) {
+        if (profileDocument == null) return null;
+
+        String island = profileDocument.getString("island_uuid");
+        if (island == null) return null;
+
+        String normalized = island.replace("\"", "");
+        return normalized.equals("null") ? null : parseUuid(normalized);
+    }
+
+    private static @Nullable UUID parseUuid(String value) {
+        if (value == null) return null;
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
+    }
+
+    static boolean isFresh(long cachedAt, long now) {
+        return now - cachedAt <= CACHE_TTL_MILLIS;
+    }
+
     private static GameManager.GameServer findServerWithIsland(UUID islandUUID) {
+        long now = System.currentTimeMillis();
+        CachedServer cachedServer = SERVER_CACHE.get(islandUUID);
+        if (cachedServer != null
+                && isFresh(cachedServer.cachedAt(), now)
+                && GameManager.getFromUUID(cachedServer.server().internalID()) != null) {
+            return cachedServer.server();
+        }
+
         Map<GameManager.GameServer, CompletableFuture<DoesServerHaveIslandProtocol.Response>> responses = new LinkedHashMap<>();
 
-        for (Map.Entry<ServerType, ArrayList<GameManager.GameServer>> entry : GameManager.getServers().entrySet()) {
-            if (entry.getKey() != ServerType.SKYBLOCK_ISLAND) continue;
-
-            for (GameManager.GameServer gameServer : new ArrayList<>(entry.getValue())) {
-                responses.put(gameServer, RedisClient.requestServer(
-                    gameServer.internalID(),
-                    new DoesServerHaveIslandProtocol(),
-                    new DoesServerHaveIslandProtocol.Request(islandUUID.toString())));
-            }
+        for (GameManager.GameServer gameServer : GameManager.getFromType(ServerType.SKYBLOCK_ISLAND)) {
+            responses.put(gameServer, RedisClient.requestServer(
+                gameServer.internalID(),
+                new DoesServerHaveIslandProtocol(),
+                new DoesServerHaveIslandProtocol.Request(islandUUID.toString())));
         }
+
+        if (responses.isEmpty()) return null;
+
+        CompletableFuture<?>[] waits = responses.values().stream()
+            .map(future -> future.exceptionally(ignored -> null))
+            .toArray(CompletableFuture[]::new);
+        CompletableFuture.allOf(waits)
+            .orTimeout(LOOKUP_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+            .exceptionally(ignored -> null)
+            .join();
 
         GameManager.GameServer toSendTo = null;
-        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(LOOKUP_TIMEOUT_MILLIS);
-
         for (Map.Entry<GameManager.GameServer, CompletableFuture<DoesServerHaveIslandProtocol.Response>> entry : responses.entrySet()) {
-            long remaining = deadline - System.nanoTime();
-            if (remaining <= 0) break;
-
-            try {
-                if (entry.getValue().get(remaining, TimeUnit.NANOSECONDS).serverHasIt()) {
-                    toSendTo = entry.getKey();
-                }
-            } catch (InterruptedException exception) {
-                Thread.currentThread().interrupt();
-                break;
-            } catch (Exception ignoredException) {
+            DoesServerHaveIslandProtocol.Response response = entry.getValue().getNow(null);
+            if (response != null && response.serverHasIt()) {
+                toSendTo = entry.getKey();
             }
         }
 
+        if (toSendTo != null) {
+            SERVER_CACHE.put(islandUUID, new CachedServer(toSendTo, now));
+        }
         return toSendTo;
+    }
+
+    private record CachedIsland(UUID islandUUID, long cachedAt) {
+    }
+
+    private record CachedServer(GameManager.GameServer server, long cachedAt) {
     }
 }

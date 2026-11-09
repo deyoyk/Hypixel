@@ -34,24 +34,29 @@ public class ListenerServersInformation implements RedisMessageHandler<
                 return new RequestServersProtocol.Response(UnderstandableProxyServer.toJSON(toUnderstandable(servers)).toString(), true, null);
             }
             case "TYPE" -> {
-                List<GameManager.GameServer> servers = GameManager.getFromType(ServerType.valueOf(message.type()));
-                if (servers == null) servers = new ArrayList<>();
+                List<GameManager.GameServer> servers = new ArrayList<>(GameManager.getFromType(ServerType.valueOf(message.type())));
                 filterByTestFlow(servers, isInTestFlow);
                 return new RequestServersProtocol.Response(UnderstandableProxyServer.toJSON(toUnderstandable(servers)).toString(), true, null);
             }
             case "UUID" -> {
-                List<GameManager.GameServer> servers = new ArrayList<>(List.of(GameManager.getFromUUID(UUID.fromString(message.uuid()))));
+                GameManager.GameServer server = GameManager.getFromUUID(UUID.fromString(message.uuid()));
+                List<GameManager.GameServer> servers = server == null
+                        ? new ArrayList<>()
+                        : new ArrayList<>(List.of(server));
                 filterByTestFlow(servers, isInTestFlow);
                 return new RequestServersProtocol.Response(UnderstandableProxyServer.toJSON(toUnderstandable(servers)).toString(), true, null);
             }
             case "PLAYER_UUID" -> {
                 UUID uuidObject = UUID.fromString(message.uuid());
                 Optional<Player> potentialPlayer = SkyBlockVelocity.getServer().getPlayer(uuidObject);
-                if (potentialPlayer.isEmpty()) {
+                if (potentialPlayer.isEmpty() || potentialPlayer.get().getCurrentServer().isEmpty()) {
                     return new RequestServersProtocol.Response(UnderstandableProxyServer.toJSON(List.of()).toString(), true, null);
                 }
                 Player player = potentialPlayer.get();
-                List<GameManager.GameServer> servers = new ArrayList<>(Collections.singletonList(GameManager.getFromRegisteredServer(player.getCurrentServer().get().getServer())));
+                GameManager.GameServer server = GameManager.getFromRegisteredServer(player.getCurrentServer().get().getServer());
+                List<GameManager.GameServer> servers = server == null
+                        ? new ArrayList<>()
+                        : new ArrayList<>(List.of(server));
                 filterByTestFlow(servers, isInTestFlow);
                 return new RequestServersProtocol.Response(UnderstandableProxyServer.toJSON(toUnderstandable(servers)).toString(), true, null);
             }

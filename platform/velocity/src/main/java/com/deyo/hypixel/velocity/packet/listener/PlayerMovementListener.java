@@ -10,9 +10,9 @@ import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPl
 import com.velocitypowered.api.proxy.Player;
 import com.deyo.hypixel.velocity.gamemanager.TransferHandler;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PlayerMovementListener implements PacketListener {
 
@@ -21,7 +21,7 @@ public class PlayerMovementListener implements PacketListener {
         float yaw, pitch;
     }
 
-    private final Map<UUID, MovementData> last = new HashMap<>(1024 * 16);
+    private final Map<UUID, MovementData> last = new ConcurrentHashMap<>();
 
     @Override
     public void onPacketReceive(PacketReceiveEvent event) {
@@ -34,8 +34,7 @@ public class PlayerMovementListener implements PacketListener {
         final Player player = event.getPlayer();
         final UUID uuid = player.getUniqueId();
 
-        TransferHandler handler = new TransferHandler(player);
-        if (!handler.isInAfkLimbo()) {
+        if (!TransferHandler.isInAfkLimbo(uuid)) {
             return;
         }
 
@@ -79,7 +78,7 @@ public class PlayerMovementListener implements PacketListener {
         }
 
         if (prev == null) {
-            MovementData data = last.getOrDefault(uuid, new MovementData());
+            MovementData data = new MovementData();
 
             if (hasPos) {
                 data.x = x;
@@ -106,7 +105,7 @@ public class PlayerMovementListener implements PacketListener {
 
             boolean significantMove = dx * dx + dy * dy + dz * dz >= 1.0;
             if (significantMove) {
-                moved(uuid, handler);
+                moved(player);
                 return;
             } else {
                 prev.x = x;
@@ -122,7 +121,7 @@ public class PlayerMovementListener implements PacketListener {
 
             boolean significantPitch = dyaw * dyaw + dpitch * dpitch >= 4.0f;
             if (significantPitch) {
-                moved(uuid, handler);
+                moved(player);
             } else {
                 prev.yaw = yaw;
                 prev.pitch = pitch;
@@ -131,8 +130,12 @@ public class PlayerMovementListener implements PacketListener {
         }
     }
 
-    private void moved(UUID uuid, TransferHandler handler) {
-        handler.returnFromAfkLimbo();
+    public void clear(UUID uuid) {
         last.remove(uuid);
+    }
+
+    private void moved(Player player) {
+        new TransferHandler(player).returnFromAfkLimbo();
+        last.remove(player.getUniqueId());
     }
 }

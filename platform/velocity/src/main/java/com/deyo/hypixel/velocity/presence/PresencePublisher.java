@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import com.deyo.hypixel.commons.ServiceType;
 import com.deyo.hypixel.commons.presence.PresenceInfo;
 import com.deyo.hypixel.commons.protocol.objects.presence.UpdatePresenceProtocol;
 import com.deyo.hypixel.commons.redis.RedisClient;
@@ -13,6 +14,7 @@ import java.util.UUID;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class PresencePublisher {
+    private static final UpdatePresenceProtocol PROTOCOL = new UpdatePresenceProtocol();
 
     public static void publish(Player player, boolean online, String serverType, UUID serverId) {
         PresenceInfo info = new PresenceInfo(
@@ -23,8 +25,9 @@ public final class PresencePublisher {
                 System.currentTimeMillis()
         );
 
-        RedisClient.publishAllServices(
-                new UpdatePresenceProtocol(),
+        RedisClient.publishService(
+                ServiceType.FRIEND,
+                PROTOCOL,
                 new UpdatePresenceProtocol.UpdatePresenceMessage(info)
         );
     }

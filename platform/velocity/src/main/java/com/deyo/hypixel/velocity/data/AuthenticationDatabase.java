@@ -8,6 +8,8 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 import org.bson.Document;
 import org.jetbrains.annotations.Nullable;
@@ -78,17 +80,11 @@ public record AuthenticationDatabase(UUID id) implements MongoDB {
     }
 
     public void insertOrUpdate(String key, Object value) {
-        if (exists()) {
-            Document query = new Document("_id", id);
-            Document found = collection.find(query).first();
-
-            assert found != null;
-            collection.updateOne(found, Updates.set(key, value));
-            return;
-        }
-        Document New = new Document("_id", id);
-        New.append(key, value);
-        collection.insertOne(New);
+        collection.updateOne(
+                new Document("_id", id),
+                Updates.set(key, value),
+                new UpdateOptions().upsert(true)
+        );
     }
 
     public boolean exists() {
@@ -108,11 +104,11 @@ public record AuthenticationDatabase(UUID id) implements MongoDB {
     public void setAuthenticationData(AuthenticationData data) {
         Document document = data.serialize();
         document.put("_id", id.toString());
-        if (collection.find(Filters.eq("_id", id.toString())).first() == null) {
-            collection.insertOne(document);
-            return;
-        }
-        collection.replaceOne(Filters.eq("_id", id.toString()), document);
+        collection.replaceOne(
+                Filters.eq("_id", id.toString()),
+                document,
+                new ReplaceOptions().upsert(true)
+        );
     }
 
     public static AuthenticationData makeFromPassword(String password) {
@@ -150,7 +146,9 @@ public record AuthenticationDatabase(UUID id) implements MongoDB {
 
         public boolean matches(String rawInput) {
             String hashedInput = hashPassword(rawInput, salt);
-            return hash.equals(hashedInput);
+            return MessageDigest.isEqual(
+                    hash.getBytes(StandardCharsets.UTF_8),
+                    hashedInput.getBytes(StandardCharsets.UTF_8));
         }
     }
 }

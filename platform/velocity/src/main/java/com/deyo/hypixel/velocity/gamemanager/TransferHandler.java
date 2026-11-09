@@ -24,16 +24,31 @@ public record TransferHandler(Player player) {
 	private static final Set<UUID> afkReturnInProgress = ConcurrentHashMap.newKeySet();
 
 	public boolean isInLimbo() {
+		return isInLimbo(player);
+	}
+
+	public static boolean isInLimbo(Player player) {
 		return playersGoalServerType.containsKey(player);
 	}
 
 	public boolean isInAfkLimbo() {
-		return afkOriginLobbyType.containsKey(player.getUniqueId());
+		return isInAfkLimbo(player.getUniqueId());
+	}
+
+	public static boolean isInAfkLimbo(UUID playerUuid) {
+		return afkOriginLobbyType.containsKey(playerUuid);
 	}
 
 	public static void clearPlayerState(UUID playerUuid) {
 		afkOriginLobbyType.remove(playerUuid);
 		afkReturnInProgress.remove(playerUuid);
+	}
+
+	public static void clearPlayer(Player player) {
+		playersGoalServerType.remove(player);
+		playersOriginServer.remove(player);
+		disregard.remove(player);
+		clearPlayerState(player.getUniqueId());
 	}
 
 	public void addToDisregard() {
@@ -79,7 +94,7 @@ public record TransferHandler(Player player) {
 				return;
 			}
 
-			ServerType resolvedOriginType = isLobbyType(originType) ? originType : ServerType.PROTOTYPE_LOBBY;
+			ServerType resolvedOriginType = resolveAfkOriginType(originType);
 			afkOriginLobbyType.put(player.getUniqueId(), resolvedOriginType);
 
 			if (player.getCurrentServer().isPresent()) {
@@ -221,7 +236,8 @@ public record TransferHandler(Player player) {
 
 		GameManager.GameServer server = BalanceConfigurations.getServerFor(player, type);
 		if (server == null) {
-			player.sendMessage(Text.of("<c>There are no Hypixel (type={}) servers available at the moment.", type.name()));
+			playersGoalServerType.put(player, type);
+			sendToLimbo();
 			return;
 		}
 
@@ -265,6 +281,10 @@ public record TransferHandler(Player player) {
 			}
 		});
 		return future;
+	}
+
+	static ServerType resolveAfkOriginType(ServerType type) {
+		return isLobbyType(type) ? type : ServerType.PROTOTYPE_LOBBY;
 	}
 
 	private static boolean isLobbyType(ServerType type) {

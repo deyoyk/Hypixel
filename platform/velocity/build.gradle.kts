@@ -62,6 +62,8 @@ dependencies {
 
     compileOnly(files("velocity-4.1.0-SNAPSHOT-9.jar"))
 
+    testImplementation(libs.velocity.api)
+
 
 
     implementation(libs.deyo.redisapi)

@@ -26,13 +26,11 @@ public class TestFlowManager {
      * Registers a new test flow
      */
     public static void registerTestFlow(String name, String handler, List<String> players, List<ServerConfig> serverConfigs) {
-        if (activeTestFlows.containsKey(name)) {
+        ProxyTestFlowInstance instance = new ProxyTestFlowInstance(name, handler, players, serverConfigs);
+        if (activeTestFlows.putIfAbsent(name, instance) != null) {
             Logger.warn("Test flow {} is already registered, ignoring duplicate registration", name);
             return;
         }
-
-        ProxyTestFlowInstance instance = new ProxyTestFlowInstance(name, handler, players, serverConfigs);
-        activeTestFlows.put(name, instance);
 
         Logger.info("Registered test flow: {} (handler={}, players={}, expectedServers={})",
                 name, handler, players, instance.getTotalExpectedServers());
@@ -55,11 +53,13 @@ public class TestFlowManager {
         Logger.info("Server {} #{} is ready for test flow: {}", serverType.name(), serverIndex, testFlowName);
 
         // Only trigger "all servers ready" once when we actually reach the total count
-        if (instance.areAllServersReady() && !instance.isAllServersReadyTriggered()) {
-            instance.setAllServersReadyTriggered(true);
-            Logger.info("All servers are ready for test flow: {}", testFlowName);
-            if (instance.getHandler() != null) {
-                instance.getHandler().onAllServersReady(instance);
+        synchronized (instance) {
+            if (instance.areAllServersReady() && !instance.isAllServersReadyTriggered()) {
+                instance.setAllServersReadyTriggered(true);
+                Logger.info("All servers are ready for test flow: {}", testFlowName);
+                if (instance.getHandler() != null) {
+                    instance.getHandler().onAllServersReady(instance);
+                }
             }
         }
     }
@@ -230,8 +230,8 @@ public class TestFlowManager {
         private final long startTime;
         private final Map<String, UUID> readyServers = new ConcurrentHashMap<>();
 
-        private ProxyTestFlowHandler handler;
-        private boolean allServersReadyTriggered = false;
+        private volatile ProxyTestFlowHandler handler;
+        private volatile boolean allServersReadyTriggered = false;
 
         public ProxyTestFlowInstance(String name, String handlerClassName, List<String> players, List<ServerConfig> serverConfigs) {
             this.name = name;

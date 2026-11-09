@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 
 public record ProfilesDatabase(String id) implements MongoDB {
+    private static final Object PROFILE_WRITE_LOCK = new Object();
     private static final PlayerField<String> DOCUMENT =
             PlayerField.create("skyblock", "_doc", Codecs.STRING, null);
 
@@ -45,10 +46,12 @@ public record ProfilesDatabase(String id) implements MongoDB {
     }
 
     public void insertOrUpdate(String key, Object value) {
-        Document doc = getDocument();
-        if (doc == null) doc = new Document("_id", id);
-        doc.put(key, value);
-        write(UUID.fromString(id), doc.toJson());
+        synchronized (PROFILE_WRITE_LOCK) {
+            Document doc = getDocument();
+            if (doc == null) doc = new Document("_id", id);
+            doc.put(key, value);
+            write(UUID.fromString(id), doc.toJson());
+        }
     }
 
     public boolean exists() {

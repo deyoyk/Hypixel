@@ -126,6 +126,10 @@ public class ListenerStorePurchaseFulfillment implements RedisMessageHandler<
         }, 1, 60, TimeUnit.SECONDS);
     }
 
+    public static void shutdown() {
+        EXPIRATION_RECONCILER.shutdownNow();
+    }
+
     private void preserveTemporaryRankFallback(
         UUID playerUuid,
         MongoCollection<Document> collection,

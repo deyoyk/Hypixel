@@ -72,6 +72,9 @@ public class ListenerPlayerHandler implements RedisMessageHandler<
                         Map.of("server_uuid", server.internalID().toString()), true, null);
             }
             case GET_SERVER -> {
+                if (potentialServer.isEmpty()) {
+                    return EMPTY;
+                }
                 UUID playersServer = UUID.fromString(potentialServer.get().getServer().getServerInfo().getName());
                 GameManager.GameServer serverInfo = GameManager.getFromUUID(playersServer);
                 if (serverInfo == null) {

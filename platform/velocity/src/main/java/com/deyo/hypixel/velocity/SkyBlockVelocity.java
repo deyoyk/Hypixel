@@ -130,6 +130,9 @@ public class SkyBlockVelocity {
 
     @Getter
     private static final Set<UUID> unauthenticated = ConcurrentHashMap.newKeySet();
+    private static final ProxyService PUNISHMENT_SERVICE = new ProxyService(ServiceType.PUNISHMENT);
+    private static final Component MOTD = Text.legacy("§f                 §aHypixel Network §c[1.8/26.2]\n§f   §6§lSB 0.27 TORRHUS & SAFARI §7| §e§lSUMMER EVENT").asComponent();
+    private static PlayerMovementListener movementListener;
 
     @Inject
     public SkyBlockVelocity(ProxyServer tempServer, org.slf4j.Logger logger, PluginContainer pluginContainer, @DataDirectory Path dataDirectory) {
@@ -153,7 +156,8 @@ public class SkyBlockVelocity {
         PacketEvents.getAPI().load();
 
         EventManager events = PacketEvents.getAPI().getEventManager();
-        events.registerListener(new PlayerMovementListener(), PacketListenerPriority.NORMAL);
+        movementListener = new PlayerMovementListener();
+        events.registerListener(movementListener, PacketListenerPriority.NORMAL);
 
         PacketEvents.getAPI().init();
 
@@ -196,6 +200,11 @@ public class SkyBlockVelocity {
                     // Handle test flow player leave
                     TestFlowManager.handlePlayerLeave(disconnectEvent.getPlayer().getUsername());
                     PresencePublisher.publish(disconnectEvent.getPlayer(), false, (String) null, null);
+                    UUID playerId = disconnectEvent.getPlayer().getUniqueId();
+                    if (movementListener != null) {
+                        movementListener.clear(playerId);
+                    }
+                    TransferHandler.clearPlayer(disconnectEvent.getPlayer());
                     removePlayer(disconnectEvent.getPlayer());
                 })
         );
@@ -297,6 +306,18 @@ public class SkyBlockVelocity {
         }
 
         try {
+            ProxyHeartbeat.shutdown();
+        } catch (Exception e) {
+            logger.error("Failed to shut down the proxy heartbeat", e);
+        }
+
+        try {
+            ListenerStorePurchaseFulfillment.shutdown();
+        } catch (Exception e) {
+            logger.error("Failed to shut down the store reconciler", e);
+        }
+
+        try {
             RedisAPI.getInstance().shutdown();
         } catch (Exception e) {
             logger.error("Failed to shut down Redis", e);
@@ -305,11 +326,9 @@ public class SkyBlockVelocity {
 
     private boolean checkPunished(Player player) {
         try {
-            ProxyService service = new ProxyService(ServiceType.PUNISHMENT);
-
-            CompletableFuture<?> banFuture = service.handleRequest(
+            CompletableFuture<?> banFuture = PUNISHMENT_SERVICE.handleRequest(
                 new GetActivePunishmentProtocol.GetActivePunishmentMessage(player.getUniqueId(), PunishmentType.BAN.name()));
-            CompletableFuture<?> muteFuture = service.handleRequest(
+            CompletableFuture<?> muteFuture = PUNISHMENT_SERVICE.handleRequest(
                 new GetActivePunishmentProtocol.GetActivePunishmentMessage(player.getUniqueId(), PunishmentType.MUTE.name()));
 
             CompletableFuture.allOf(banFuture, muteFuture).orTimeout(3, TimeUnit.SECONDS).join();
@@ -336,6 +355,7 @@ public class SkyBlockVelocity {
             }
             return false;
         } catch (Exception e) {
+            logger.error("Failed to verify punishments for {}", player.getUsername(), e);
             return false;
         }
     }
@@ -378,7 +398,7 @@ public class SkyBlockVelocity {
                 return;
             }
 
-            List<GameManager.GameServer> gameServers = GameManager.getFromType(ServerType.PROTOTYPE_LOBBY);
+            List<GameManager.GameServer> gameServers = new java.util.ArrayList<>(GameManager.getFromType(ServerType.PROTOTYPE_LOBBY));
             if (TestFlowManager.isPlayerInTestFlow(player.getUsername())) {
                 TestFlowManager.ProxyTestFlowInstance instance = TestFlowManager.getTestFlowForPlayer(player.getUsername());
                 player.sendMessage(Text.of("<7>You are currently in test flow {}.", instance.getName()));
@@ -408,7 +428,7 @@ public class SkyBlockVelocity {
                 return;
             }
 
-            List<BalanceConfiguration> configurations = BalanceConfigurations.CONFIGURATIONS.get(ServerType.BEDWARS_LOBBY);
+            List<BalanceConfiguration> configurations = BalanceConfigurations.CONFIGURATIONS.get(ServerType.PROTOTYPE_LOBBY);
             GameManager.GameServer toSendTo = gameServers.getFirst();
 
             for (BalanceConfiguration configuration : configurations) {
@@ -501,7 +521,7 @@ public class SkyBlockVelocity {
         event.setPing(new ServerPing(
             event.getPing().getVersion(),
             new ServerPing.Players(server.getPlayerCount(), 200000, List.of()),
-            Text.legacy("§f                 §aHypixel Network §c[1.8/26.2]\n§f   §6§lSB 0.27 TORRHUS & SAFARI §7| §e§lSUMMER EVENT").asComponent(),
+            MOTD,
             event.getPing().getFavicon().orElse(null)
         ));
     }

@@ -28,6 +28,7 @@ public class RegisterCommand implements SimpleCommand {
         AuthenticationDatabase.AuthenticationData data = new AuthenticationDatabase(player.getUniqueId()).getAuthenticationData();
         if (data != null) {
             player.sendMessage(Text.of("<c>You have already registered your account!"));
+            return;
         }
 
         String[] args = invocation.arguments();

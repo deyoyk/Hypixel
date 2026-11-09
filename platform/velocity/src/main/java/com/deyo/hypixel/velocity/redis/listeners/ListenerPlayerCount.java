@@ -40,7 +40,8 @@ public class ListenerPlayerCount implements RedisMessageHandler<
             }
             case UUID -> {
                 UUID uuid = UUID.fromString(message.lookupValue());
-                int count = GameManager.getFromUUID(uuid).registeredServer().getPlayersConnected().size();
+                GameManager.GameServer server = GameManager.getFromUUID(uuid);
+                int count = server != null ? server.registeredServer().getPlayersConnected().size() : 0;
                 return new PlayerCountProtocol.Response(count, true, null);
             }
         }

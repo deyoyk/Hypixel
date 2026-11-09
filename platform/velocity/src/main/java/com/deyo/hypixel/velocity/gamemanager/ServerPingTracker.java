@@ -39,4 +39,8 @@ public final class ServerPingTracker {
     public void forget(UUID server) {
         misses.remove(server);
     }
+
+    public void clear() {
+        misses.clear();
+    }
 }
