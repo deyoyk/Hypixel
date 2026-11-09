@@ -29,6 +29,7 @@ class PredictionFlagTest {
     void matchesConfiguredBlockMaterials() {
         assertTrue(PredictionFlag.matchesBlockType(Block.WATER, "WATER"));
         assertTrue(PredictionFlag.matchesBlockType(Block.PACKED_ICE, "ICE", "PACKED_ICE"));
+        assertTrue(PredictionFlag.matchesBlockType(Block.BUBBLE_COLUMN, "BUBBLE_COLUMN"));
         assertFalse(PredictionFlag.matchesBlockType(Block.STONE, "WATER"));
         assertFalse(PredictionFlag.matchesBlockType(Block.AIR, "WATER"));
     }

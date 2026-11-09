@@ -93,6 +93,7 @@ public class PredictionFlag extends Flag {
         // Determine environment from world blocks (blocking calls are cached)
         boolean inWater = isBlockType(player, blockX, blockY, blockZ, "WATER");
         boolean inLava = isBlockType(player, blockX, blockY, blockZ, "LAVA");
+        boolean inBubbleColumn = isBlockType(player, blockX, blockY, blockZ, "BUBBLE_COLUMN");
         boolean inCobweb = isBlockType(player, blockX, blockY, blockZ, "COBWEB");
         boolean onIce = isBlockType(player, blockX, blockY - 1, blockZ, "ICE", "PACKED_ICE");
         boolean onSlime = isBlockType(player, blockX, blockY - 1, blockZ, "SLIME_BLOCK");
@@ -111,7 +112,7 @@ public class PredictionFlag extends Flag {
             .blockAbove(null)
             .inWater(inWater)
             .inLava(inLava)
-            .inBubbleColumn(false) // Requires deeper block analysis
+            .inBubbleColumn(inBubbleColumn)
             .inCobweb(inCobweb)
             .onSoulSand(onSoulSand)
             .onIce(onIce)
