@@ -27,7 +27,10 @@ public enum TravelScrollIslands {
 			(unused) -> "An island that gets progressively deeper and contains 6 layers of dangerous mobs and new resources.", ServerType.SKYBLOCK_DEEP_CAVERNS, SkillCategories.MINING, 2),
 	DWARVEN_MINES("dwarven", "<a>Dwarven Mines <7>- <b>Spawn",
 			"6b20b23c1aa2be0270f016b4c90d6ee6b8330a17cfef87869d6ad60b2ffbf3b5",
-			(unused) -> "An island that gets progressively deeper and contains 6 layers of dangerous mobs and new resources.", ServerType.SKYBLOCK_DWARVEN_MINES, SkillCategories.MINING, 2)
+			(unused) -> "An island that gets progressively deeper and contains 6 layers of dangerous mobs and new resources.", ServerType.SKYBLOCK_DWARVEN_MINES, SkillCategories.MINING, 2),
+	BACKWATER_BAYOU("bayou", "<a>Backwater Bayou",
+			"f4559d75464b2e40a518e4de8e6cf3085f0a3ca0b1b7012614c4cd96fed60378",
+			(unused) -> "A swampy fishing island with murky waters and hidden treasure.", ServerType.SKYBLOCK_BACKWATER_BAYOU, List.of(TravelScrollType.BAYOU))
 	;
 
 	static {

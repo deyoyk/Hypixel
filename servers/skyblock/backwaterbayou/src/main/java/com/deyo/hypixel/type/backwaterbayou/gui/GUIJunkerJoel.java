@@ -2,12 +2,14 @@ package com.deyo.hypixel.type.backwaterbayou.gui;
 
 import net.minestom.server.inventory.InventoryType;
 import net.minestom.server.item.Material;
+import com.deyo.hypixel.commons.skyblock.item.ItemType;
 import com.deyo.hypixel.type.generic.gui.inventory.ItemStacks;
 import com.deyo.hypixel.type.generic.gui.v2.DefaultState;
 import com.deyo.hypixel.type.generic.gui.v2.StatelessView;
 import com.deyo.hypixel.type.generic.gui.v2.ViewConfiguration;
 import com.deyo.hypixel.type.generic.gui.v2.ViewLayout;
 import com.deyo.hypixel.type.generic.gui.v2.context.ViewContext;
+import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 
 // TODO: use ShopView
 public class GUIJunkerJoel extends StatelessView {
@@ -434,7 +436,16 @@ public class GUIJunkerJoel extends StatelessView {
                 <7>Cost
                 <9>Busted Belt Buckle <8>x8
 
-                <e>Click to trade!"""));
+                <e>Click to trade!"""), (_, c) -> {
+            SkyBlockPlayer player = (SkyBlockPlayer) c.player();
+            if (player.getAmountInInventory(ItemType.BUSTED_BELT_BUCKLE) < 8) {
+                player.sendMessage("<c>You need 8 Busted Belt Buckles!");
+                return;
+            }
+            player.takeItem(ItemType.BUSTED_BELT_BUCKLE, 8);
+            player.addAndUpdateItem(ItemType.BAYOU_TRAVEL_SCROLL);
+            player.playSuccessSound();
+        });
         layout.slot(49, ItemStacks.item(Material.HOPPER, """
                 <a>Sell Item
                 <7>Click items in your inventory to sell

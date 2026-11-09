@@ -15,6 +15,7 @@ import com.deyo.hypixel.type.generic.tab.TablistModule;
 import com.deyo.hypixel.type.skyblockgeneric.SkyBlockGenericLoader;
 import com.deyo.hypixel.type.skyblockgeneric.tabmodules.AccountInformationModule;
 import com.deyo.hypixel.type.skyblockgeneric.tabmodules.SkyBlockPlayersOnlineModule;
+import com.deyo.hypixel.type.skyblockgeneric.warps.TravelScrollType;
 import org.jetbrains.annotations.Nullable;
 import org.tinylog.Logger;
 
@@ -41,7 +42,7 @@ public class TypeBackwaterBayouLoader implements SkyBlockTypeLoader {
     @Override
     public LoaderValues getLoaderValues() {
         return new LoaderValues(
-            (type) -> new Pos(-12.5, 74, -10.5, -55, 0), // Spawn position
+            (type) -> TravelScrollType.BAYOU.getLocation(),
                 true // Announce death messages
         );
     }

@@ -80,3 +80,10 @@ items:
     components:
       - id: TRAVEL_SCROLL
         scroll_type: DWARVEN_MINES
+  - id: BAYOU_TRAVEL_SCROLL
+    material: PAPER
+    name: "Travel Scroll to the Bayou"
+    rarity: RARE
+    components:
+      - id: TRAVEL_SCROLL
+        scroll_type: BAYOU

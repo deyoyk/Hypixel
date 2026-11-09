@@ -246,6 +246,8 @@ public enum ItemType {
 
   BAT_WAND(Material.PAPER, Rarity.LEGENDARY),
 
+  BAYOU_TRAVEL_SCROLL(Material.PAPER, Rarity.RARE),
+
   BEASTMASTER_CREST_COMMON(Material.PLAYER_HEAD, Rarity.COMMON),
 
   BEASTMASTER_CREST_EPIC(Material.PLAYER_HEAD, Rarity.EPIC),

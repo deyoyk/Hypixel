@@ -48,6 +48,12 @@ public enum TravelScrollType {
             "f4559d75464b2e40a518e4de8e6cf3085f0a3ca0b1b7012614c4cd96fed60378",
             new ScrollUnlockCustomRecipe("Unlock this scroll through Commission Milestones."),
             new Pos(-48.5, 200, -121.5, -90, 0),
+            Rank.DEFAULT),
+    BAYOU("bayou", "<a>Backwater Bayou <7>- <b>Spawn",
+            "Spawn on the <a>Backwater Bayou<7>.",
+            "f4559d75464b2e40a518e4de8e6cf3085f0a3ca0b1b7012614c4cd96fed60378",
+            new ScrollUnlockCustomRecipe("Unlock this scroll through Junker Joel."),
+            new Pos(-12.5, 74, -10.5, -55, 0),
             Rank.DEFAULT)
     ;
 
