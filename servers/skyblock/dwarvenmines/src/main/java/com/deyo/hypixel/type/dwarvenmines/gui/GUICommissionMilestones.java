@@ -189,6 +189,7 @@ public class GUICommissionMilestones extends HypixelInventoryGUI {
 			player.addAndUpdateItem(ItemType.ROYAL_COMPASS);
 		}
 		if (milestone.isUnlocksExtraSlot()) {
+			Commissions.addCommissionSlot(player);
 		}
 		if (milestone.isUnlocksDwarvenMinesScroll()) {
 			player.addAndUpdateItem(ItemType.DWARVEN_MINES_TRAVEL_SCROLL);

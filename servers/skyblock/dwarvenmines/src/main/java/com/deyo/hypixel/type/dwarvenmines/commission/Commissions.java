@@ -153,6 +153,39 @@ public class Commissions {
 		return data.getCommissionSlots();
 	}
 
+	public static boolean addCommissionSlot(SkyBlockPlayer player) {
+		DatapointCommissions.PlayerCommissionData data = getCommissionData(player);
+		if (!addCommissionSlot(data)) {
+			return false;
+		}
+		saveCommissionData(player, data);
+		return true;
+	}
+
+	static boolean addCommissionSlot(DatapointCommissions.PlayerCommissionData data) {
+		List<DatapointCommissions.ActiveCommission> activeCommissions = data.getActiveCommissions();
+		if (activeCommissions.size() >= data.getCommissionSlots()) {
+			return false;
+		}
+
+		List<String> usedNames = activeCommissions.stream()
+				.map(DatapointCommissions.ActiveCommission::getCommissionName)
+				.toList();
+
+		Commission commission = activeCommissions.size() % 2 == 0
+				? selectRandomCommission(CONSISTENT, usedNames)
+				: selectRandomCommission(SITUATIONAL, usedNames);
+		if (commission == null) {
+			commission = selectRandomCommission(CONSISTENT, usedNames);
+		}
+		if (commission == null) {
+			return false;
+		}
+
+		activeCommissions.add(new DatapointCommissions.ActiveCommission(commission.name));
+		return true;
+	}
+
 	public static DatapointCommissions.PlayerCommissionData getCommissionData(SkyBlockPlayer player) {
 		SkyBlockDataHandler dataHandler = player.getSkyblockDataHandler();
 		return dataHandler.get(SkyBlockDataHandler.Data.COMMISSIONS, DatapointCommissions.class).getValue();
