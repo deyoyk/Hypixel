@@ -421,12 +421,14 @@ public class GuildCache {
         }
 
         if (guild.isSlowChat()) {
+            long now = System.currentTimeMillis();
+            pruneSlowChat(lastChatTimestamps, now, 10_000L);
             Long lastChat = lastChatTimestamps.get(sender);
-            if (lastChat != null && System.currentTimeMillis() - lastChat < 10000) {
+            if (lastChat != null && now - lastChat < 10000) {
                 sendErrorToPlayer(sender, "<c>Slow mode is enabled. Please wait before sending another message.");
                 return;
             }
-            lastChatTimestamps.put(sender, System.currentTimeMillis());
+            lastChatTimestamps.put(sender, now);
         }
 
         GuildChatResponseEvent response = new GuildChatResponseEvent(guild, sender, message, officerChat);
@@ -711,8 +713,13 @@ public class GuildCache {
         );
     }
 
-    private static void scheduleInviteExpiration(UUID guildId, UUID inviter, UUID invitee, long delayMs) {
-        CompletableFuture.delayedExecutor(delayMs, TimeUnit.MILLISECONDS).execute(() -> {
+    static int pruneSlowChat(Map<UUID, Long> timestamps, long now, long intervalMillis) {
+        int before = timestamps.size();
+        timestamps.entrySet().removeIf(entry -> now - entry.getValue() >= intervalMillis);
+        return before - timestamps.size();
+    }
+
+    private static void scheduleInviteExpiration(UUID guildId, UUID inviter, UUID invitee, long delayMs) {        CompletableFuture.delayedExecutor(delayMs, TimeUnit.MILLISECONDS).execute(() -> {
             PendingGuildInvite invite = pendingInvites.remove(invitee);
             if (invite != null) {
                 GuildData guild = getGuild(guildId);
