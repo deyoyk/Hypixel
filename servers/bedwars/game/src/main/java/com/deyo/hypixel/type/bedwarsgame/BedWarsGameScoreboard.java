@@ -4,6 +4,7 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.timer.Scheduler;
 import net.minestom.server.timer.TaskSchedule;
+import com.deyo.hypixel.commons.StringUtility;
 import com.deyo.hypixel.commons.VersionConst;
 import com.deyo.hypixel.commons.bedwars.map.BedWarsMapsConfig.TeamKey;
 import com.deyo.hypixel.commons.text.Text;
@@ -42,7 +43,7 @@ public class BedWarsGameScoreboard {
             }
 
             for (HypixelPlayer player : game.getPlayers()) {
-                if (player.joined - System.currentTimeMillis() > 5000) {
+                if (System.currentTimeMillis() - player.joined < 5000) {
                     continue;
                 }
 
@@ -90,9 +91,7 @@ public class BedWarsGameScoreboard {
                         ? nextGamePhase.getDisplayName()
                         : game.getGameEventManager().getCurrentEvent().getDisplayName();
                     long seconds = game.getGameEventManager().getSecondsUntilNextPhase();
-                    long minutesPart = seconds / 60;
-                    long secondsPart = seconds % 60;
-                    String timeLeft = String.format("%d:%02d", minutesPart, secondsPart);
+                    String timeLeft = StringUtility.formatSeconds(seconds);
                     lines.add(Text.key("scoreboard.bedwars_game.event_in_line",
                         eventName,
                         timeLeft));

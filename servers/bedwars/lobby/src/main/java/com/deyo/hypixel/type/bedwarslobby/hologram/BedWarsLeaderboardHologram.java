@@ -8,6 +8,7 @@ import com.deyo.hypixel.commons.bedwars.BedwarsLeaderboardView;
 import com.deyo.hypixel.commons.bedwars.BedwarsLevelUtil;
 import com.deyo.hypixel.commons.bedwars.BedwarsStatType;
 import com.deyo.hypixel.commons.bedwars.BedwarsTextAlignment;
+import com.deyo.hypixel.commons.leaderboard.LeaderboardPlayerFilter;
 import com.deyo.hypixel.commons.text.Text;
 import com.deyo.hypixel.type.bedwarslobby.hologram.LeaderboardHologramManager.PlayerLeaderboardState;
 import com.deyo.hypixel.type.generic.HypixelGenericLoader;
@@ -15,6 +16,7 @@ import com.deyo.hypixel.type.generic.collectibles.bedwars.prestige.BedWarsPresti
 import com.deyo.hypixel.type.generic.data.datapoints.DatapointLeaderboardLong;
 import com.deyo.hypixel.type.generic.data.handlers.BedWarsDataHandler;
 import com.deyo.hypixel.type.generic.leaderboard.BedWarsLeaderboardAggregator;
+import com.deyo.hypixel.type.generic.leaderboard.LeaderboardPlayerFilterResolver;
 import com.deyo.hypixel.type.generic.leaderboard.LeaderboardService;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 
@@ -52,6 +54,7 @@ public enum BedWarsLeaderboardHologram {
 		BedwarsLeaderboardMode mode = state.mode();
 		BedwarsLeaderboardView view = state.view();
 		BedwarsTextAlignment alignment = state.textAlignment();
+		LeaderboardPlayerFilter filter = state.playerFilter();
 
 		List<Text> lines = new ArrayList<>();
 
@@ -67,9 +70,13 @@ public enum BedWarsLeaderboardHologram {
 		List<LeaderboardService.LeaderboardEntry> entries;
 
 		if (view == BedwarsLeaderboardView.PLAYERS_AROUND_YOU) {
-			entries = getPlayersInLobby(player, leaderboardKey);
-		} else {
+			entries = getPlayersInLobby(player, leaderboardKey, filter);
+		} else if (filter == LeaderboardPlayerFilter.ALL) {
 			entries = LeaderboardService.getTopN(leaderboardKey, 10);
+		} else {
+			LeaderboardPlayerFilterResolver.AllowedPlayers allowed =
+					LeaderboardPlayerFilterResolver.resolve(player, filter);
+			entries = LeaderboardService.getTopNForPlayers(leaderboardKey, allowed.playerUuids(), 10);
 		}
 
 		int maxNameWidth = 0;
@@ -146,10 +153,14 @@ public enum BedWarsLeaderboardHologram {
 		}
 	}
 
-	private List<LeaderboardService.LeaderboardEntry> getPlayersInLobby(HypixelPlayer viewer, String leaderboardKey) {
+	private List<LeaderboardService.LeaderboardEntry> getPlayersInLobby(HypixelPlayer viewer, String leaderboardKey,
+																		LeaderboardPlayerFilter filter) {
 		List<LeaderboardService.LeaderboardEntry> lobbyEntries = new ArrayList<>();
+		LeaderboardPlayerFilterResolver.AllowedPlayers allowed =
+				LeaderboardPlayerFilterResolver.resolve(viewer, filter);
 
 		for (HypixelPlayer lobbyPlayer : HypixelGenericLoader.getLoadedPlayers()) {
+			if (!allowed.allows(lobbyPlayer.getUuid())) continue;
 			if (lobbyPlayer.getInstance() != null &&
 					lobbyPlayer.getInstance().equals(viewer.getInstance())) {
 				LeaderboardService.LeaderboardEntry entry =

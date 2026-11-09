@@ -14,6 +14,7 @@ import net.minestom.server.instance.block.Block;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.tag.Tag;
+import net.minestom.server.timer.Task;
 import net.minestom.server.timer.TaskSchedule;
 import com.deyo.hypixel.commons.ChatUtility;
 import com.deyo.hypixel.commons.ServerType;
@@ -69,6 +70,7 @@ public class BedWarsGame extends AbstractTeamGame<BedWarsPlayer, BedWarsTeam> {
     private final Map<TeamKey, Map<Integer, ItemStack>> teamChests = new EnumMap<>(TeamKey.class);
     private final Map<UUID, Map<Integer, ItemStack>> enderChests = new HashMap<>();
     private final Map<UUID, TeamKey> trackers = new HashMap<>();
+    private final List<Task> managedTasks = new ArrayList<>();
 
     public BedWarsGame(
         BedWarsMapsConfig.MapEntry mapEntry,
@@ -135,7 +137,8 @@ public class BedWarsGame extends AbstractTeamGame<BedWarsPlayer, BedWarsTeam> {
     }
 
     public boolean isPlayerCurrentlyPlaying(UUID playerUuid) {
-        BedWarsPlayer player = getPlayer(playerUuid).get();
+        BedWarsPlayer player = getPlayer(playerUuid).orElse(null);
+        if (player == null) return false;
         return getPlayerTeam(playerUuid).isPresent()
             && !Boolean.TRUE.equals(player.getTag(ELIMINATED_TAG))
             && !(player.getGameMode() == GameMode.ADVENTURE || player.getGameMode() == GameMode.SPECTATOR)
@@ -254,9 +257,6 @@ public class BedWarsGame extends AbstractTeamGame<BedWarsPlayer, BedWarsTeam> {
                 DatapointBedWarsHotbar.HotbarItemType.COMPASS);
         }
 
-        // equip the player with team armor
-        equipTeamArmor(player, teamKey);
-
         Integer protectionLevel = player.getTag(TeamUpgradeId.REINFORCED_ARMOR.levelTag());
         if (protectionLevel != null) {
             TypeBedWarsGameLoader.getTeamShopManager().getUpgrade(TeamUpgradeId.REINFORCED_ARMOR).applyEffect(this, teamKey, protectionLevel);
@@ -311,8 +311,7 @@ public class BedWarsGame extends AbstractTeamGame<BedWarsPlayer, BedWarsTeam> {
         return hasActivePlayers || hasRejoinablePlayers;
     }
 
-    public void onBedDestroyed(TeamKey teamKey, BedWarsPlayer destroyer) {
-        getTeam(teamKey.name()).ifPresent(team -> {
+    public void onBedDestroyed(TeamKey teamKey, BedWarsPlayer destroyer) {        getTeam(teamKey.name()).ifPresent(team -> {
             team.destroyBed();
             MapTeam mapTeam = mapEntry.getConfiguration().getTeams().get(teamKey);
             if (mapTeam == null) {
@@ -341,6 +340,36 @@ public class BedWarsGame extends AbstractTeamGame<BedWarsPlayer, BedWarsTeam> {
 
             checkWinConditions();
         });
+    }
+
+    public void destroyAllBeds() {
+        for (BedWarsTeam team : getTeams()) {
+            if (!team.isBedAlive()) continue;
+            team.destroyBed();
+
+            MapTeam mapTeam = mapEntry.getConfiguration().getTeams().get(team.getTeamKey());
+            if (mapTeam == null) continue;
+            BedWarsMapsConfig.TwoBlockPosition bedPos = mapTeam.getBed();
+            if (bedPos == null || bedPos.feet() == null || bedPos.head() == null) continue;
+
+            getInstance().setBlock(bedPos.feet().asBlockVec(), Block.AIR);
+            getInstance().setBlock(bedPos.head().asBlockVec(), Block.AIR);
+        }
+    }
+
+    public <T extends Task> T trackTask(T task) {
+        managedTasks.add(task);
+        return task;
+    }
+
+    @Override
+    public void dispose() {
+        for (Task task : managedTasks) {
+            task.cancel();
+        }
+        managedTasks.clear();
+        gameEventManager.stop();
+        super.dispose();
     }
 
     /**
@@ -442,14 +471,14 @@ public class BedWarsGame extends AbstractTeamGame<BedWarsPlayer, BedWarsTeam> {
     }
 
     public void startTimePlayedRewards() {
-        MinecraftServer.getSchedulerManager().buildTask(() -> {
+        trackTask(MinecraftServer.getSchedulerManager().buildTask(() -> {
             if (state != GameState.IN_PROGRESS) return;
             for (BedWarsPlayer player : getPlayers()) {
                 if (Boolean.TRUE.equals(player.getTag(ELIMINATED_TAG))) continue; // Skip eliminated spectators
                 player.token(TokenCause.TIME_PLAYED);
                 player.xp(ExperienceCause.TIME_PLAYED);
             }
-        }).delay(TaskSchedule.minutes(1)).repeat(TaskSchedule.minutes(1)).schedule();
+        }).delay(TaskSchedule.minutes(1)).repeat(TaskSchedule.minutes(1)).schedule());
     }
 
     // this is per game type, dreams modes have different looks

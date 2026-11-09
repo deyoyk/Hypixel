@@ -5,6 +5,7 @@ import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
 import com.deyo.hypixel.type.generic.entity.npc.configuration.HumanConfiguration;
 import com.deyo.hypixel.type.generic.event.custom.NPCInteractEvent;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.generic.utility.WebLinks;
 
 public class NPCHypixelStore extends HypixelNPC {
 
@@ -39,6 +40,6 @@ public class NPCHypixelStore extends HypixelNPC {
 
 	@Override
 	public void onClick(NPCInteractEvent event) {
-        event.player().notImplemented();
+        WebLinks.sendStoreLink(event.player());
 	}
 }

@@ -7,14 +7,13 @@ import net.minestom.server.potion.Potion;
 import net.minestom.server.potion.PotionEffect;
 import com.deyo.hypixel.type.bedwarsgame.TypeBedWarsGameLoader;
 import com.deyo.hypixel.type.bedwarsgame.user.BedWarsPlayer;
+import com.deyo.hypixel.type.generic.utility.CooldownTracker;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 public final class LuckyEquipmentEffects {
-    private static final Map<UUID, Long> CHICKEN_HAT_COOLDOWN = new HashMap<>();
-    private static final Map<UUID, Long> SQUID_BOOTS_COOLDOWN = new HashMap<>();
+    private static final CooldownTracker CHICKEN_HAT_COOLDOWN = new CooldownTracker();
+    private static final CooldownTracker SQUID_BOOTS_COOLDOWN = new CooldownTracker();
 
     private LuckyEquipmentEffects() {
     }
@@ -66,30 +65,32 @@ public final class LuckyEquipmentEffects {
         }
     }
 
+    public static void clear(UUID playerId) {
+        CHICKEN_HAT_COOLDOWN.clear(playerId);
+        SQUID_BOOTS_COOLDOWN.clear(playerId);
+    }
+
     private static void chickenHat(BedWarsPlayer player) {
-        long now = System.currentTimeMillis();
-        if (now - CHICKEN_HAT_COOLDOWN.getOrDefault(player.getUuid(), 0L) < 2500L) {
-            return;
-        }
         player.getGame().getPlayers().stream()
             .filter(other -> other != player && !other.getTeamKey().equals(player.getTeamKey()))
             .filter(other -> other.getPosition().distance(player.getPosition()) <= 16)
             .findFirst()
             .ifPresent(target -> {
+                if (!CHICKEN_HAT_COOLDOWN.tryUse(player.getUuid(), 2500L)) {
+                    return;
+                }
                 target.setVelocity(target.getVelocity().add(player.getPosition().direction().mul(5)).add(0, 2, 0));
-                CHICKEN_HAT_COOLDOWN.put(player.getUuid(), now);
             });
     }
 
     private static void squidBoots(BedWarsPlayer player) {
-        long now = System.currentTimeMillis();
-        if (now - SQUID_BOOTS_COOLDOWN.getOrDefault(player.getUuid(), 0L) < 750L) {
+        var point = player.getPosition().sub(0, 1, 0);
+        if (!player.getInstance().getBlock(point).air()) {
             return;
         }
-        var point = player.getPosition().sub(0, 1, 0);
-        if (player.getInstance().getBlock(point).air()) {
-            player.getInstance().setBlock(point, Block.WATER.withTag(TypeBedWarsGameLoader.PLAYER_PLACED_TAG, true));
-            SQUID_BOOTS_COOLDOWN.put(player.getUuid(), now);
+        if (!SQUID_BOOTS_COOLDOWN.tryUse(player.getUuid(), 750L)) {
+            return;
         }
+        player.getInstance().setBlock(point, Block.WATER.withTag(TypeBedWarsGameLoader.PLAYER_PLACED_TAG, true));
     }
 }

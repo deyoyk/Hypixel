@@ -8,6 +8,7 @@ import com.deyo.hypixel.commons.bedwars.BedwarsLeaderboardPeriod;
 import com.deyo.hypixel.commons.bedwars.BedwarsLeaderboardView;
 import com.deyo.hypixel.commons.bedwars.BedwarsTextAlignment;
 import com.deyo.hypixel.commons.bedwars.LeaderboardPreferences;
+import com.deyo.hypixel.commons.leaderboard.LeaderboardPlayerFilter;
 import com.deyo.hypixel.commons.text.Text;
 import com.deyo.hypixel.type.generic.data.datapoints.DatapointLeaderboardPreferences;
 import com.deyo.hypixel.type.generic.data.handlers.BedWarsDataHandler;
@@ -32,14 +33,16 @@ public class LeaderboardHologramManager {
 			BedwarsLeaderboardPeriod period,
 			BedwarsLeaderboardMode mode,
 			BedwarsLeaderboardView view,
-			BedwarsTextAlignment textAlignment
+			BedwarsTextAlignment textAlignment,
+			LeaderboardPlayerFilter playerFilter
 	) {
 		public static PlayerLeaderboardState defaults() {
 			return new PlayerLeaderboardState(
 					BedwarsLeaderboardPeriod.LIFETIME,
 					BedwarsLeaderboardMode.ALL,
 					BedwarsLeaderboardView.TOP_10,
-					BedwarsTextAlignment.CENTER
+					BedwarsTextAlignment.CENTER,
+					LeaderboardPlayerFilter.ALL
 			);
 		}
 	}
@@ -95,7 +98,7 @@ public class LeaderboardHologramManager {
 		if (handler == null) return;
 
 		LeaderboardPreferences prefs = new LeaderboardPreferences(
-				state.period(), state.mode(), state.view(), state.textAlignment());
+				state.period(), state.mode(), state.view(), state.textAlignment(), state.playerFilter());
 		handler.get(BedWarsDataHandler.Data.LEADERBOARD_PREFS, DatapointLeaderboardPreferences.class)
 				.setValue(prefs);
 	}
@@ -108,7 +111,7 @@ public class LeaderboardHologramManager {
 				DatapointLeaderboardPreferences.class).getValue();
 
 		setState(player.getUuid(), new PlayerLeaderboardState(
-				prefs.period(), prefs.mode(), prefs.view(), prefs.textAlignment()));
+				prefs.period(), prefs.mode(), prefs.view(), prefs.textAlignment(), prefs.playerFilter()));
 	}
 
 	public static void spawnHologramsForPlayer(HypixelPlayer player) {
@@ -171,7 +174,7 @@ public class LeaderboardHologramManager {
 				Text.of("<7>Mode: <a>{}", state.mode().getDisplayName()),
 				Text.of("<7>Time: <a>{}", state.period().getDisplayName()),
 				Text.of("<7>View: <a>{}", viewDisplay),
-				Text.of("<7>Players: <a>All"),
+				Text.of("<7>Players: <a>{}", state.playerFilter().getDisplayName()),
 				Text.of("<6>Click to change settings!")
 		);
 	}

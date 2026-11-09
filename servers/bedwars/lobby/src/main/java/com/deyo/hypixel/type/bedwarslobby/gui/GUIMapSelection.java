@@ -29,13 +29,19 @@ import com.deyo.hypixel.type.lobby.LobbyOrchestratorConnector;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.regex.Pattern;
 
-// TODO: order by favorite
 public class GUIMapSelection extends StatefulPaginatedView<String, GUIMapSelection.State> {
+	private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-z0-9]+");
+	private static final Pattern LEADING_UNDERSCORES = Pattern.compile("^_+");
+	private static final Pattern TRAILING_UNDERSCORES = Pattern.compile("_+$");
 
 	private final BedWarsGameType gameType;
 	private int requestSequence;
@@ -83,8 +89,7 @@ public class GUIMapSelection extends StatefulPaginatedView<String, GUIMapSelecti
 						}
 
 						if (response instanceof GetMapsProtocol.GetMapsResponse(List<String> maps, boolean success, String error)) {
-							List<String> loadedMaps = new ArrayList<>(maps);
-							loadedMaps.sort(String.CASE_INSENSITIVE_ORDER);
+							List<String> loadedMaps = orderMaps(maps, favoriteMapIds(ctx.player()));
 							session.update(current -> current.loaded(loadedMaps, requestId));
 							return;
 						}
@@ -316,15 +321,33 @@ public class GUIMapSelection extends StatefulPaginatedView<String, GUIMapSelecti
 		datapoint.setValue(favoriteMaps);
 	}
 
-	private String mapId(String mapName) {
-		String normalized = mapName.toLowerCase(Locale.ROOT)
-			.replaceAll("[^a-z0-9]+", "_")
-			.replaceAll("^_+", "")
-			.replaceAll("_+$", "");
+	static String mapId(String mapName) {
+		String normalized = TRAILING_UNDERSCORES.matcher(
+			LEADING_UNDERSCORES.matcher(
+				NON_ALPHANUMERIC.matcher(mapName.toLowerCase(Locale.ROOT)).replaceAll("_")
+			).replaceAll("")
+		).replaceAll("");
 		if (!normalized.isEmpty()) {
 			return normalized;
 		}
 		return mapName.toLowerCase(Locale.ROOT).replace(" ", "_");
+	}
+
+	static List<String> orderMaps(List<String> maps, Set<String> favoriteIds) {
+		List<String> ordered = new ArrayList<>(maps);
+		ordered.sort(Comparator
+			.comparingInt((String mapName) -> favoriteIds.contains(mapId(mapName)) ? 0 : 1)
+			.thenComparing(String.CASE_INSENSITIVE_ORDER));
+		return ordered;
+	}
+
+	private static Set<String> favoriteMapIds(HypixelPlayer player) {
+		BedWarsDataHandler data = BedWarsDataHandler.getUser(player);
+		if (data == null) {
+			return Set.of();
+		}
+		List<String> favorites = data.get(BedWarsDataHandler.Data.FAVORITE_MAPS, DatapointStringList.class).getValue();
+		return favorites == null ? Set.of() : new HashSet<>(favorites);
 	}
 
 	private static boolean showArrowPulse() {

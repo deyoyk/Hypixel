@@ -66,9 +66,7 @@ public class BedWarsGameEventManager {
                 .schedule();
             return;
         }
-        secondsUntilNextPhase =
-            currentPhase.next().getTriggerTimeSeconds()
-                - currentPhase.getTriggerTimeSeconds();
+        secondsUntilNextPhase = nextPhaseDelay();
 
         ticker = MinecraftServer.getSchedulerManager().buildTask(this::tick)
             .delay(TaskSchedule.seconds(1))
@@ -108,9 +106,7 @@ public class BedWarsGameEventManager {
         currentPhase = currentPhase.next();
 
         if (currentPhase != previous) {
-            secondsUntilNextPhase = currentPhase.next() != currentPhase
-                ? currentPhase.getTriggerTimeSeconds()
-                : Integer.MAX_VALUE;
+            secondsUntilNextPhase = nextPhaseDelay();
 
             // Fire event
             HypixelEventHandler.callCustomEvent(new BedWarsGameEventAdvanceEvent(
@@ -122,18 +118,19 @@ public class BedWarsGameEventManager {
 
             // Handle special phases
             if (currentPhase == GamePhase.BED_DESTRUCTION) {
-                destroyAllBeds();
+                game.destroyAllBeds();
             }
         }
     }
 
+    private int nextPhaseDelay() {
+        GamePhase next = currentPhase.next();
+        if (next == currentPhase) return Integer.MAX_VALUE;
+        return next.getTriggerTimeSeconds() - currentPhase.getTriggerTimeSeconds();
+    }
+
     private void destroyAllBeds() {
-        // Would destroy all remaining beds and fire events
-        for (BedWarsTeam team : game.getTeams()) {
-            if (team.isBedAlive()) {
-                team.destroyBed();
-            }
-        }
+        game.destroyAllBeds();
     }
 
     public int getDiamondSpawnSeconds() {

@@ -1,11 +1,16 @@
 package com.deyo.hypixel.type.bedwarslobby.npcs;
 
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.entity.EquipmentSlot;
+import net.minestom.server.item.ItemStack;
+import net.minestom.server.item.Material;
 import com.deyo.hypixel.type.bedwarslobby.gui.cosmetics.GUIBedWarsMenuShop;
 import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
 import com.deyo.hypixel.type.generic.entity.npc.configuration.HumanConfiguration;
 import com.deyo.hypixel.type.generic.event.custom.NPCInteractEvent;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+
+import java.util.Map;
 
 public class NPCShopkeeper extends HypixelNPC {
 
@@ -31,7 +36,10 @@ public class NPCShopkeeper extends HypixelNPC {
                 return new Pos(4.5, 67, 0.5, 90, 0);
             }
 
-            // TODO: is holding a paper
+            @Override
+            public Map<EquipmentSlot, ItemStack> equipment(HypixelPlayer player) {
+                return Map.of(EquipmentSlot.MAIN_HAND, ItemStack.of(Material.PAPER));
+            }
         });
     }
 

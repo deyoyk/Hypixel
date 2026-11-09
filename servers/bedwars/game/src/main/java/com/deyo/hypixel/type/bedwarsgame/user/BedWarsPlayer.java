@@ -177,10 +177,9 @@ public class BedWarsPlayer extends HypixelPlayer implements CombatPlayer, GamePa
 		setTag(Tag.String("team"), teamKey.name());
 	}
 
-	// TODO: Optional<TeamKey>
 	@Nullable
 	public BedWarsMapsConfig.TeamKey getTeamKey() {
-		return BedWarsMapsConfig.TeamKey.valueOf(getTeamName());
+		return BedWarsMapsConfig.TeamKey.fromName(getTeamName());
 	}
 
 	public BedWarsGame getGame() {
@@ -319,7 +318,6 @@ public class BedWarsPlayer extends HypixelPlayer implements CombatPlayer, GamePa
 		if (!ChunkUtils.isLoaded(finalChunk)) return;
 
 		velocity = physicsResult.newVelocity().mul(tps);
-		//onGround = physicsResult.isOnGround();
 
 		// Levitation effect
 		TimedPotion levitation = getEffect(PotionEffect.LEVITATION);
@@ -331,10 +329,6 @@ public class BedWarsPlayer extends HypixelPlayer implements CombatPlayer, GamePa
 			);
 		}
 
-		//TODO
-		//if (!PlayerUtils.isSocketClient(this)) {
-		//	refreshPosition(physicsResult.newPosition(), true, true);
-		//}
 		sendImmediateVelocityUpdate();
 	}
 }

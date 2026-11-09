@@ -26,7 +26,7 @@ public class GUIBedWarsMenuShop extends StatelessView {
                 <7>Progress through the hotel to earn
                 <7>more <d>rewards<7>, <b>xp<7>, and new <a>cosmetics<7>!
 
-                <e>Click to open!"""), (_, c) -> c.player().notImplemented());
+                <e>Click to open!"""), (_, c) -> c.push(new GUITheSlumberHotel()));
         layout.slot(13, ItemStacks.item(Material.ARMOR_STAND, """
                 <a>My Cosmetics
                 <7>Browse and equip all the available

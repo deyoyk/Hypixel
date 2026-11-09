@@ -12,13 +12,12 @@ import net.minestom.server.item.component.CustomData;
 import net.minestom.server.potion.Potion;
 import net.minestom.server.potion.PotionEffect;
 import com.deyo.hypixel.type.bedwarsgame.user.BedWarsPlayer;
+import com.deyo.hypixel.type.generic.utility.CooldownTracker;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 public final class LuckyCombatEffects {
-    private static final Map<UUID, Long> JUSTICE_HEAL_COOLDOWN = new HashMap<>();
+    private static final CooldownTracker JUSTICE_HEAL_COOLDOWN = new CooldownTracker();
 
     private LuckyCombatEffects() {
     }
@@ -43,11 +42,8 @@ public final class LuckyCombatEffects {
                 consumeMainHand(attacker, item);
             }
             case "sword_justice" -> {
-                long now = System.currentTimeMillis();
-                long lastHeal = JUSTICE_HEAL_COOLDOWN.getOrDefault(attacker.getUuid(), 0L);
-                if (now - lastHeal >= 2500L) {
+                if (JUSTICE_HEAL_COOLDOWN.tryUse(attacker.getUuid(), 2500L)) {
                     attacker.setHealth((float) Math.min(20f, attacker.getHealth() + 2));
-                    JUSTICE_HEAL_COOLDOWN.put(attacker.getUuid(), now);
                 }
             }
             case "scythe" -> {
@@ -63,6 +59,10 @@ public final class LuckyCombatEffects {
             default -> {
             }
         }
+    }
+
+    public static void clear(UUID playerId) {
+        JUSTICE_HEAL_COOLDOWN.clear(playerId);
     }
 
     public static ItemStack weapon(String name, Material material, String action, String... lore) {

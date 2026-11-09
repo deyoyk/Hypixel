@@ -46,7 +46,7 @@ public class HealPoolUpgrade extends TeamUpgrade {
 		HypixelPosition spawnPos = team.getSpawn();
 		Pos teamSpawn = new Pos(spawnPos.x(), spawnPos.y(), spawnPos.z(), spawnPos.pitch(), spawnPos.yaw());
 
-		MinecraftServer.getSchedulerManager().buildTask(() -> {
+		game.trackTask(MinecraftServer.getSchedulerManager().buildTask(() -> {
 			if (game.getState() != GameState.IN_PROGRESS) {
 				return;
 			}
@@ -62,7 +62,7 @@ public class HealPoolUpgrade extends TeamUpgrade {
 					}
 				}
 			}
-		}).repeat(TaskSchedule.seconds(7)).schedule();
+		}).repeat(TaskSchedule.seconds(7)).schedule());
 	}
 
 }

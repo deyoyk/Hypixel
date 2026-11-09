@@ -3,6 +3,8 @@ package com.deyo.hypixel.type.bedwarsgame.game.v2.listener;
 import com.deyo.hypixel.commons.ServerType;
 import com.deyo.hypixel.commons.text.Text;
 import com.deyo.hypixel.type.bedwarsgame.game.v2.BedWarsGame;
+import com.deyo.hypixel.type.bedwarsgame.item.impl.LuckyCombatEffects;
+import com.deyo.hypixel.type.bedwarsgame.item.impl.LuckyEquipmentEffects;
 import com.deyo.hypixel.type.bedwarsgame.user.BedWarsPlayer;
 import com.deyo.hypixel.type.game.game.event.PlayerLeaveGameEvent;
 import com.deyo.hypixel.type.generic.event.EventNodes;
@@ -16,6 +18,8 @@ public class PlayerLeaveListener implements HypixelEventClass {
     @PhasedEvent(node = EventNodes.CUSTOM, requireDataLoaded = false)
     public void onPlayerLeave(PlayerLeaveGameEvent event) {
         BedWarsPlayer player = (BedWarsPlayer) event.player();
+        LuckyCombatEffects.clear(player.getUuid());
+        LuckyEquipmentEffects.clear(player.getUuid());
         player.sendTo(ServerType.BEDWARS_LOBBY);
         BedWarsGame game = (BedWarsGame) event.game();
         if (game == null) return;

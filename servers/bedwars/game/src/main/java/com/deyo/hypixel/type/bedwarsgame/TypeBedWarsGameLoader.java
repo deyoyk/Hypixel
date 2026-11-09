@@ -73,6 +73,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 
 import static com.deyo.hypixel.pvp.feature.CombatFeatures.*;
@@ -83,7 +84,7 @@ public class TypeBedWarsGameLoader implements HypixelTypeLoader {
     public static final int MAX_GAMES = 12;
 
     @Getter
-    public static final List<BedWarsGame> games = new ArrayList<>();
+    public static final List<BedWarsGame> games = new CopyOnWriteArrayList<>();
 
     @Getter
     public static final ShopManager shopManager = new ShopManager();
@@ -175,7 +176,31 @@ public class TypeBedWarsGameLoader implements HypixelTypeLoader {
     }
 
     @SneakyThrows
-    public static synchronized BedWarsGame createGame(@NotNull BedWarsMapsConfig.MapEntry entry, @NotNull BedWarsGameType type) {
+    public static BedWarsGame createGame(@NotNull BedWarsMapsConfig.MapEntry entry, @NotNull BedWarsGameType type) {
+        if (Thread.currentThread().getName().equals(MinecraftServer.THREAD_NAME_TICK)) {
+            return createGameOnTickThread(entry, type);
+        }
+
+        java.util.concurrent.CompletableFuture<BedWarsGame> result = new java.util.concurrent.CompletableFuture<>();
+        MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+            try {
+                result.complete(createGameOnTickThread(entry, type));
+            } catch (Throwable throwable) {
+                result.completeExceptionally(throwable);
+            }
+        });
+
+        try {
+            return result.join();
+        } catch (java.util.concurrent.CompletionException exception) {
+            Throwable cause = exception.getCause();
+            if (cause instanceof RuntimeException runtimeException) throw runtimeException;
+            throw new RuntimeException(cause);
+        }
+    }
+
+    @SneakyThrows
+    private static BedWarsGame createGameOnTickThread(@NotNull BedWarsMapsConfig.MapEntry entry, @NotNull BedWarsGameType type) {
         if (games.size() >= MAX_GAMES) {
             return null;
         }

@@ -3,10 +3,8 @@ package com.deyo.hypixel.type.bedwarslobby.npcs;
 import net.minestom.server.coordinate.Pos;
 import com.deyo.hypixel.commons.ServerType;
 import com.deyo.hypixel.commons.StringUtility;
-import com.deyo.hypixel.commons.UnderstandableProxyServer;
 import com.deyo.hypixel.commons.VersionConst;
 import com.deyo.hypixel.commons.bedwars.BedWarsDreamRotation;
-import com.deyo.hypixel.proxyapi.ProxyInformation;
 import com.deyo.hypixel.type.bedwarslobby.gui.GUIPlayDreamBedWars;
 import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
 import com.deyo.hypixel.type.generic.entity.npc.configuration.HumanConfiguration;
@@ -16,25 +14,14 @@ import com.deyo.hypixel.type.generic.utility.GameCountCache;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 
 public class NPCDreams extends HypixelNPC {
-	private static final List<UnderstandableProxyServer> cacheServers = new ArrayList<>();
-	private static long lastCacheTime = 0;
 
 	public NPCDreams() {
 		super(new HumanConfiguration() {
 			@Override
 			public String[] holograms(HypixelPlayer player) {
-				if (System.currentTimeMillis() - lastCacheTime > 5000) {
-					ProxyInformation information = new ProxyInformation();
-					List<UnderstandableProxyServer> servers = information.getAllServersInformation().join();
-					cacheServers.clear();
-					cacheServers.addAll(servers);
-					lastCacheTime = System.currentTimeMillis();
-				}
-
 				BedWarsDreamRotation.RotationEntry current = BedWarsDreamRotation.current(LocalDate.now());
 
 				int amountOnline = GameCountCache.getPlayerCount(

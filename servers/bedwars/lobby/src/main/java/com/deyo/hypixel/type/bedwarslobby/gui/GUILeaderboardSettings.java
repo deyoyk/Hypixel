@@ -9,6 +9,7 @@ import com.deyo.hypixel.commons.bedwars.BedwarsLeaderboardMode;
 import com.deyo.hypixel.commons.bedwars.BedwarsLeaderboardPeriod;
 import com.deyo.hypixel.commons.bedwars.BedwarsLeaderboardView;
 import com.deyo.hypixel.commons.bedwars.BedwarsTextAlignment;
+import com.deyo.hypixel.commons.leaderboard.LeaderboardPlayerFilter;
 import com.deyo.hypixel.commons.text.Text;
 import com.deyo.hypixel.type.bedwarslobby.hologram.LeaderboardHologramManager;
 import com.deyo.hypixel.type.bedwarslobby.hologram.LeaderboardHologramManager.PlayerLeaderboardState;
@@ -25,6 +26,7 @@ public class GUILeaderboardSettings extends HypixelInventoryGUI {
 	private BedwarsLeaderboardPeriod selectedPeriod;
 	private BedwarsLeaderboardView selectedView;
 	private BedwarsTextAlignment selectedAlignment;
+	private LeaderboardPlayerFilter selectedPlayerFilter;
 
 	public GUILeaderboardSettings() {
 		super("Leaderboard Settings", InventoryType.CHEST_5_ROW);
@@ -39,6 +41,7 @@ public class GUILeaderboardSettings extends HypixelInventoryGUI {
 		selectedPeriod = currentState.period();
 		selectedView = currentState.view();
 		selectedAlignment = currentState.textAlignment();
+		selectedPlayerFilter = currentState.playerFilter();
 
 		setupItems(player);
 		updateItemStacks(getInventory(), player);
@@ -151,21 +154,33 @@ public class GUILeaderboardSettings extends HypixelInventoryGUI {
 		set(new GUIClickableItem(14) {
 			@Override
 			public ItemStack.Builder getItem(HypixelPlayer player) {
-				return ItemStacks.item(Material.SKELETON_SKULL, 1, Text.of("<a>Select the Players!"), List.of(
-						Text.empty(),
-						Text.of("<a>➠ <7>All"),
-						Text.of("   <8>Friends <c>(Coming Soon)"),
-						Text.of("   <8>Best Friends <c>(Coming Soon)"),
-						Text.of("   <8>Guild Members <c>(Coming Soon)"),
-						Text.empty(),
-						Text.of("<8>Leaderboard data is cached and"),
-						Text.of("<8>does not update immediately.")
-				));
+				List<Text> lore = new ArrayList<>();
+				lore.add(Text.empty());
+				for (LeaderboardPlayerFilter filter : LeaderboardPlayerFilter.values()) {
+					if (filter == selectedPlayerFilter) {
+						lore.add(Text.of("<a>➠ <7>{}", filter.getDisplayName()));
+					} else {
+						lore.add(Text.of("   <7>{}", filter.getDisplayName()));
+					}
+				}
+				lore.add(Text.empty());
+				lore.add(Text.of("<8>Leaderboard data is cached and"));
+				lore.add(Text.of("<8>does not update immediately."));
+				lore.add(Text.empty());
+				lore.add(Text.of("<e>Left/Right Click to change!"));
+
+				return ItemStacks.item(Material.SKELETON_SKULL, 1, Text.of("<a>Select the Players!"), lore);
 			}
 
 			@Override
 			public void run(InventoryPreClickEvent e, HypixelPlayer player) {
-				player.notImplemented();
+				if (e.getClick() instanceof Click.Left) {
+					selectedPlayerFilter = selectedPlayerFilter.next();
+				} else if (e.getClick() instanceof Click.Right) {
+					selectedPlayerFilter = selectedPlayerFilter.previous();
+				}
+				setupItems(player);
+				updateItemStacks(getInventory(), player);
 			}
 		});
 
@@ -219,7 +234,7 @@ public class GUILeaderboardSettings extends HypixelInventoryGUI {
 			@Override
 			public void run(InventoryPreClickEvent e, HypixelPlayer player) {
 				PlayerLeaderboardState newState = new PlayerLeaderboardState(
-						selectedPeriod, selectedMode, selectedView, selectedAlignment);
+						selectedPeriod, selectedMode, selectedView, selectedAlignment, selectedPlayerFilter);
 
 				LeaderboardHologramManager.setState(player.getUuid(), newState);
 				LeaderboardHologramManager.saveStateToDataHandler(player, newState);
