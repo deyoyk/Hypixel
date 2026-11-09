@@ -77,6 +77,7 @@ buck-out/
 /server/forwarding.secret
 /configuration/config.yml
 configuration/config.yml
+**/configuration/config.yml
 /server/proxy/configuration/config.yml
 .claude/
 server/proxy/ViaLoader/

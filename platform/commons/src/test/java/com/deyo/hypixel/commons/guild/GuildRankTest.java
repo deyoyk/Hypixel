@@ -29,4 +29,26 @@ class GuildRankTest {
         assertTrue(GuildRank.guildMaster().isHigherThan(GuildRank.officer()));
         assertFalse(GuildRank.member().isHigherThan(GuildRank.officer()));
     }
+
+    @Test
+    void permissionsCanBeToggledWithoutDroppingExistingOnes() {
+        GuildRank rank = new GuildRank("Custom", 5, false, EnumSet.of(GuildPermission.INVITE));
+
+        rank.setPermission(GuildPermission.KICK, true);
+        assertTrue(rank.hasPermission(GuildPermission.INVITE));
+        assertTrue(rank.hasPermission(GuildPermission.KICK));
+
+        rank.setPermission(GuildPermission.INVITE, false);
+        assertFalse(rank.hasPermission(GuildPermission.INVITE));
+        assertTrue(rank.hasPermission(GuildPermission.KICK));
+    }
+
+    @Test
+    void legacyRanksGainAPermissionSetWhenEdited() {
+        GuildRank rank = new GuildRank("Legacy", 10, true, null);
+
+        rank.setPermission(GuildPermission.MUTE_MEMBERS, true);
+
+        assertTrue(rank.hasPermission(GuildPermission.MUTE_MEMBERS));
+    }
 }

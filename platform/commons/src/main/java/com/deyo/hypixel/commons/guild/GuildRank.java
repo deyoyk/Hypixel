@@ -36,6 +36,17 @@ public class GuildRank implements Comparable<GuildRank> {
         return permissions != null && permissions.contains(permission);
     }
 
+    public void setPermission(GuildPermission permission, boolean enabled) {
+        EnumSet<GuildPermission> updated = EnumSet.noneOf(GuildPermission.class);
+        if (permissions != null) updated.addAll(permissions);
+        if (enabled) {
+            updated.add(permission);
+        } else {
+            updated.remove(permission);
+        }
+        permissions = updated;
+    }
+
     public boolean isHigherThan(GuildRank other) {
         return this.priority < other.priority;
     }

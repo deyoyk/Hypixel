@@ -51,7 +51,8 @@ public class GUIGuildSettings implements View<GUIGuildSettings.GuildSettingsStat
                 <7>Modify your guild's ranks & their
                 <7>permissions.
 
-                <e>Click to edit!"""), (click, viewCtx) -> viewCtx.player().sendMessage("<c>Guild rank permission editor is not available yet."));
+                <e>Click to edit!"""), (click, viewCtx) ->
+                viewCtx.push(new GUIGuildPermissions(), new GUIGuildPermissions.State(guild)));
 
         Text finderStatus = guild.isListedInFinder() ? Text.of("<a>ON") : Text.of("<c>OFF");
         layout.slot(13, ItemStacks.item(Material.SUNFLOWER, """

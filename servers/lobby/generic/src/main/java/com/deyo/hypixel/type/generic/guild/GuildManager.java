@@ -3,6 +3,7 @@ package com.deyo.hypixel.type.generic.guild;
 import com.deyo.hypixel.commons.ServiceType;
 import com.deyo.hypixel.commons.guild.GuildData;
 import com.deyo.hypixel.commons.guild.GuildEvent;
+import com.deyo.hypixel.commons.guild.GuildPermission;
 import com.deyo.hypixel.commons.guild.events.*;
 import com.deyo.hypixel.commons.protocol.objects.guild.GetGuildProtocolObject;
 import com.deyo.hypixel.commons.protocol.objects.guild.IsPlayerInGuildProtocolObject;
@@ -118,6 +119,12 @@ public class GuildManager {
     public static void changeSetting(HypixelPlayer player, String setting, String value) {
         GuildSettingRequestEvent event = new GuildSettingRequestEvent(player.getUuid(), setting, value);
         sendEventToService(event);
+    }
+
+    public static void changeRankPermission(HypixelPlayer player, String rankName,
+                                            GuildPermission permission, boolean enabled) {
+        changeSetting(player, "rankpermission",
+            rankName + ":" + permission.name() + ":" + enabled);
     }
 
     public static void mutePlayer(HypixelPlayer muter, String target, long duration) {

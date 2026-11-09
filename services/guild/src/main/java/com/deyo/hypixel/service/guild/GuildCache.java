@@ -550,6 +550,12 @@ public class GuildCache {
                 guild.setGames(new ArrayList<>(games));
                 value = String.join(",", games);
             }
+            case "rankpermission" -> {
+                if (!applyRankPermission(guild, changer, value)) {
+                    sendErrorToPlayer(changer, "<c>Unable to update that rank permission!");
+                    return;
+                }
+            }
             case "notifications" -> {
                 GuildMember member = guild.getMember(changer);
                 member.setNotificationsEnabled(!member.isNotificationsEnabled());
@@ -575,6 +581,26 @@ public class GuildCache {
 
         GuildSettingChangedResponseEvent response = new GuildSettingChangedResponseEvent(guild, changer, setting, value);
         sendEvent(response);
+    }
+
+    static boolean applyRankPermission(GuildData guild, UUID changer, String value) {
+        if (!guild.getMasterUuid().equals(changer)) return false;
+
+        String[] parts = value.split(":", 3);
+        if (parts.length != 3) return false;
+
+        GuildRank rank = guild.getRank(parts[0]);
+        if (rank == null || rank.getPriority() == 0) return false;
+
+        GuildPermission permission;
+        try {
+            permission = GuildPermission.valueOf(parts[1]);
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
+
+        rank.setPermission(permission, Boolean.parseBoolean(parts[2]));
+        return true;
     }
 
     public static void handleMuteRequest(GuildMuteRequestEvent event) {
