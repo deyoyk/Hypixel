@@ -1,6 +1,7 @@
 package com.deyo.hypixel.anticheat.flag.flags;
 
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.item.component.EnchantmentList;
 import net.minestom.server.item.enchant.Enchantment;
@@ -32,6 +33,23 @@ class PredictionFlagTest {
         assertTrue(PredictionFlag.matchesBlockType(Block.BUBBLE_COLUMN, "BUBBLE_COLUMN"));
         assertFalse(PredictionFlag.matchesBlockType(Block.STONE, "WATER"));
         assertFalse(PredictionFlag.matchesBlockType(Block.AIR, "WATER"));
+    }
+
+    @Test
+    void blockLookupReadsTheLiveInstance() {
+        InstanceContainer instance = MinecraftServer.getInstanceManager().createInstanceContainer();
+        instance.setBlock(2, 64, -3, Block.WATER);
+        instance.setBlock(3, 64, -3, Block.LAVA);
+
+        var water = PredictionFlag.blockAt(instance, 2, 64, -3);
+        assertTrue(water.isWater());
+        assertFalse(water.isLava());
+
+        var lava = PredictionFlag.blockAt(instance, 3, 64, -3);
+        assertTrue(lava.isLava());
+        assertFalse(lava.isWater());
+
+        assertNull(PredictionFlag.blockAt(null, 2, 64, -3));
     }
 
     @Test

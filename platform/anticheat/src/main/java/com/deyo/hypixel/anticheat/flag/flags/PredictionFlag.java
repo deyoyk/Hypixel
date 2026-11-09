@@ -18,6 +18,7 @@ import net.minestom.server.component.DataComponents;
 import net.minestom.server.entity.EntityPose;
 import net.minestom.server.entity.EquipmentSlot;
 import net.minestom.server.entity.Player;
+import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.item.component.EnchantmentList;
 import net.minestom.server.item.enchant.Enchantment;
@@ -89,16 +90,20 @@ public class PredictionFlag extends Flag {
         int blockX = (int) Math.floor(pos.x());
         int blockY = (int) Math.floor(pos.y());
         int blockZ = (int) Math.floor(pos.z());
+        Instance instance = onlineInstance(player);
 
-        // Determine environment from world blocks (blocking calls are cached)
-        boolean inWater = isBlockType(player, blockX, blockY, blockZ, "WATER");
-        boolean inLava = isBlockType(player, blockX, blockY, blockZ, "LAVA");
-        boolean inBubbleColumn = isBlockType(player, blockX, blockY, blockZ, "BUBBLE_COLUMN");
-        boolean inCobweb = isBlockType(player, blockX, blockY, blockZ, "COBWEB");
-        boolean onIce = isBlockType(player, blockX, blockY - 1, blockZ, "ICE", "PACKED_ICE");
-        boolean onSlime = isBlockType(player, blockX, blockY - 1, blockZ, "SLIME_BLOCK");
-        boolean onHoney = isBlockType(player, blockX, blockY - 1, blockZ, "HONEY_BLOCK");
-        boolean onSoulSand = isBlockType(player, blockX, blockY - 1, blockZ, "SOUL_SAND", "SOUL_SOIL");
+        Block minestomAt = instance == null ? null : instance.getBlock(blockX, blockY, blockZ);
+        Block minestomBelow = instance == null ? null : instance.getBlock(blockX, blockY - 1, blockZ);
+        Block minestomAbove = instance == null ? null : instance.getBlock(blockX, blockY + 1, blockZ);
+
+        boolean inWater = matchesBlockType(minestomAt, "WATER");
+        boolean inLava = matchesBlockType(minestomAt, "LAVA");
+        boolean inBubbleColumn = matchesBlockType(minestomAt, "BUBBLE_COLUMN");
+        boolean inCobweb = matchesBlockType(minestomAt, "COBWEB");
+        boolean onIce = matchesBlockType(minestomBelow, "ICE", "PACKED_ICE");
+        boolean onSlime = matchesBlockType(minestomBelow, "SLIME_BLOCK");
+        boolean onHoney = matchesBlockType(minestomBelow, "HONEY_BLOCK");
+        boolean onSoulSand = matchesBlockType(minestomBelow, "SOUL_SAND", "SOUL_SOIL");
 
         return PlayerContext.builder()
             .position(pos)
@@ -106,10 +111,9 @@ public class PredictionFlag extends Flag {
             .onGround(tick.isOnGround())
             .wasOnGround(tick.getPrevious() != null && tick.getPrevious().isOnGround())
 
-            // Environment from world data
-            .blockAt(null) // Can be populated if needed
-            .blockBelow(null)
-            .blockAbove(null)
+            .blockAt(toContextBlock(minestomAt))
+            .blockBelow(toContextBlock(minestomBelow))
+            .blockAbove(toContextBlock(minestomAbove))
             .inWater(inWater)
             .inLava(inLava)
             .inBubbleColumn(inBubbleColumn)
@@ -149,10 +153,23 @@ public class PredictionFlag extends Flag {
             .build();
     }
 
-    private boolean isBlockType(DeyoPlayer player, int x, int y, int z, String... types) {
+    private static Instance onlineInstance(DeyoPlayer player) {
         Player online = onlinePlayer(player);
-        if (online == null || online.getInstance() == null) return false;
-        return matchesBlockType(online.getInstance().getBlock(x, y, z), types);
+        return online == null ? null : online.getInstance();
+    }
+
+    static com.deyo.hypixel.anticheat.world.Block blockAt(Instance instance, int x, int y, int z) {
+        return instance == null ? null : toContextBlock(instance.getBlock(x, y, z));
+    }
+
+    static com.deyo.hypixel.anticheat.world.Block toContextBlock(Block block) {
+        if (block == null) return null;
+        String name = block.key().value();
+        return new com.deyo.hypixel.anticheat.world.Block(
+            name.equals("water"),
+            name.equals("lava"),
+            null
+        );
     }
 
     static boolean matchesBlockType(Block block, String... types) {

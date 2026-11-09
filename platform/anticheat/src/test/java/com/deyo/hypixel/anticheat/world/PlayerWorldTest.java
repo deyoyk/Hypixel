@@ -62,4 +62,19 @@ class PlayerWorldTest {
         assertNull(world.getBlockNow(3, 64, 3));
         assertNull(world.getBlockNow(2, 64, 4));
     }
+
+    @Test
+    void blocksAtDifferentHeightsDoNotCollide() throws Exception {
+        Block high = new Block(true, false, null);
+        Block low = new Block(false, true, null);
+        Block negative = new Block(false, false, null);
+
+        world.updateBlock(0, 256, 0, high).get(5, TimeUnit.SECONDS);
+        world.updateBlock(0, 0, 1, low).get(5, TimeUnit.SECONDS);
+        world.updateBlock(0, -64, 0, negative).get(5, TimeUnit.SECONDS);
+
+        assertSame(high, world.getBlockNow(0, 256, 0));
+        assertSame(low, world.getBlockNow(0, 0, 1));
+        assertSame(negative, world.getBlockNow(0, -64, 0));
+    }
 }

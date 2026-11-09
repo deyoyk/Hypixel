@@ -83,10 +83,10 @@ public class PlayerWorld {
     }
 
     private static class Chunk {
-        private final Map<Integer, Block> blocks = new HashMap<>();
+        private final Map<Long, Block> blocks = new HashMap<>();
 
         public void setBlock(int x, int y, int z, Block block) {
-            int key = key(x, y, z);
+            long key = key(x, y, z);
             if (block == null) {
                 blocks.remove(key);
             } else {
@@ -98,8 +98,8 @@ public class PlayerWorld {
             return blocks.get(key(x, y, z));
         }
 
-        private static int key(int x, int y, int z) {
-            return (x << 12) | (z << 8) | y;
+        private static long key(int x, int y, int z) {
+            return ((long) x << 32) | ((long) z << 16) | (y & 0xFFFFL);
         }
     }
 }
