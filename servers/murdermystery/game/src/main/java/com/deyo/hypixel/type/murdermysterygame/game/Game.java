@@ -19,6 +19,7 @@ import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.network.packet.server.play.TeamsPacket;
 import net.minestom.server.tag.Tag;
+import net.minestom.server.timer.Task;
 import net.minestom.server.timer.TaskSchedule;
 import com.deyo.hypixel.commons.ServerType;
 import com.deyo.hypixel.commons.murdermystery.MurderMysteryGameType;
@@ -58,6 +59,7 @@ public class Game {
     private final GoldManager goldManager;
     private final WeaponManager weaponManager;
     private final GameCountdown countdown;
+    private final List<Task> activeTasks = new ArrayList<>();
 
     @Setter
     private GameStatus gameStatus;
@@ -190,17 +192,22 @@ public class Game {
         startMurdererSwordCountdown();
         startSurvivalRewards();
 
-        MinecraftServer.getSchedulerManager().buildTask(() -> {
+        track(MinecraftServer.getSchedulerManager().buildTask(() -> {
             if (gameStatus == GameStatus.IN_PROGRESS) {
                 endGame(WinCondition.TIME_EXPIRED);
             }
-        }).delay(TaskSchedule.minutes(5)).schedule();
+        }).delay(TaskSchedule.minutes(5)).schedule());
+    }
+
+    private Task track(Task task) {
+        activeTasks.add(task);
+        return task;
     }
 
     private void startMurdererSwordCountdown() {
         final int[] secondsRemaining = {30};
 
-        var task = MinecraftServer.getSchedulerManager().buildTask(() -> {
+        var task = track(MinecraftServer.getSchedulerManager().buildTask(() -> {
             if (gameStatus != GameStatus.IN_PROGRESS) return;
 
             secondsRemaining[0]--;
@@ -210,9 +217,9 @@ public class Game {
                 broadcastMessage(Text.of("<e>The Murderer receives their sword in <c>{}<e> {}!",
                         secondsRemaining[0], word));
             }
-        }).delay(TaskSchedule.seconds(1)).repeat(TaskSchedule.seconds(1)).schedule();
+        }).delay(TaskSchedule.seconds(1)).repeat(TaskSchedule.seconds(1)).schedule());
 
-        MinecraftServer.getSchedulerManager().buildTask(() -> {
+        track(MinecraftServer.getSchedulerManager().buildTask(() -> {
             if (gameStatus != GameStatus.IN_PROGRESS) return;
             task.cancel();
             murdererReceivedSword = true;
@@ -225,11 +232,11 @@ public class Game {
             }
 
             broadcastMessage(Text.of("<e>The Murderer has received their sword!"));
-        }).delay(TaskSchedule.seconds(30)).schedule();
+        }).delay(TaskSchedule.seconds(30)).schedule());
     }
 
     private void startSurvivalRewards() {
-        MinecraftServer.getSchedulerManager().buildTask(() -> {
+        track(MinecraftServer.getSchedulerManager().buildTask(() -> {
             if (gameStatus != GameStatus.IN_PROGRESS) return;
 
             MurderMysteryLeaderboardMode leaderboardMode = MurderMysteryLeaderboardMode.fromGameType(gameType);
@@ -249,7 +256,7 @@ public class Game {
                     player.sendMessage("<2>+40 Tokens! Survived 30 seconds");
                 }
             }
-        }).delay(TaskSchedule.seconds(30)).repeat(TaskSchedule.seconds(30)).schedule();
+        }).delay(TaskSchedule.seconds(30)).repeat(TaskSchedule.seconds(30)).schedule());
     }
 
     public boolean hasMurdererReceivedSword() {
@@ -263,7 +270,7 @@ public class Game {
         boolean isAquariumMap = mapEntry.getName() != null &&
                 mapEntry.getName().toLowerCase().contains("aquarium");
 
-        MinecraftServer.getSchedulerManager().buildTask(() -> {
+        track(MinecraftServer.getSchedulerManager().buildTask(() -> {
             if (gameStatus != GameStatus.IN_PROGRESS) return;
 
             List<MurderMysteryPlayer> playersToCheck = new ArrayList<>(players);
@@ -285,7 +292,7 @@ public class Game {
                     }
                 }
             }
-        }).repeat(TaskSchedule.tick(5)).schedule();
+        }).repeat(TaskSchedule.tick(5)).schedule());
     }
 
     public void onEnvironmentalDeath(MurderMysteryPlayer victim) {
@@ -695,6 +702,10 @@ public class Game {
 
     private void endGame(WinCondition condition) {
         gameStatus = GameStatus.ENDING;
+        for (Task task : activeTasks) {
+            task.cancel();
+        }
+        activeTasks.clear();
         goldManager.stopSpawning();
 
         recordGameStats(condition);

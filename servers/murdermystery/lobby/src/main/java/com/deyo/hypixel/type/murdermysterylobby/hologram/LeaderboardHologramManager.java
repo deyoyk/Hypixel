@@ -3,6 +3,7 @@ package com.deyo.hypixel.type.murdermysterylobby.hologram;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.event.player.PlayerEntityInteractEvent;
 import net.minestom.server.instance.Instance;
+import com.deyo.hypixel.commons.leaderboard.LeaderboardPlayerFilter;
 import com.deyo.hypixel.commons.murdermystery.*;
 import com.deyo.hypixel.commons.text.Text;
 import com.deyo.hypixel.type.generic.data.datapoints.DatapointMurderMysteryLeaderboardPreferences;
@@ -29,14 +30,16 @@ public class LeaderboardHologramManager {
             MurderMysteryLeaderboardPeriod period,
             MurderMysteryLeaderboardMode mode,
             MurderMysteryLeaderboardView view,
-            MurderMysteryTextAlignment textAlignment
+            MurderMysteryTextAlignment textAlignment,
+            LeaderboardPlayerFilter playerFilter
     ) {
         public static PlayerLeaderboardState defaults() {
             return new PlayerLeaderboardState(
                     MurderMysteryLeaderboardPeriod.WEEKLY,
                     MurderMysteryLeaderboardMode.CLASSIC,
                     MurderMysteryLeaderboardView.TOP_10,
-                    MurderMysteryTextAlignment.CENTER
+                    MurderMysteryTextAlignment.CENTER,
+                    LeaderboardPlayerFilter.ALL
             );
         }
     }
@@ -93,7 +96,8 @@ public class LeaderboardHologramManager {
                     state.period(),
                     state.mode(),
                     state.view(),
-                    state.textAlignment()
+                    state.textAlignment(),
+                    state.playerFilter()
             );
             handler.get(MurderMysteryDataHandler.Data.LEADERBOARD_PREFS, DatapointMurderMysteryLeaderboardPreferences.class)
                     .setValue(prefs);
@@ -112,7 +116,8 @@ public class LeaderboardHologramManager {
                     prefs.period(),
                     prefs.mode(),
                     prefs.view(),
-                    prefs.textAlignment()
+                    prefs.textAlignment(),
+                    prefs.playerFilter()
             ));
         }
 
@@ -173,7 +178,7 @@ public class LeaderboardHologramManager {
                 Text.of("<7>Mode: <a>{}", state.mode().getDisplayName()),
                 Text.of("<7>Time: <a>{}", state.period().getDisplayName()),
                 Text.of("<7>View: <a>{}", viewDisplay),
-                Text.of("<7>Players: <a>All"),
+                Text.of("<7>Players: <a>{}", state.playerFilter().getDisplayName()),
                 Text.of("<6>Click to change settings!")
         );
     }

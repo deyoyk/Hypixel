@@ -4,6 +4,7 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.timer.Scheduler;
 import net.minestom.server.timer.TaskSchedule;
+import com.deyo.hypixel.commons.StringUtility;
 import com.deyo.hypixel.commons.text.Text;
 import com.deyo.hypixel.type.generic.HypixelConst;
 import com.deyo.hypixel.type.generic.scoreboard.HypixelScoreboard;
@@ -167,9 +168,7 @@ public class MurderMysteryGameScoreboard {
 		long remaining = GAME_DURATION_MS - elapsed;
 		if (remaining < 0) remaining = 0;
 
-		long minutes = remaining / 60000;
-		long seconds = (remaining % 60000) / 1000;
-		return Text.literal(String.format("%d:%02d", minutes, seconds));
+		return Text.literal(StringUtility.formatSeconds(remaining / 1000));
 	}
 
 	public static void removeCache(Player player) {
