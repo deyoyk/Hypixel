@@ -1,5 +1,6 @@
 package com.deyo.hypixel.type.skyblockgeneric.slayer;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -15,6 +16,12 @@ public record SlayerDefinition(
 ) {
     public boolean accepts(List<MobType> mobTypes) {
         return mobTypes.stream().anyMatch(targetMobTypes::contains);
+    }
+
+    public List<SlayerTierDefinition> orderedTiers() {
+        return tiers.values().stream()
+            .sorted(Comparator.comparingInt(tier -> tier.tier().number()))
+            .toList();
     }
 
     public int levelForXp(int xp) {

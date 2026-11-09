@@ -5,6 +5,7 @@ import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
 import com.deyo.hypixel.type.generic.entity.npc.configuration.HumanConfiguration;
 import com.deyo.hypixel.type.generic.event.custom.NPCInteractEvent;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.hub.gui.GUISlayer;
 
 public class NPCMaddoxTheSlayer extends HypixelNPC {
 
@@ -39,7 +40,7 @@ public class NPCMaddoxTheSlayer extends HypixelNPC {
 
     @Override
     public void onClick(NPCInteractEvent e) {
-        e.player().notImplemented();
+        new GUISlayer().open(e.player());
     }
 
 }
