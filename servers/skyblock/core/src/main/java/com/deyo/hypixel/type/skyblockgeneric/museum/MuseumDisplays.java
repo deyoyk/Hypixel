@@ -41,7 +41,7 @@ public enum MuseumDisplays {
 
     static final Map<UUID, Map<MuseumDisplayEntityImpl, PlayerHolograms.ExternalPlayerHologram>> displayEntities = new HashMap<>();
 
-    public static void clearDisplay(UUID playerId) {
+    public static synchronized void clearDisplay(UUID playerId) {
         Map<MuseumDisplayEntityImpl, PlayerHolograms.ExternalPlayerHologram> displays = displayEntities.remove(playerId);
         if (displays == null) return;
         displays.forEach((displayEntity, hologram) -> {
@@ -75,7 +75,7 @@ public enum MuseumDisplays {
         return allPositions;
     }
 
-    public static void updateDisplay(@NotNull SkyBlockPlayer player) {
+    public static synchronized void updateDisplay(@NotNull SkyBlockPlayer player) {
         DatapointMuseum.MuseumData playerMuseumData = player.getMuseumData();
         UUID museumPlayerToView = playerMuseumData.getCurrentlyViewing().playerUuid();
         UUID museumProfileToView = playerMuseumData.getCurrentlyViewing().profileUuid();
