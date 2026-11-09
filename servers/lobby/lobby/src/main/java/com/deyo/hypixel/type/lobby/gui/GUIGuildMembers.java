@@ -5,6 +5,7 @@ import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import com.deyo.hypixel.commons.guild.GuildData;
 import com.deyo.hypixel.commons.guild.GuildMember;
+import com.deyo.hypixel.commons.guild.GuildRank;
 import com.deyo.hypixel.commons.text.Text;
 import com.deyo.hypixel.type.generic.gui.inventory.ItemStacks;
 import com.deyo.hypixel.type.generic.gui.v2.PaginatedView;
@@ -14,10 +15,34 @@ import com.deyo.hypixel.type.generic.gui.v2.context.ClickContext;
 import com.deyo.hypixel.type.generic.gui.v2.context.ViewContext;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class GUIGuildMembers extends PaginatedView<GuildMember, GUIGuildMembers.MembersState> {
+
+    public enum MemberSort {
+        LAST_ONLINE("Last Online"),
+        GUILD_RANK("Guild Rank"),
+        VETERANCY("Veterancy"),
+        WEEKLY_GEXP("Weekly GEXP");
+
+        private final String displayName;
+
+        MemberSort(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        public MemberSort next() {
+            MemberSort[] values = values();
+            return values[(ordinal() + 1) % values.length];
+        }
+    }
 
     private static final int[] MEMBER_SLOTS = {
         10, 11, 12, 13, 14, 15, 16,
@@ -78,7 +103,31 @@ public class GUIGuildMembers extends PaginatedView<GuildMember, GUIGuildMembers.
     }
 
     public static MembersState createState(GuildData guild) {
-        return new MembersState(guild.getMembers(), 0);
+        return createState(guild, MemberSort.LAST_ONLINE, false);
+    }
+
+    public static MembersState createState(GuildData guild, MemberSort sort, boolean reversed) {
+        return new MembersState(sortedMembers(guild, sort, reversed), 0);
+    }
+
+    static List<GuildMember> sortedMembers(GuildData guild, MemberSort sort, boolean reversed) {
+        List<GuildMember> members = new ArrayList<>(guild.getMembers());
+        Comparator<GuildMember> comparator = switch (sort) {
+            case LAST_ONLINE -> Comparator.comparingLong(GuildMember::getLastLogin).reversed();
+            case GUILD_RANK -> Comparator.comparingInt(member -> rankPriority(guild, member));
+            case VETERANCY -> Comparator.comparingLong(GuildMember::getJoinedAt);
+            case WEEKLY_GEXP -> Comparator.comparingLong(GuildMember::getWeeklyGexp).reversed();
+        };
+        if (reversed) {
+            comparator = comparator.reversed();
+        }
+        members.sort(comparator.thenComparing(member -> member.getUuid().toString()));
+        return members;
+    }
+
+    private static int rankPriority(GuildData guild, GuildMember member) {
+        GuildRank rank = guild.getRank(member.getRankName());
+        return rank == null ? Integer.MAX_VALUE : rank.getPriority();
     }
 
     private static String formatDuration(long millis) {

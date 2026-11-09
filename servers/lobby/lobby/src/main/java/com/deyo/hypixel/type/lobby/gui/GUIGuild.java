@@ -38,7 +38,7 @@ public class GUIGuild implements View<GUIGuild.GuildState> {
         if (state.guild() == null) {
             layoutNoGuild(layout, ctx);
         } else {
-            layoutWithGuild(layout, state.guild(), ctx);
+            layoutWithGuild(layout, state, state.guild(), ctx);
         }
     }
 
@@ -110,7 +110,7 @@ public class GUIGuild implements View<GUIGuild.GuildState> {
             (_, context) -> context.player().sendMessage("<click:url:'https://github.com/deyo/Hypixel-v2'><c>This Feature is not there yet. <a>Open a Pull request HERE to get it added quickly!"));
     }
 
-    private void layoutWithGuild(ViewLayout<GuildState> layout, GuildData guild, ViewContext ctx) {
+    private void layoutWithGuild(ViewLayout<GuildState> layout, GuildState state, GuildData guild, ViewContext ctx) {
         HypixelPlayer player = ctx.player();
         int level = player.getExperienceHandler().getLevel();
         int achievementPoints = player.getAchievementHandler().getTotalPoints();
@@ -256,8 +256,8 @@ public class GUIGuild implements View<GUIGuild.GuildState> {
 
         layout.slot(33, ItemStacks.item(Material.HOPPER, """
                 <a>Change sort
-                <7>Current sort: <b>Last Online
-                <7>Sorting order: <b>Normal
+                <7>Current sort: <b>{}
+                <7>Sorting order: <b>{}
 
                 <b>Last Online<7>: Sorts by who was
                 <7>most recently online
@@ -265,19 +265,26 @@ public class GUIGuild implements View<GUIGuild.GuildState> {
                 <7>Rank first
                 <b>Veterancy<7>: How long they've
                 <7>been in the guild
-                <b>Alphabetical<7>: Show everyone
-                <7>listed from A-Z
-                <b>AP<7>: Sort by Achievement Points
-                <b>Level<7>: Sort by Hypixel Level
+                <b>Weekly GEXP<7>: Sorts by weekly
+                <7>guild experience earned
 
                 <e>LEFT CLICK<7> to change between
                 <7>all the available sorting options.
 
                 <e>RIGHT CLICK<7> to reverse the
-                <7>current order!"""));
+                <7>current order!""",
+            state.sort().getDisplayName(), state.reversed() ? "Reversed" : "Normal"),
+            (click, viewCtx) -> {
+                if (click.click() instanceof Click.Right) {
+                    viewCtx.session(GuildState.class).update(GuildState::withReversed);
+                } else {
+                    viewCtx.session(GuildState.class).update(current -> current.withSort(current.sort().next()));
+                }
+            });
 
         layout.slot(34, ItemStacks.item(Material.OAK_SIGN, "<a>Search Players"),
-            (click, viewCtx) -> viewCtx.push(new GUIGuildMembers(), GUIGuildMembers.createState(guild)));
+            (click, viewCtx) -> viewCtx.push(new GUIGuildMembers(),
+                GUIGuildMembers.createState(guild, state.sort(), state.reversed())));
 
         layout.slot(35, ItemStacks.item(Material.ARROW, """
                 <a>Next Page
@@ -286,10 +293,11 @@ public class GUIGuild implements View<GUIGuild.GuildState> {
                 <e>RIGHT CLICK<7> to go to the last
                 <7>page
                 <7>Page 1/{}""", Math.max(1, (int) Math.ceil(guild.getMembers().size() / 18.0))),
-            (click, viewCtx) -> viewCtx.push(new GUIGuildMembers(), GUIGuildMembers.createState(guild)));
+            (click, viewCtx) -> viewCtx.push(new GUIGuildMembers(),
+                GUIGuildMembers.createState(guild, state.sort(), state.reversed())));
 
         int[] previewSlots = {36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53};
-        List<GuildMember> members = guild.getMembers();
+        List<GuildMember> members = GUIGuildMembers.sortedMembers(guild, state.sort(), state.reversed());
         for (int i = 0; i < previewSlots.length && i < members.size(); i++) {
             layout.slot(previewSlots[i], buildMemberPreview(members.get(i)));
         }
@@ -399,6 +407,17 @@ public class GUIGuild implements View<GUIGuild.GuildState> {
         return "Just now";
     }
 
-    public record GuildState(@Nullable GuildData guild) {
+    public record GuildState(@Nullable GuildData guild, GUIGuildMembers.MemberSort sort, boolean reversed) {
+        public GuildState(@Nullable GuildData guild) {
+            this(guild, GUIGuildMembers.MemberSort.LAST_ONLINE, false);
+        }
+
+        public GuildState withSort(GUIGuildMembers.MemberSort sort) {
+            return new GuildState(guild, sort, reversed);
+        }
+
+        public GuildState withReversed() {
+            return new GuildState(guild, sort, !reversed);
+        }
     }
 }
