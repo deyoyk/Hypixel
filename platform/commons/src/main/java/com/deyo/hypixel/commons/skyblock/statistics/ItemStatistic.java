@@ -103,7 +103,7 @@ public enum ItemStatistic {
     RESPIRATION("Respiration", NamedTextColor.GREEN, NamedTextColor.DARK_AQUA, false, PackSprite.STAT_RESPIRATION),
     PRESSURE_RESISTANCE("Pressure Resistance", NamedTextColor.GREEN, NamedTextColor.BLUE, false, PackSprite.STAT_PRESSURE_RESISTANCE),
     TRACKING("Tracking", NamedTextColor.GREEN, NamedTextColor.LIGHT_PURPLE, false, PackSprite.STAT_TRACKING),
-    BREWER("Brewer", NamedTextColor.GREEN, NamedTextColor.LIGHT_PURPLE, true, PackSprite.GUI_DENY), // TODO: what is this?
+    BREWER("Brewer", NamedTextColor.GREEN, NamedTextColor.LIGHT_PURPLE, true, PackSprite.GUI_DENY),
 
     // Other Stats
     DAMAGE("Damage", NamedTextColor.RED, NamedTextColor.RED, false, PackSprite.STAT_ABILITY_DAMAGE,

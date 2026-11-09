@@ -84,13 +84,16 @@ public class ItemAttributePotionData extends ItemAttribute<ItemAttributePotionDa
         public long getFinalDurationMs(int alchemyLevel) {
             if (baseDurationSeconds <= 0) return 0; // Instant potions
 
-            // Alchemy gives +1% duration per level (max +50%)
-            double alchemyBonus = 1.0 + (Math.min(alchemyLevel, 50) * 0.01);
+            double alchemyBonus = getBrewerMultiplier(alchemyLevel);
 
             // Splash potions have half duration (unless extended modifier was used)
             double splashMultiplier = (isSplash && !isExtended) ? 0.5 : 1.0;
 
             return (long) (baseDurationSeconds * 1000 * alchemyBonus * splashMultiplier);
+        }
+
+        public static double getBrewerMultiplier(int brewerLevel) {
+            return 1.0 + (Math.min(Math.max(brewerLevel, 0), 50) * 0.01);
         }
 
         /**
