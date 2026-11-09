@@ -195,9 +195,9 @@ public enum LaunchPads {
 
     VILLAGE_TO_GOLD_MINE(
         getSlimeBlocksNear(new Pos(-1, 63, -193)),
-        ServerType.SKYBLOCK_HUB, // TODO: UPDATE TO PROPER POSITIONS AND INFO
+        ServerType.SKYBLOCK_HUB,
         ServerType.SKYBLOCK_GOLD_MINE,
-        new Pos(-5, 73, -269),
+        new Pos(-4.5, 74, -278.5, -180, 0),
         player -> player.sendTo(ServerType.SKYBLOCK_GOLD_MINE),
         player -> player.getSkills().getCurrentLevel(SkillCategories.MINING) >= 1,
         "<c>You must be at least Mining Level I to join this island!",
