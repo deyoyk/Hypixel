@@ -18,17 +18,21 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.ToLongFunction;
 
 public class IslandCheck extends BalanceConfiguration {
     private static final long LOOKUP_TIMEOUT_MILLIS = 3000;
     private static final long CACHE_TTL_MILLIS = 10_000;
     private static final Map<UUID, CachedIsland> ISLAND_CACHE = new ConcurrentHashMap<>();
     private static final Map<UUID, CachedServer> SERVER_CACHE = new ConcurrentHashMap<>();
+    private static final AtomicLong LAST_PRUNE = new AtomicLong();
 
     @Override
     public GameManager.GameServer getServer(Player player, List<GameManager.GameServer> servers) {
         UUID playerId = player.getUniqueId();
         long now = System.currentTimeMillis();
+        pruneCaches(now);
         CachedIsland cachedIsland = ISLAND_CACHE.get(playerId);
         if (cachedIsland != null && isFresh(cachedIsland.cachedAt(), now)) {
             return cachedIsland.islandUUID() == null ? null : findServerWithIsland(cachedIsland.islandUUID());
@@ -77,6 +81,18 @@ public class IslandCheck extends BalanceConfiguration {
 
     static boolean isFresh(long cachedAt, long now) {
         return now - cachedAt <= CACHE_TTL_MILLIS;
+    }
+
+    static <T> void removeExpired(Map<UUID, T> cache, long now, ToLongFunction<T> cachedAt) {
+        cache.entrySet().removeIf(entry -> !isFresh(cachedAt.applyAsLong(entry.getValue()), now));
+    }
+
+    private static void pruneCaches(long now) {
+        long previous = LAST_PRUNE.get();
+        if (now - previous < CACHE_TTL_MILLIS || !LAST_PRUNE.compareAndSet(previous, now)) return;
+
+        removeExpired(ISLAND_CACHE, now, CachedIsland::cachedAt);
+        removeExpired(SERVER_CACHE, now, CachedServer::cachedAt);
     }
 
     private static GameManager.GameServer findServerWithIsland(UUID islandUUID) {

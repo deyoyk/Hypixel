@@ -4,6 +4,8 @@ import org.bson.Document;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -18,6 +20,19 @@ class IslandCheckTest {
         long now = 100_000;
         assertTrue(IslandCheck.isFresh(now - 10_000, now));
         assertFalse(IslandCheck.isFresh(now - 10_001, now));
+    }
+
+    @Test
+    void expiredCacheEntriesArePruned() {
+        Map<UUID, Long> cache = new HashMap<>();
+        UUID fresh = UUID.randomUUID();
+        UUID stale = UUID.randomUUID();
+        cache.put(fresh, 95_000L);
+        cache.put(stale, 80_000L);
+
+        IslandCheck.removeExpired(cache, 100_000, value -> value);
+
+        assertEquals(Map.of(fresh, 95_000L), cache);
     }
 
     @Test
