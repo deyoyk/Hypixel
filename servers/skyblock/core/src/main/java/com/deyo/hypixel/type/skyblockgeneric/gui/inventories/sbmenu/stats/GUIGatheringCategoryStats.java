@@ -69,16 +69,19 @@ public class GUIGatheringCategoryStats extends StatelessView {
         Components.back(layout, 48, ctx);
         Components.close(layout, 49);
 
+        SkyBlockPlayer player = (SkyBlockPlayer) ctx.player();
+        ItemStatistics values = player.getStatistics().allStatistics();
+
         // dumb way but it works for now
         switch (mode) {
-            case CATEGORY -> categoryLayout(layout);
-            case DETAIL -> detailLayout(layout, ctx);
+            case CATEGORY -> categoryLayout(layout, values);
+            case DETAIL -> detailLayout(layout, ctx, values);
             case FLAT, ADDITIVE -> breakdownLayout(layout);
         }
     }
 
-    private void categoryLayout(ViewLayout<DefaultState> layout) {
-        layout.slot(4, (s, c) -> category.createSummary((SkyBlockPlayer) c.player(), false));
+    private void categoryLayout(ViewLayout<DefaultState> layout, ItemStatistics values) {
+        layout.slot(4, (s, c) -> category.createSummary(values, false));
 
         layout.slot(50, toggleItem(), (_, c) -> c.push(
             new GUIGatheringCategoryStats(category, null, Mode.CATEGORY, !showAll, false, false, null, null)));
@@ -86,9 +89,9 @@ public class GUIGatheringCategoryStats extends StatelessView {
         for (int index = 0; index < Math.min(category.statistics.size(), DISPLAY_SLOTS.length); index++) {
             int statisticIndex = index;
             layout.slot(DISPLAY_SLOTS[index], (s, c) -> {
-                ItemStatistic stat = visibleStatistics((SkyBlockPlayer) c.player()).get(statisticIndex);
+                ItemStatistic stat = visibleStatistics(values).get(statisticIndex);
                 return stat == null ? ItemStack.AIR.builder()
-                    : createStatisticItem((SkyBlockPlayer) c.player(), stat, true);
+                    : createStatisticItem(stat, true, values);
             }, (_, c) -> {
                 ItemStatistic stat = visibleStatistics((SkyBlockPlayer) c.player()).get(statisticIndex);
                 if (stat != null) openStatistic((SkyBlockPlayer) c.player(), stat);
@@ -103,22 +106,20 @@ public class GUIGatheringCategoryStats extends StatelessView {
         player.openView(new GUIGatheringCategoryStats(category, stat, target, showAll, false, false, null, null));
     }
 
-    private void detailLayout(ViewLayout<DefaultState> layout, ViewContext ctx) {
-        layout.slot(4, (s, c) -> createStatisticItem((SkyBlockPlayer) c.player(), statistic, false));
+    private void detailLayout(ViewLayout<DefaultState> layout, ViewContext ctx, ItemStatistics values) {
+        layout.slot(4, (s, c) -> createStatisticItem(statistic, false, values));
         {
-            SkyBlockPlayer player = (SkyBlockPlayer) ctx.player();
-            ItemStatistics values = player.getStatistics().allStatistics();
             boolean additive = values.getAdditive(statistic) != 1D;
             boolean capped = statistic.getCap() != null;
             int flatSlot = capped ? 20 : 21;
             int additiveSlot = capped ? 22 : 23;
 
-            layout.slot(flatSlot, (s, c) -> summaryItem((SkyBlockPlayer) c.player(), Mode.FLAT),
+            layout.slot(flatSlot, (s, c) -> summaryItem((SkyBlockPlayer) c.player(), Mode.FLAT, values),
                 (_, c) -> c.player().openView(copy(Mode.FLAT)));
             if (additive) {
                 layout.slot(additiveSlot - 1, StatisticArrow.create(statistic),
                     (_, c) -> c.player().openView(copy(Mode.ADDITIVE)));
-                layout.slot(additiveSlot, (s, c) -> summaryItem((SkyBlockPlayer) c.player(), Mode.ADDITIVE),
+                layout.slot(additiveSlot, (s, c) -> summaryItem((SkyBlockPlayer) c.player(), Mode.ADDITIVE, values),
                     (_, c) -> c.player().openView(copy(Mode.ADDITIVE)));
             }
             if (capped) {
@@ -165,8 +166,11 @@ public class GUIGatheringCategoryStats extends StatelessView {
     }
 
     private List<ItemStatistic> visibleStatistics(SkyBlockPlayer player) {
-        List<ItemStatistic> visible = category.statistics.stream()
-            .filter(stat -> showAll || overall(player, stat) != 0D).toList();
+        return visibleStatistics(player.getStatistics().allStatistics());
+    }
+
+    private List<ItemStatistic> visibleStatistics(ItemStatistics values) {
+        List<ItemStatistic> visible = visibleStats(category, showAll, values);
         return new java.util.AbstractList<>() {
             @Override
             public ItemStatistic get(int index) {
@@ -178,6 +182,12 @@ public class GUIGatheringCategoryStats extends StatelessView {
                 return Math.max(visible.size(), category.statistics.size());
             }
         };
+    }
+
+    static List<ItemStatistic> visibleStats(Category category, boolean showAll, ItemStatistics values) {
+        return category.statistics.stream()
+            .filter(stat -> showAll || values.getOverall(stat) != 0D)
+            .toList();
     }
 
     private List<ViewEntry> visibleEntries(SkyBlockPlayer player) {
@@ -226,8 +236,7 @@ public class GUIGatheringCategoryStats extends StatelessView {
         return sourceValue(entry.statistics());
     }
 
-    private ItemStack.Builder summaryItem(SkyBlockPlayer player, Mode summaryMode) {
-        ItemStatistics values = player.getStatistics().allStatistics();
+    private ItemStack.Builder summaryItem(SkyBlockPlayer player, Mode summaryMode, ItemStatistics values) {
         double value = summaryMode == Mode.FLAT ? values.getBase(statistic)
             : (values.getAdditive(statistic) - 1D) * 100D;
         List<Text> lore = new ArrayList<>();
@@ -408,8 +417,7 @@ public class GUIGatheringCategoryStats extends StatelessView {
     }
 
     private static ItemStack.Builder createStatisticItem(
-        SkyBlockPlayer player, ItemStatistic stat, boolean clickable) {
-        ItemStatistics values = player.getStatistics().allStatistics();
+        ItemStatistic stat, boolean clickable, ItemStatistics values) {
         double value = values.getOverall(stat);
         List<Text> lore = new ArrayList<>();
         ItemStatistics.getDescription(stat).forEach(entry -> lore.add(Text.parse(entry)));
@@ -433,10 +441,6 @@ public class GUIGatheringCategoryStats extends StatelessView {
             ? new GUIMaterial(stat.getIconMaterial()) : new GUIMaterial(stat.getIconTexture());
         return ItemStacks.of(material, 1,
             Text.of("<stat:'{}'> <f>{:.2}{}", stat.name(), value, stat.getSuffix()), lore);
-    }
-
-    private static double overall(SkyBlockPlayer player, ItemStatistic statistic) {
-        return player.getStatistics().allStatistics().getOverall(statistic);
     }
 
     private static TextColor colour(ItemStatistic statistic) {
@@ -511,11 +515,15 @@ public class GUIGatheringCategoryStats extends StatelessView {
         }
 
         private ItemStack.Builder createSummary(SkyBlockPlayer player, boolean clickable) {
+            return createSummary(player.getStatistics().allStatistics(), clickable);
+        }
+
+        private ItemStack.Builder createSummary(ItemStatistics values, boolean clickable) {
             List<Text> lore = new ArrayList<>();
             description.forEach(entry -> lore.add(Text.of(entry)));
             lore.add(Text.empty());
             for (ItemStatistic stat : statistics) {
-                lore.add(Text.of(" <stat:'{}'> <f>{:.2}{}", stat.name(), overall(player, stat), stat.getSuffix()));
+                lore.add(Text.of(" <stat:'{}'> <f>{:.2}{}", stat.name(), values.getOverall(stat), stat.getSuffix()));
             }
             if (clickable) {
                 lore.add(Text.empty());
