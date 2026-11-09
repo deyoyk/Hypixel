@@ -5,6 +5,7 @@ import net.minestom.server.inventory.click.Click;
 import net.minestom.server.item.Material;
 import com.deyo.hypixel.commons.text.Text;
 import com.deyo.hypixel.type.generic.data.datapoints.DatapointLong;
+import com.deyo.hypixel.type.generic.data.datapoints.DatapointSkywarsKitStats;
 import com.deyo.hypixel.type.generic.data.datapoints.DatapointSoulWellUpgrades;
 import com.deyo.hypixel.type.generic.data.handlers.SkywarsDataHandler;
 import com.deyo.hypixel.type.generic.gui.inventory.ItemStacks;
@@ -37,6 +38,9 @@ public class GUISoulWell extends StatelessView {
         DatapointSoulWellUpgrades.SoulWellUpgrades playerUpgrades = handler != null
                 ? handler.get(SkywarsDataHandler.Data.SOUL_WELL_UPGRADES, DatapointSoulWellUpgrades.class).getValue()
                 : DatapointSoulWellUpgrades.SoulWellUpgrades.empty();
+        int totalHeads = handler == null ? 0 : GUIHeadCollection.totalHeads(handler.get(
+                SkywarsDataHandler.Data.KIT_STATS, DatapointSkywarsKitStats.class)
+                .getValue().getKitStats());
 
         int wheelCount = getWheelCount(handler);
         int rollCost = wheelCount * BASE_ROLL_COST;
@@ -104,7 +108,7 @@ public class GUISoulWell extends StatelessView {
         layoutUpgradeItem(layout, 30, "harvesting_season", playerUpgrades, coins);
         layoutUpgradeItem(layout, 32, "angel_of_death", playerUpgrades, coins);
 
-        // Head Collection placeholder (slot 34)
+        // Head Collection (slot 34)
         layout.slot(34, (_, _) -> ItemStacks.item(Material.CHEST, 1, """
                 <c>Head Collection
                 <7>View your collection of <c>Heads</c>.
@@ -112,9 +116,10 @@ public class GUISoulWell extends StatelessView {
                 <7>Players drop their <c>Heads</c> when killed
                 <7>in <5>Corrupted Games</5>!
 
-                <7>Total Heads: <a>0
+                <7>Total Heads: <a>{}
 
-                <8>Coming soon..."""));
+                <e>Click to view!""", totalHeads),
+                (_, click) -> click.push(new GUIHeadCollection()));
 
         // Total Coins display (slot 50)
         layout.slot(50, (_, _) -> {
