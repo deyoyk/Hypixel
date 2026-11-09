@@ -21,6 +21,7 @@ import com.deyo.hypixel.type.generic.gui.v2.ViewLayout;
 import com.deyo.hypixel.type.generic.gui.v2.context.ClickContext;
 import com.deyo.hypixel.type.generic.gui.v2.context.ViewContext;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.generic.utility.WebLinks;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -215,7 +216,9 @@ public abstract class CollectibleSelectionView extends StatefulPaginatedView<Col
 
         layout.slot(49, (s, c) -> ItemStacks.item(Material.EMERALD, 1, """
             <7>Total {}: <2>{:,}
-            <6>https://store.hypixel.net""", tokenCurrencyLabel(), tokenBalance(c.player())));
+
+            <e>Click to visit the Hypixel Store!""", tokenCurrencyLabel(), tokenBalance(c.player())),
+            (_, click) -> WebLinks.sendStoreLink(click.player()));
 
         layout.slot(50, (s, c) -> ItemStacks.item(Material.HOPPER, 1,
             "<6>Sorted by: <a>{}\n"

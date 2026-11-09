@@ -19,6 +19,7 @@ import com.deyo.hypixel.type.generic.gui.v2.ViewConfiguration;
 import com.deyo.hypixel.type.generic.gui.v2.ViewLayout;
 import com.deyo.hypixel.type.generic.gui.v2.context.ViewContext;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.generic.utility.WebLinks;
 
 import java.util.List;
 import java.util.Optional;
@@ -200,8 +201,9 @@ public class GUIMyCosmetics extends StatelessView {
                 : dataHandler.get(BedWarsDataHandler.Data.TOKENS, DatapointLeaderboardLong.class).getValue();
             return ItemStacks.item(Material.EMERALD, """
                     <7>Total Tokens: <2>{:,}
-                    <6>https://store.hypixel.net""", tokens);
-        });
+
+                    <e>Click to visit the Hypixel Store!""", tokens);
+        }, (_, click) -> WebLinks.sendStoreLink(click.player()));
         layout.slot(50, ItemStacks.item(Material.COMPASS, """
                 <a>Search
                 <7>Use this feature to easily find a
