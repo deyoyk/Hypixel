@@ -15,6 +15,9 @@ import java.util.UUID;
 public class BedWarsLeaderboardAggregator {
 
 	private static boolean initialized = false;
+	private static long lastDailyStart;
+	private static long lastWeeklyStart;
+	private static long lastMonthlyStart;
 
 	public static void initialize() {
 		if (initialized) return;
@@ -48,6 +51,7 @@ public class BedWarsLeaderboardAggregator {
 
 	public static void runAggregation() {
 		Logger.info("Running BedWars leaderboard aggregation...");
+		clearExpiredLeaderboards();
 
 		for (BedwarsStatType statType : BedwarsStatType.values()) {
 			if (!statType.isTimedTracking()) continue; // Skip LEVEL, it uses experience
@@ -82,6 +86,36 @@ public class BedWarsLeaderboardAggregator {
 		}
 	}
 
+	private static void clearExpiredLeaderboards() {
+		long dailyStart = BedWarsStatsDatabase.getStartOfDay().getTime();
+		if (dailyStart != lastDailyStart) {
+			clearPeriod(BedwarsLeaderboardPeriod.DAILY);
+			lastDailyStart = dailyStart;
+		}
+
+		long weeklyStart = BedWarsStatsDatabase.getStartOfWeek().getTime();
+		if (weeklyStart != lastWeeklyStart) {
+			clearPeriod(BedwarsLeaderboardPeriod.WEEKLY);
+			lastWeeklyStart = weeklyStart;
+		}
+
+		long monthlyStart = BedWarsStatsDatabase.getStartOfMonth().getTime();
+		if (monthlyStart != lastMonthlyStart) {
+			clearPeriod(BedwarsLeaderboardPeriod.MONTHLY);
+			lastMonthlyStart = monthlyStart;
+		}
+	}
+
+	private static void clearPeriod(BedwarsLeaderboardPeriod period) {
+		for (BedwarsStatType statType : BedwarsStatType.values()) {
+			if (!statType.isTimedTracking()) continue;
+
+			for (BedwarsLeaderboardMode mode : BedwarsLeaderboardMode.values()) {
+				LeaderboardService.clearLeaderboard(buildLeaderboardKey(statType, mode, period));
+			}
+		}
+	}
+
 	private static Date getSinceDate(BedwarsLeaderboardPeriod period) {
 		return switch (period) {
 			case DAILY -> BedWarsStatsDatabase.getStartOfDay();
@@ -102,7 +136,8 @@ public class BedWarsLeaderboardAggregator {
 	public static void clearLeaderboard(BedwarsStatType statType, BedwarsLeaderboardMode mode,
 	                                     BedwarsLeaderboardPeriod period) {
 		String leaderboardKey = buildLeaderboardKey(statType, mode, period);
-		// Note: LeaderboardService would need a clear method, for now we rebuild from aggregation
-		Logger.info("Leaderboard {} would be cleared on period reset", leaderboardKey);
+		if (LeaderboardService.clearLeaderboard(leaderboardKey)) {
+			Logger.info("Cleared leaderboard {}", leaderboardKey);
+		}
 	}
 }

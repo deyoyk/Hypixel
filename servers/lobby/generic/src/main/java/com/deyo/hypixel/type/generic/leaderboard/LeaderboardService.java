@@ -79,6 +79,18 @@ public class LeaderboardService {
         Thread.startVirtualThread(() -> updateScore(leaderboardKey, playerUuid, score));
     }
 
+    public static boolean clearLeaderboard(String leaderboardKey) {
+        if (!isInitialized()) return false;
+
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.del(PREFIX + leaderboardKey);
+            return true;
+        } catch (Exception e) {
+            Logger.warn(e, "Failed to clear leaderboard {}", leaderboardKey);
+            return false;
+        }
+    }
+
     /**
      * Get the top N players on a leaderboard.
      * @param leaderboardKey The leaderboard key
