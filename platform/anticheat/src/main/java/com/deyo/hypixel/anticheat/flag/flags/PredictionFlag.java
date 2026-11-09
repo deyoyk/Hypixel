@@ -20,6 +20,7 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.item.component.EnchantmentList;
 import net.minestom.server.item.enchant.Enchantment;
+import net.minestom.server.potion.PotionEffect;
 
 import java.util.HashMap;
 import java.util.List;
@@ -69,7 +70,7 @@ public class PredictionFlag extends Flag {
 
     @ListenerMethod
     public void onPlayerPositionUpdate(PlayerPositionUpdateEvent event) {
-        // Disabled: effect and knockback state are not exposed by the current Minestom API.
+        // Disabled: knockback state is not exposed by the current Minestom API.
     }
 
     /**
@@ -111,7 +112,6 @@ public class PredictionFlag extends Flag {
             .onSlime(onSlime)
             .onHoney(onHoney)
 
-            // Effects - these need to be added to DeyoPlayer
             .speedLevel(getEffectLevel(player, "SPEED"))
             .slownessLevel(getEffectLevel(player, "SLOWNESS"))
             .jumpBoostLevel(getEffectLevel(player, "JUMP_BOOST"))
@@ -119,12 +119,10 @@ public class PredictionFlag extends Flag {
             .slowFallingLevel(getEffectLevel(player, "SLOW_FALLING"))
             .hasDolphinsGrace(hasEffect(player, "DOLPHINS_GRACE"))
 
-            // Equipment - these need to be added to DeyoPlayer
             .depthStriderLevel(getEnchantmentLevel(player, "DEPTH_STRIDER"))
             .soulSpeedLevel(getEnchantmentLevel(player, "SOUL_SPEED"))
             .hasFrostWalker(hasEnchantment(player, "FROST_WALKER"))
 
-            // Player state - these need to be added to DeyoPlayer
             .sprinting(getPlayerState(player, "sprinting"))
             .sneaking(getPlayerState(player, "sneaking"))
             .swimming(getPlayerState(player, "swimming"))
@@ -160,11 +158,29 @@ public class PredictionFlag extends Flag {
     }
 
     private int getEffectLevel(DeyoPlayer player, String effect) {
-        return 0;
+        Player online = onlinePlayer(player);
+        if (online == null) return 0;
+        PotionEffect potionEffect = effectFor(effect);
+        return potionEffect == null ? 0 : online.getEffectLevel(potionEffect);
     }
 
     private boolean hasEffect(DeyoPlayer player, String effect) {
-        return false;
+        Player online = onlinePlayer(player);
+        if (online == null) return false;
+        PotionEffect potionEffect = effectFor(effect);
+        return potionEffect != null && online.hasEffect(potionEffect);
+    }
+
+    static PotionEffect effectFor(String effect) {
+        return switch (effect) {
+            case "SPEED" -> PotionEffect.SPEED;
+            case "SLOWNESS" -> PotionEffect.SLOWNESS;
+            case "JUMP_BOOST" -> PotionEffect.JUMP_BOOST;
+            case "LEVITATION" -> PotionEffect.LEVITATION;
+            case "SLOW_FALLING" -> PotionEffect.SLOW_FALLING;
+            case "DOLPHINS_GRACE" -> PotionEffect.DOLPHINS_GRACE;
+            default -> null;
+        };
     }
 
     private int getEnchantmentLevel(DeyoPlayer player, String enchantment) {
