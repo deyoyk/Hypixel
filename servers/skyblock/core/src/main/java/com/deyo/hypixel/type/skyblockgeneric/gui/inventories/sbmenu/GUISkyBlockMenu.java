@@ -239,7 +239,7 @@ public class GUISkyBlockMenu extends StatelessView {
 
         layout.slot(50, (s, c) -> ItemStacks.item(Material.REDSTONE_TORCH, 1,
             Text.key("gui_sbmenu.main.settings"),
-            Text.keyLines("gui_sbmenu.main.settings.lore")), (_, c) -> c.player().sendMessage("<c>SkyBlock Settings are not available yet."));
+            Text.keyLines("gui_sbmenu.main.settings.lore")), (_, c) -> c.push(new GUISkyBlockSettings()));
 
         layout.slot(51, (s, c) -> {
             SkyBlockPlayer player = (SkyBlockPlayer) c.player();
