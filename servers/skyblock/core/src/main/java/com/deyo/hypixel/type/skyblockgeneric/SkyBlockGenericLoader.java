@@ -684,7 +684,7 @@ public record SkyBlockGenericLoader(HypixelTypeLoader typeLoader) {
         long seconds = totalSeconds % 60;
 
         if (minutes > 0) {
-            return String.format("%d:%02d", minutes, seconds);
+            return StringUtility.formatSeconds(totalSeconds);
         } else {
             return seconds + "s";
         }

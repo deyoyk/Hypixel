@@ -6,6 +6,7 @@ import net.minestom.server.entity.ai.TargetSelector;
 import net.minestom.server.entity.ai.target.ClosestEntityTarget;
 import net.minestom.server.entity.ai.target.LastEntityDamagerTarget;
 import net.minestom.server.utils.time.TimeUnit;
+import com.deyo.hypixel.commons.skyblock.item.ItemType;
 import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistic;
 import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistics;
 import com.deyo.hypixel.type.skyblockgeneric.entity.mob.MobType;
@@ -62,7 +63,17 @@ public class MobMinionZombie extends SkyBlockMob {
 
     @Override
     public @Nullable SkyBlockLootTable getLootTable() {
-        return null;
+        return new SkyBlockLootTable() {
+            @Override
+            public List<LootRecord> getLootTable() {
+                return List.of(new LootRecord(ItemType.ROTTEN_FLESH, 1, 100));
+            }
+
+            @Override
+            public CalculationMode getCalculationMode() {
+                return CalculationMode.CALCULATE_INDIVIDUAL;
+            }
+        };
     }
 
     @Override

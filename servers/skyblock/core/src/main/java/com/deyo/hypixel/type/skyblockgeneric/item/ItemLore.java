@@ -479,8 +479,8 @@ public class ItemLore {
 		Component display = rarity.getDisplay();
 
 		if (item.hasComponent(ExtraRarityComponent.class)) {
-			display = display.appendSpace().append(Text.parseLenient(
-					item.getComponent(ExtraRarityComponent.class).getExtraRarityDisplay(item)).asComponent());
+			display = display.appendSpace().append(
+					item.getComponent(ExtraRarityComponent.class).getExtraRarityDisplay(item).asComponent());
 		}
 
 		Text displayRarity = Text.of("{}", display);

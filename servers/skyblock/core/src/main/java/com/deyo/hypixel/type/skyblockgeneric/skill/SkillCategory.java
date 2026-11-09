@@ -118,7 +118,7 @@ public abstract class SkillCategory {
 
         @Override
         public void onUnlock(SkyBlockPlayer player) {
-            // TODO
+            // SkyBlock XP is awarded by ActionSkillHypixelLevel.
         }
 
         public abstract int getXP();

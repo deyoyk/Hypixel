@@ -49,7 +49,7 @@ public class DatapointAuctionStatistics extends SkyBlockDatapoint<DatapointAucti
 
             @Override
             public DatapointAuctionStatistics.AuctionStatistics clone(DatapointAuctionStatistics.AuctionStatistics value) {
-                return new AuctionStatistics(value.getStatistics());
+                return new AuctionStatistics(new HashMap<>(value.getStatistics()));
             }
         });
     }

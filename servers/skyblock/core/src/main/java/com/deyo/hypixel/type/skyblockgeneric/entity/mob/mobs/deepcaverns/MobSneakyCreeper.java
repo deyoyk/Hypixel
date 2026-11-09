@@ -13,6 +13,7 @@ import com.deyo.hypixel.type.generic.gui.inventory.item.GUIMaterial;
 import com.deyo.hypixel.type.skyblockgeneric.entity.mob.BestiaryMob;
 import com.deyo.hypixel.type.skyblockgeneric.entity.mob.MobType;
 import com.deyo.hypixel.type.skyblockgeneric.entity.mob.ai.ClosestEntityRegionTarget;
+import com.deyo.hypixel.type.skyblockgeneric.entity.mob.ai.ExplodeNearTargetGoal;
 import com.deyo.hypixel.type.skyblockgeneric.entity.mob.ai.RandomRegionStrollGoal;
 import com.deyo.hypixel.type.skyblockgeneric.entity.mob.impl.RegionPopulator;
 import com.deyo.hypixel.type.skyblockgeneric.loottable.OtherLoot;
@@ -49,7 +50,7 @@ public class MobSneakyCreeper extends BestiaryMob implements RegionPopulator {
 	@Override
 	public List<GoalSelector> getGoalSelectors() {
 		return List.of(
-				// TODO: add explosion goal
+				new ExplodeNearTargetGoal(this, RegionType.GUNPOWDER_MINES),
 				new RandomRegionStrollGoal(this, 15, RegionType.GUNPOWDER_MINES)  // Walk around
 		);
 	}

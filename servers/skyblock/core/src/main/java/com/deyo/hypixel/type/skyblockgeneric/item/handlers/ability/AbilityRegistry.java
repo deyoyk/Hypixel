@@ -8,16 +8,21 @@ import net.minestom.server.entity.damage.Damage;
 import net.minestom.server.entity.damage.DamageType;
 import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistic;
 import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistics;
+import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
 import com.deyo.hypixel.type.generic.event.EventNodes;
 import com.deyo.hypixel.type.skyblockgeneric.entity.mob.SkyBlockMob;
 import com.deyo.hypixel.type.skyblockgeneric.event.custom.CustomBlockBreakEvent;
+import com.deyo.hypixel.type.skyblockgeneric.region.RegionType;
 import com.deyo.hypixel.type.skyblockgeneric.item.handlers.ability.abilities.BuildersWandAbility;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 import com.deyo.hypixel.type.skyblockgeneric.user.statistics.TemporaryStatistic;
+import com.deyo.hypixel.type.skyblockgeneric.utility.TeleportSafety;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class AbilityRegistry {
     private static final Map<String, RegisteredAbility> REGISTERED_ABILITIES = new HashMap<>();
@@ -62,11 +67,18 @@ public class AbilityRegistry {
             new RegisteredAbility.AbilityManaCost(25),
             (player, _, _, _) -> {
                 BlockVec tpPos = player.getPosition().add(player.getPosition().direction().mul(10)).asBlockVec();
-                if (!player.getInstance().getBlock(tpPos.add(0, 1, 0)).air() || !player.getInstance().getBlock(tpPos.add(0, 2, 0)).air())
+                Point destination = tpPos.add(0, 1, 0);
+                if (!player.getInstance().getBlock(destination).air() || !player.getInstance().getBlock(destination.add(0, 1, 0)).air())
                     return false;
-                player.teleport(tpPos.add(0, 1, 0).asPos(player.getPosition().yaw(), player.getPosition().pitch()));
+                if (!TeleportSafety.hasClearPath(player.getInstance(), player.getPosition(), destination))
+                    return false;
+                player.teleport(destination.asPos(player.getPosition().yaw(), player.getPosition().pitch()));
+                for (Entity entity : player.getInstance().getNearbyEntities(player.getPosition(), 6)) {
+                    if (entity instanceof SkyBlockMob mob) {
+                        mob.damage(new Damage(DamageType.MAGIC, player, player, player.getPosition(), 10000));
+                    }
+                }
                 return true;
-                // TODO: damage nearby mobs
             }
         ));
 
@@ -79,10 +91,12 @@ public class AbilityRegistry {
             new RegisteredAbility.AbilityManaCost(50),
             (player, _, _, _) -> {
                 BlockVec tpPos = player.getPosition().add(player.getPosition().direction().mul(8)).asBlockVec();
-                // TODO: Make it so you can't go through walls
-                if (!player.getInstance().getBlock(tpPos.add(0, 1, 0)).air() || !player.getInstance().getBlock(tpPos.add(0, 2, 0)).air())
+                Point destination = tpPos.add(0, 1, 0);
+                if (!player.getInstance().getBlock(destination).air() || !player.getInstance().getBlock(destination.add(0, 1, 0)).air())
                     return false;
-                player.teleport(new Pos(tpPos.add(0, 1, 0), player.getPosition().yaw(), player.getPosition().pitch()));
+                if (!TeleportSafety.hasClearPath(player.getInstance(), player.getPosition(), destination))
+                    return false;
+                player.teleport(new Pos(destination, player.getPosition().yaw(), player.getPosition().pitch()));
                 ItemStatistics speedStats = ItemStatistics.builder().withBase(ItemStatistic.SPEED, 50.0).build();
                 TemporaryStatistic speedBoost = TemporaryStatistic.builder().withStatistics(speedStats).withExpirationInMs(3000).withDisplayName("Instant Transmission").build();
                 player.getStatistics().boostStatistic(speedBoost);
@@ -98,13 +112,15 @@ public class AbilityRegistry {
             5,
             new RegisteredAbility.AbilityManaSoulflowCost(180, 1),
             (player, _, _, _) -> {
-                // TODO: should not be able to go through 1 block holes.
                 Point targetedBlock = player.getTargetBlockPosition(57);
                 if (targetedBlock == null) return false;
                 BlockVec tpPos = targetedBlock.asBlockVec();
-                if (!player.getInstance().getBlock(tpPos.add(0, 1, 0)).air() || !player.getInstance().getBlock(tpPos.add(0, 2, 0)).air())
+                Point destination = tpPos.add(0, 1, 0);
+                if (!player.getInstance().getBlock(destination).air() || !player.getInstance().getBlock(destination.add(0, 1, 0)).air())
                     return false;
-                player.teleport(tpPos.add(0, 1, 0).asPos(player.getPosition().yaw(), player.getPosition().pitch()));
+                if (!TeleportSafety.hasClearPath(player.getInstance(), player.getPosition(), destination))
+                    return false;
+                player.teleport(destination.asPos(player.getPosition().yaw(), player.getPosition().pitch()));
                 return true;
             }
         ));
@@ -117,8 +133,25 @@ public class AbilityRegistry {
             20 * 3,
             new RegisteredAbility.NoAbilityCost(),
             (player, _, _, _) -> {
-                player.notImplemented();
-                return false;
+                if (player.getRegion() == null || player.getRegion().getType() != RegionType.DWARVEN_MINES) {
+                    player.sendMessage("<c>You must be in the Dwarven Mines to use this ability!");
+                    return false;
+                }
+
+                List<Pos> emissaries = HypixelNPC.getRegisteredNPCs().stream()
+                        .filter(npc -> npc.getName(player).startsWith("Emissary"))
+                        .map(npc -> npc.getParameters().position(player))
+                        .filter(Objects::nonNull)
+                        .toList();
+                Pos nearest = nearestPosition(player.getPosition(), emissaries);
+                if (nearest == null) {
+                    player.sendMessage("<c>No Emissaries found.");
+                    return false;
+                }
+
+                player.sendMessage("<6>Nearest Emissary: <e>{}, {}, {}",
+                        nearest.blockX(), nearest.blockY(), nearest.blockZ());
+                return true;
             }
         ));
 
@@ -179,6 +212,12 @@ public class AbilityRegistry {
 //		));
 
         register(new BuildersWandAbility());
+    }
+
+    static Pos nearestPosition(Pos origin, List<Pos> positions) {
+        return positions.stream()
+                .min(Comparator.comparingDouble(origin::distance))
+                .orElse(null);
     }
 
     public static void register(RegisteredAbility ability) {

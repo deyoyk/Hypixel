@@ -14,6 +14,7 @@ import com.deyo.hypixel.type.generic.utility.MathUtility;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Getter
@@ -43,9 +44,7 @@ public class MinionMineCocoaBeansAction extends MinionAction {
             Pos nonCocoaPosition = cocoaPositions.stream().filter(pos -> !island.getBlock(pos).equals(Block.COCOA)).findFirst().orElse(null);
             if (nonCocoaPosition == null) throw new IllegalStateException("We should never get here");
 
-            Pos closestLog = logPositions.stream().min((o1, o2) -> {
-                return (int) Math.abs(o1.distance(nonCocoaPosition) - o2.distance(nonCocoaPosition));
-            }).orElse(null);
+            Pos closestLog = closestLog(logPositions, nonCocoaPosition);
             if (closestLog == null) throw new IllegalStateException("We should never get here");
 
             event.setToLook(nonCocoaPosition);
@@ -131,5 +130,11 @@ public class MinionMineCocoaBeansAction extends MinionAction {
         possibleCocoaPositions.add(minionPos.add(-1, 0, -2));
 
         return possibleCocoaPositions;
+    }
+
+    static Pos closestLog(List<Pos> logPositions, Pos target) {
+        return logPositions.stream()
+                .min(Comparator.comparingDouble(target::distance))
+                .orElse(null);
     }
 }

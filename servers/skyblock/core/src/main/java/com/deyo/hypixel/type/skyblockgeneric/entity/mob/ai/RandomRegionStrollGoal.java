@@ -4,6 +4,7 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.ai.GoalSelector;
+import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.block.Block;
 import com.deyo.hypixel.type.skyblockgeneric.entity.mob.SkyBlockMob;
 import com.deyo.hypixel.type.skyblockgeneric.region.RegionType;
@@ -13,16 +14,16 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class RandomRegionStrollGoal extends GoalSelector {
 
     private static final long DELAY = 2500;
 
-    private final List<Vec> closePositions;
-    private final Random random = new Random();
+    private final int radius;
     private final RegionType type;
     private final boolean avoidWater;
+    private List<Vec> closePositions;
 
     private long lastStroll;
 
@@ -32,9 +33,9 @@ public class RandomRegionStrollGoal extends GoalSelector {
 
     public RandomRegionStrollGoal(@NotNull EntityCreature entityCreature, int radius, RegionType type, boolean avoidWater) {
         super(entityCreature);
+        this.radius = radius;
         this.type = type;
         this.avoidWater = avoidWater;
-        this.closePositions = getNearbyBlocks(radius);
     }
 
     @Override
@@ -44,6 +45,10 @@ public class RandomRegionStrollGoal extends GoalSelector {
 
     @Override
     public void start() {
+        if (closePositions == null) {
+            closePositions = getNearbyBlocks(radius);
+        }
+
         int remainingAttempt = closePositions.size();
 
         if (remainingAttempt == 0) {
@@ -52,7 +57,7 @@ public class RandomRegionStrollGoal extends GoalSelector {
         }
 
         while (remainingAttempt-- > 0) {
-            final int index = random.nextInt(closePositions.size());
+            final int index = ThreadLocalRandom.current().nextInt(closePositions.size());
             final Vec position = closePositions.get(index);
 
             final var target = entityCreature.getPosition().add(position);
@@ -79,29 +84,45 @@ public class RandomRegionStrollGoal extends GoalSelector {
     private @NotNull List<Vec> getNearbyBlocks(int radius) {
         List<Vec> blocks = new ArrayList<>();
 
+        Instance instance = entityCreature.getInstance();
+        int baseX = entityCreature.getPosition().blockX();
+        int baseY = entityCreature.getPosition().blockY();
+        int baseZ = entityCreature.getPosition().blockZ();
+
+        if (instance != null) {
+            int minChunkX = (baseX - radius) >> 4;
+            int maxChunkX = (baseX + radius) >> 4;
+            int minChunkZ = (baseZ - radius) >> 4;
+            int maxChunkZ = (baseZ + radius) >> 4;
+            for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+                for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                    if (!instance.isChunkLoaded(chunkX, chunkZ)) {
+                        instance.loadChunk(chunkX, chunkZ).join();
+                    }
+                }
+            }
+        }
+
         for (int x = -radius; x <= radius; x++) {
             for (int z = -radius; z <= radius; z++) {
-                int entityX = getEntityCreature().getPosition().blockX() + x;
-                int y = getEntityCreature().getPosition().blockY();
-                int entityZ = getEntityCreature().getPosition().blockZ()  + z;
+                int entityX = baseX + x;
+                int entityZ = baseZ + z;
 
-                if (entityCreature.getInstance() != null) {
-                    if (!entityCreature.getInstance().isChunkLoaded(new Pos(entityX, y, entityZ)))
-                        entityCreature.getInstance().loadChunk(new Pos(entityX, y, entityZ)).join();
-                    Block block = entityCreature.getInstance().getBlock(entityX, y, entityZ);
+                if (instance != null) {
+                    Block block = instance.getBlock(entityX, baseY, entityZ);
 
                     if (avoidWater && BlockProps.isWater(block)) continue;
 
                     if (!block.air()) continue;
                 }
 
-                SkyBlockRegion region = SkyBlockRegion.getRegionOfPosition(new Pos(entityX, y, entityZ));
+                SkyBlockRegion region = SkyBlockRegion.getRegionOfPosition(entityX, baseY, entityZ);
 
                 if (region == null)
                     continue;
 
                 if (region.getType() == type)
-                    blocks.add(new Vec(x, y, z));
+                    blocks.add(new Vec(x, baseY, z));
             }
         }
 

@@ -42,9 +42,9 @@ public class RabbitConfiguration extends HumanConfiguration {
             DatapointChocolateFactory.ChocolateFactoryData data = skyBlockPlayer.getSkyblockDataHandler().get(SkyBlockDataHandler.Data.CHOCOLATE_FACTORY, DatapointChocolateFactory.class).getValue();
             DatapointChocolateFactory.EmployeeData employee = data.getEmployees().get(type);
             if (employee != null) {
-                ChocolateFactoryRank rank = ChocolateFactoryRank.fromLevel(employee.getLevel());
+                ChocolateFactoryRank rank = ChocolateFactoryRank.fromLevel(employee.level());
                 return new String[]{
-                        rank.getHologramLine(employee.getLevel()).serialize(),
+                        rank.getHologramLine(employee.level()).serialize(),
                         Text.of("<color:{}>{}", rank.getColor(), type.getName()).serialize(),
                         "<e><l>CLICK"
                 };
@@ -62,7 +62,7 @@ public class RabbitConfiguration extends HumanConfiguration {
             DatapointChocolateFactory.ChocolateFactoryData data = skyBlockPlayer.getSkyblockDataHandler().get(SkyBlockDataHandler.Data.CHOCOLATE_FACTORY, DatapointChocolateFactory.class).getValue();
             DatapointChocolateFactory.EmployeeData employee = data.getEmployees().get(type);
             if (employee != null) {
-                ChocolateFactoryRank rank = ChocolateFactoryRank.fromLevel(employee.getLevel());
+                ChocolateFactoryRank rank = ChocolateFactoryRank.fromLevel(employee.level());
                 return Text.of("<color:{}>{}", rank.getColor(), type.getName()).serialize();
             }
         }

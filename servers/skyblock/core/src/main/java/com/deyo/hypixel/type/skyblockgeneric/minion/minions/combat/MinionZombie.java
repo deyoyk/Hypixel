@@ -73,6 +73,6 @@ public class MinionZombie extends SkyBlockMinion {
 
     @Override
     public MinionAction getAction() {
-        return new MinionKillMobAction(MobMinionZombie::new);
+        return new MinionKillMobAction(MobMinionZombie.class, MobMinionZombie::new);
     }
 }

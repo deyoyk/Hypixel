@@ -113,6 +113,7 @@ public final class SkyBlockDomain implements PlayerDataDomain<SkyBlockDataHandle
         SkyBlockDataHandler handler = PlayerDataService.find(KEY, uuid).orElse(null);
         if (handler != null) DeyoData.profile().unload(handler.getCurrentProfileId());
         PlayerDataService.evict(KEY, uuid);
+        SkyBlockPlayerProfiles.unload(uuid);
         releaseCoopLink(uuid);
     }
 

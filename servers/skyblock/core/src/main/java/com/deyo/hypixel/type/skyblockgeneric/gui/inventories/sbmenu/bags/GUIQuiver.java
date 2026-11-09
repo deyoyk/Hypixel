@@ -17,14 +17,17 @@ import com.deyo.hypixel.type.skyblockgeneric.item.SkyBlockItem;
 import com.deyo.hypixel.type.skyblockgeneric.item.updater.PlayerItemUpdater;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
 
 public class GUIQuiver implements StatefulView<GUIQuiver.QuiverState> {
-    private static final Map<CustomCollectionAward, Integer> SLOTS_PER_UPGRADE = Map.of(
-            CustomCollectionAward.QUIVER, 18,
-            CustomCollectionAward.QUIVER_UPGRADE_1, 9,
-            CustomCollectionAward.QUIVER_UPGRADE_2, 9
+    private static final List<QuiverUpgrade> UPGRADES = List.of(
+            new QuiverUpgrade(CustomCollectionAward.QUIVER, 18),
+            new QuiverUpgrade(CustomCollectionAward.QUIVER_UPGRADE_1, 9),
+            new QuiverUpgrade(CustomCollectionAward.QUIVER_UPGRADE_2, 9)
     );
+    private static final int MAX_SLOTS = 36;
 
     @Override
     public ViewConfiguration<QuiverState> configuration() {
@@ -43,23 +46,16 @@ public class GUIQuiver implements StatefulView<GUIQuiver.QuiverState> {
         Components.back(layout, 39, ctx);
 
         SkyBlockPlayer player = (SkyBlockPlayer) ctx.player();
-        int amountOfSlots = getUnlockedSlots(player);
-        int rawAmountOfSlots = 0;
+        List<QuiverSlot> slots = calculateSlots(player::hasCustomCollectionAward);
+        int amountOfSlots = 0;
 
-        // Set up unlocked/locked slots
-        for (Map.Entry<CustomCollectionAward, Integer> entry : SLOTS_PER_UPGRADE.entrySet()) {
-            if (player.hasCustomCollectionAward(entry.getKey())) {
-                rawAmountOfSlots += entry.getValue();
+        for (QuiverSlot slot : slots) {
+            if (slot.unlocked()) {
+                amountOfSlots++;
             } else {
-                for (int i = 0; i < entry.getValue(); i++) {
-                    int slotIndex = i + rawAmountOfSlots;
-                    if (slotIndex < 36) {
-                        layout.slot(slotIndex, (s, c) -> ItemStacks.item(Material.RED_STAINED_GLASS_PANE, 1,
-                            Text.key("gui_sbmenu.bags.quiver.locked_slot"),
-                            Text.keyLines("gui_sbmenu.bags.quiver.locked_slot.lore", entry.getKey().getDisplay())));
-                    }
-                }
-                rawAmountOfSlots += entry.getValue();
+                layout.slot(slot.index(), (s, c) -> ItemStacks.item(Material.RED_STAINED_GLASS_PANE, 1,
+                        Text.key("gui_sbmenu.bags.quiver.locked_slot"),
+                        Text.keyLines("gui_sbmenu.bags.quiver.locked_slot.lore", slot.upgrade().getDisplay())));
             }
         }
 
@@ -93,12 +89,23 @@ public class GUIQuiver implements StatefulView<GUIQuiver.QuiverState> {
 
     private int getUnlockedSlots(SkyBlockPlayer player) {
         int amountOfSlots = 0;
-        for (Map.Entry<CustomCollectionAward, Integer> entry : SLOTS_PER_UPGRADE.entrySet()) {
-            if (player.hasCustomCollectionAward(entry.getKey())) {
-                amountOfSlots += entry.getValue();
-            }
+        for (QuiverSlot slot : calculateSlots(player::hasCustomCollectionAward)) {
+            if (slot.unlocked()) amountOfSlots++;
         }
         return amountOfSlots;
+    }
+
+    static List<QuiverSlot> calculateSlots(Predicate<CustomCollectionAward> hasAward) {
+        List<QuiverSlot> slots = new ArrayList<>();
+        int index = 0;
+        boolean unlocked = true;
+        for (QuiverUpgrade upgrade : UPGRADES) {
+            unlocked = unlocked && hasAward.test(upgrade.award());
+            for (int i = 0; i < upgrade.slots() && index < MAX_SLOTS; i++) {
+                slots.add(new QuiverSlot(index++, upgrade.award(), unlocked));
+            }
+        }
+        return slots;
     }
 
     private boolean isItemAllowed(SkyBlockItem item) {
@@ -111,7 +118,7 @@ public class GUIQuiver implements StatefulView<GUIQuiver.QuiverState> {
         DatapointQuiver.PlayerQuiver quiver = player.getQuiver();
         for (int i = 0; i < slotToSaveUpTo; i++) {
             SkyBlockItem item = new SkyBlockItem(inventory.getItemStack(i));
-            if (item.isNA()) {
+            if (isEmptySlot(item)) {
                 quiver.getQuiverMap().remove(i);
             } else {
                 quiver.getQuiverMap().put(i, item);
@@ -119,5 +126,15 @@ public class GUIQuiver implements StatefulView<GUIQuiver.QuiverState> {
         }
     }
 
+    static boolean isEmptySlot(SkyBlockItem item) {
+        return item.isNA() || item.getMaterial() == Material.AIR;
+    }
+
     public record QuiverState(int placeholder) {}
+
+    record QuiverUpgrade(CustomCollectionAward award, int slots) {
+    }
+
+    record QuiverSlot(int index, CustomCollectionAward upgrade, boolean unlocked) {
+    }
 }

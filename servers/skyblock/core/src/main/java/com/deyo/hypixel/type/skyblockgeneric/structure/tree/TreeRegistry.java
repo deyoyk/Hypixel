@@ -5,6 +5,7 @@ import net.minestom.server.instance.block.Block;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class TreeRegistry {
     // Map of Instance (by identity) to list of registered trees
@@ -14,7 +15,7 @@ public class TreeRegistry {
      * Register a tree after it has been built.
      */
     public static void registerTree(Instance instance, RegisteredTree tree) {
-        instanceTrees.computeIfAbsent(instance, k -> Collections.synchronizedList(new ArrayList<>())).add(tree);
+        instanceTrees.computeIfAbsent(instance, k -> new CopyOnWriteArrayList<>()).add(tree);
     }
 
     /**

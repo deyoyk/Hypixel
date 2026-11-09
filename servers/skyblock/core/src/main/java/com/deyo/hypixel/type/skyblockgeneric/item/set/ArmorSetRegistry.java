@@ -26,6 +26,7 @@ public enum ArmorSetRegistry {
 	private final ItemType leggings;
 	private final ItemType chestplate;
 	private final ItemType helmet;
+	private volatile ArmorSet cachedInstance;
 
 	ArmorSetRegistry(Class<? extends ArmorSet> clazz, ItemType boots, ItemType legging,
 					 ItemType chestplate, ItemType helmet) {
@@ -81,6 +82,26 @@ public enum ArmorSetRegistry {
 
     public String getDisplayName() {
         return StringUtility.toNormalCase(name().replace("_", " "));
+    }
+
+    public @Nullable ArmorSet getArmorSetInstance() {
+        if (clazz == null) return null;
+
+        ArmorSet instance = cachedInstance;
+        if (instance != null) return instance;
+
+        synchronized (this) {
+            instance = cachedInstance;
+            if (instance == null) {
+                try {
+                    instance = clazz.getDeclaredConstructor().newInstance();
+                    cachedInstance = instance;
+                } catch (ReflectiveOperationException exception) {
+                    return null;
+                }
+            }
+        }
+        return instance;
     }
 
     public int getWornPieceCount(ItemType boots, ItemType leggings, ItemType chestplate, ItemType helmet) {

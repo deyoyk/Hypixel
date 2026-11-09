@@ -83,9 +83,14 @@ public class DatapointBankData extends SkyBlockDatapoint<DatapointBankData.BankD
 
         @Override
         public BankData clone(BankData value) {
+            SkyBlockItem[] vault = new SkyBlockItem[value.personalVault.length];
+            for (int i = 0; i < vault.length; i++) {
+                SkyBlockItem item = value.personalVault[i];
+                vault[i] = item == null ? null : item.clone();
+            }
             return new BankData(value.lastClaimedInterest, new ArrayList<>(value.transactions), value.amount,
                 value.accountTier, value.lastInterest, value.museumMilestone, value.personalBankLevel,
-                value.lastRemoteBankUse, value.personalVaultUnlocked, value.personalVault.clone());
+                value.lastRemoteBankUse, value.personalVaultUnlocked, vault);
         }
     };
 

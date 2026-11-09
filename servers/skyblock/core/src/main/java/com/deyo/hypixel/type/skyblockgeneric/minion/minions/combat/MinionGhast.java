@@ -2,8 +2,10 @@ package com.deyo.hypixel.type.skyblockgeneric.minion.minions.combat;
 
 import net.minestom.server.color.Color;
 import net.minestom.server.item.Material;
+import com.deyo.hypixel.type.skyblockgeneric.entity.mob.mobs.minionMobs.MobMinionHostiles;
 import com.deyo.hypixel.type.skyblockgeneric.minion.MinionAction;
 import com.deyo.hypixel.type.skyblockgeneric.minion.SkyBlockMinion;
+import com.deyo.hypixel.type.skyblockgeneric.minion.actions.MinionKillMobAction;
 
 import java.util.List;
 
@@ -74,6 +76,6 @@ public class MinionGhast extends SkyBlockMinion {
 
     @Override
     public MinionAction getAction() {
-        throw new RuntimeException("Not implemented yet");
+        return new MinionKillMobAction(MobMinionHostiles.Ghast.class, MobMinionHostiles.Ghast::new);
     }
 }

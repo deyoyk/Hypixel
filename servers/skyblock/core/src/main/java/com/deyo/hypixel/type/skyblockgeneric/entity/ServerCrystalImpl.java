@@ -48,13 +48,9 @@ public class ServerCrystalImpl extends LivingEntity {
     public void spawn() {
         super.spawn();
 
-        List<Pos> landToPlaceOn = new ArrayList<>();
-        lookingFor.forEach(materialLooking -> {
-            landToPlaceOn.addAll(MathUtility.getNearbyBlocks(getInstance(),
-                    getPosition(),
-                    18,
-                    materialLooking.block()));
-        });
+        List<Block> lookingForBlocks = lookingFor.stream().map(Material::block).toList();
+        List<Pos> landToPlaceOn = MathUtility.getNearbyBlocks(
+                getInstance(), getPosition(), 18, lookingForBlocks);
 
         ArmorStandMeta meta = (ArmorStandMeta) getEntityMeta();
         meta.setSmall(true);

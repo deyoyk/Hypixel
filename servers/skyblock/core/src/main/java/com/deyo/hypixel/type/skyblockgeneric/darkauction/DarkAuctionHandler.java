@@ -146,11 +146,12 @@ public class DarkAuctionHandler {
 
         for (UUID playerId : playersInAuction) {
             SkyBlockPlayer player = SkyBlockGenericLoader.getFromUUID(playerId);
-            player.getToggles().set(DatapointToggles.Toggles.ToggleType.HAS_VISITED_DARK_AUCTION, true);
-            if (player != null) {
-                player.sendMessage(NPC_PREFIX + "Come on down to the basement, the auction is about to begin!");
-                player.teleport(new Pos(91, 75, 182, 0, 0));
+            if (player == null) {
+                continue;
             }
+            player.getToggles().set(DatapointToggles.Toggles.ToggleType.HAS_VISITED_DARK_AUCTION, true);
+            player.sendMessage(NPC_PREFIX + "Come on down to the basement, the auction is about to begin!");
+            player.teleport(new Pos(91, 75, 182, 0, 0));
         }
 
         // Schedule the welcome message after a brief delay

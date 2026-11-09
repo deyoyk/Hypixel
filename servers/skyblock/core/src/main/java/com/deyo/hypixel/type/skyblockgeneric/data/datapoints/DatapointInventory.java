@@ -3,6 +3,7 @@ package com.deyo.hypixel.type.skyblockgeneric.data.datapoints;
 import com.deyo.hypixel.commons.protocol.Serializer;
 import com.deyo.hypixel.commons.skyblock.item.UnderstandableSkyBlockItem;
 import com.deyo.hypixel.type.skyblockgeneric.data.SkyBlockDatapoint;
+import com.deyo.hypixel.type.skyblockgeneric.item.SkyBlockItem;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockInventory;
 import org.json.JSONObject;
 import org.tinylog.Logger;
@@ -85,16 +86,23 @@ public class DatapointInventory extends SkyBlockDatapoint<SkyBlockInventory> {
         @Override
         public SkyBlockInventory clone(SkyBlockInventory value) {
             SkyBlockInventory inventory = new SkyBlockInventory();
-            inventory.setHelmet(value.getHelmet());
-            inventory.setChestplate(value.getChestplate());
-            inventory.setLeggings(value.getLeggings());
-            inventory.setBoots(value.getBoots());
-            inventory.setNecklace(value.getNecklace());
-            inventory.setCloak(value.getCloak());
-            inventory.setBelt(value.getBelt());
-            inventory.setGloves(value.getGloves());
-            inventory.setItems(value.getItems());
+            inventory.setHelmet(copyItem(value.getHelmet()));
+            inventory.setChestplate(copyItem(value.getChestplate()));
+            inventory.setLeggings(copyItem(value.getLeggings()));
+            inventory.setBoots(copyItem(value.getBoots()));
+            inventory.setNecklace(copyItem(value.getNecklace()));
+            inventory.setCloak(copyItem(value.getCloak()));
+            inventory.setBelt(copyItem(value.getBelt()));
+            inventory.setGloves(copyItem(value.getGloves()));
+
+            Map<Integer, UnderstandableSkyBlockItem> items = new HashMap<>();
+            value.getItems().forEach((slot, item) -> items.put(slot, copyItem(item)));
+            inventory.setItems(items);
             return inventory;
+        }
+
+        private static UnderstandableSkyBlockItem copyItem(UnderstandableSkyBlockItem item) {
+            return item == null ? null : new SkyBlockItem(item).toUnderstandable();
         }
 
         private UnderstandableSkyBlockItem deserializeOptionalItem(JSONObject object, String key) {
@@ -114,6 +122,6 @@ public class DatapointInventory extends SkyBlockDatapoint<SkyBlockInventory> {
     }
 
     public DatapointInventory(String key) {
-        super(key, null, serializer);
+        super(key, new SkyBlockInventory(), serializer);
     }
 }

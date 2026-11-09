@@ -4188,7 +4188,7 @@
       "name": "Charmed",
       "rarity": "LEGENDARY",
       "category": "WATER",
-      "family": "AMPHIBIAN", # TODO: and also EEL
+      "family": ["AMPHIBIAN", "EEL"],
       "skill": "HUNTING",
       "description": "Grants +0.05 Charm Chance",
       "effects": [

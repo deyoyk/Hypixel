@@ -30,7 +30,8 @@ public class AttributeShardComponent extends SkyBlockItemComponent {
         addInheritedComponent(new LoreUpdateComponent(new LoreConfig((item, player) -> lore(item), null), false));
         addInheritedComponent(new ExtraRarityComponent(item -> {
             AttributeDefinition definition = definition(item);
-            return definition == null ? "SHARD" : definition.category().name() + " SHARD <r><8>(ID " + definition.id() + ")";
+            return definition == null ? Text.literal("SHARD")
+                    : Text.of("{} SHARD <r><8>(ID {})", definition.category().name(), definition.id());
         }));
         addInheritedComponent(new InteractableComponent((player, item) -> {
             AttributeDefinition definition = definition(item);

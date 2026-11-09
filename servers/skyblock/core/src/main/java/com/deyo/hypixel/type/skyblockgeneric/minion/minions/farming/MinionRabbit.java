@@ -76,6 +76,6 @@ public class MinionRabbit extends SkyBlockMinion {
 
     @Override
     public MinionAction getAction() {
-        return new MinionKillMobAction(MobMinionRabbit::new);
+        return new MinionKillMobAction(MobMinionRabbit.class, MobMinionRabbit::new);
     }
 }

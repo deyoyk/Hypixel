@@ -55,7 +55,7 @@ public class DatapointPetData extends SkyBlockDatapoint<DatapointPetData.UserPet
 
         @Override
         public UserPetData clone(UserPetData value) {
-            return new UserPetData(value.petsMap);
+            return new UserPetData(new HashMap<>(value.petsMap));
         }
     };
 

@@ -47,7 +47,7 @@ import com.deyo.hypixel.type.skyblockgeneric.item.components.StandardItemCompone
 import com.deyo.hypixel.type.skyblockgeneric.item.set.ArmorSetRegistry;
 import com.deyo.hypixel.type.skyblockgeneric.item.set.impl.ArmorSet;
 import com.deyo.hypixel.type.skyblockgeneric.item.updater.PlayerItemOrigin;
-import com.deyo.hypixel.type.skyblockgeneric.levels.unlocks.SkyBlockLevelStatisticUnlock;
+import com.deyo.hypixel.type.skyblockgeneric.levels.SkyBlockLevelRequirement;
 import com.deyo.hypixel.type.skyblockgeneric.mission.MissionData;
 import com.deyo.hypixel.type.skyblockgeneric.mission.SkyBlockProgressMission;
 import com.deyo.hypixel.type.skyblockgeneric.region.RegionType;
@@ -57,11 +57,10 @@ import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockActionBar;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Constructor;
 import java.util.*;
 
 public class PlayerStatistics {
-    private static final Map<Player, BossBar> barCache = new HashMap<>();
+    static final Map<UUID, BossBar> barCache = new HashMap<>();
 
     private final SkyBlockPlayer player;
     @Setter
@@ -128,12 +127,9 @@ public class PlayerStatistics {
             )));
         }
         if (player.getArmorSet() != null) {
-            ArmorSetRegistry armorSetRegistry = player.getArmorSet();
-            try {
-                Constructor<? extends ArmorSet> constructor = armorSetRegistry.getClazz().getConstructor();
-                ArmorSet armorSet = constructor.newInstance();
+            ArmorSet armorSet = player.getArmorSet().getArmorSetInstance();
+            if (armorSet != null) {
                 total = ItemStatistics.add(total, armorSet.getStatistics());
-            } catch (Exception _) {
             }
         }
         return total;
@@ -218,14 +214,8 @@ public class PlayerStatistics {
         spare = ItemStatistics.add(spare, skills.getSkillStatistics());
 
         DatapointSkyBlockExperience.PlayerSkyBlockExperience experience = player.getSkyBlockExperience();
-        for (int i = 1; i <= experience.getLevel().asInt(); i++) {
-            var requirement = com.deyo.hypixel.type.skyblockgeneric.levels.SkyBlockLevelRequirement.getLevel(i);
-            if (requirement == null) continue;
-            List<SkyBlockLevelStatisticUnlock> unlocks = requirement.getStatisticUnlocks();
-            for (SkyBlockLevelStatisticUnlock unlock : unlocks) {
-                spare = ItemStatistics.add(spare, unlock.getStatistics());
-            }
-        }
+        spare = ItemStatistics.add(spare,
+                SkyBlockLevelRequirement.getCumulativeStatisticUnlocks(experience.getLevel().asInt()));
 
         return spare;
     }
@@ -284,12 +274,11 @@ public class PlayerStatistics {
         addItemModifiers(modifiers, cache.get(PlayerItemOrigin.LEGGINGS), StatisticSourceType.ARMOR);
         addItemModifiers(modifiers, cache.get(PlayerItemOrigin.BOOTS), StatisticSourceType.ARMOR);
         if (player.getArmorSet() != null) {
-            try {
-                ArmorSet armorSet = player.getArmorSet().getClazz().getConstructor().newInstance();
+            ArmorSet armorSet = player.getArmorSet().getArmorSetInstance();
+            if (armorSet != null) {
                 addModifier(modifiers, player.getArmorSet().getDisplayName() + " Set Bonus",
                     armorSet.getStatistics(), StatisticSourceType.ARMOR,
                     StatisticModifierType.ABILITY_PASSIVE, null, Material.IRON_CHESTPLATE, null);
-            } catch (ReflectiveOperationException ignored) {
             }
         }
 
@@ -393,13 +382,8 @@ public class PlayerStatistics {
 
         ItemStatistics levelStatistics = ItemStatistics.empty();
         DatapointSkyBlockExperience.PlayerSkyBlockExperience experience = player.getSkyBlockExperience();
-        for (int level = 1; level <= experience.getLevel().asInt(); level++) {
-            var requirement = com.deyo.hypixel.type.skyblockgeneric.levels.SkyBlockLevelRequirement.getLevel(level);
-            if (requirement == null) continue;
-            for (SkyBlockLevelStatisticUnlock unlock : requirement.getStatisticUnlocks()) {
-                levelStatistics = ItemStatistics.add(levelStatistics, unlock.getStatistics());
-            }
-        }
+        levelStatistics = ItemStatistics.add(levelStatistics,
+                SkyBlockLevelRequirement.getCumulativeStatisticUnlocks(experience.getLevel().asInt()));
         addModifier(modifiers, "SkyBlock Level", levelStatistics, StatisticSourceType.SKYBLOCK_LEVELS,
             StatisticModifierType.PROGRESSION, null, Material.NETHER_STAR, null);
 
@@ -654,6 +638,10 @@ public class PlayerStatistics {
         temporaryConditionalStatistics.add(temporaryStatistic);
     }
 
+    public void removeConditionalStatistic(TemporaryConditionalStatistic temporaryStatistic) {
+        temporaryConditionalStatistics.remove(temporaryStatistic);
+    }
+
     public void boostHealthRegeneration(double percent, int ticks) {
         healthRegenerationPercentBonus += percent;
 
@@ -676,36 +664,34 @@ public class PlayerStatistics {
         Scheduler scheduler = MinecraftServer.getSchedulerManager();
         scheduler.submitTask(() -> {
             SkyBlockGenericLoader.getLoadedPlayers().forEach(player -> {
-                Thread.startVirtualThread(() -> {
-                    List<String> experiencedStatistics = player.getSkyblockDataHandler().get(
+                List<String> experiencedStatistics = player.getSkyblockDataHandler().get(
+                        SkyBlockDataHandler.Data.EXPERIENCED_STATISTICS, DatapointStringList.class
+                ).getValue();
+
+                ItemStatistics statistics = player.getStatistics().allStatistics();
+                for (ItemStatistic statistic : ItemStatistic.values()) {
+                    if (experiencedStatistics.contains(statistic.name())) continue;
+
+                    List<String> description = ItemStatistics.getDescription(statistic);
+
+                    double experiencedValue = statistics.getOverall(statistic);
+                    if (experiencedValue <= 0) continue;
+
+                    experiencedStatistics.add(statistic.name());
+                    player.getSkyblockDataHandler().get(
                             SkyBlockDataHandler.Data.EXPERIENCED_STATISTICS, DatapointStringList.class
-                    ).getValue();
+                    ).setValue(experiencedStatistics);
 
-                    ItemStatistics statistics = player.getStatistics().allStatistics();
-                    for (ItemStatistic statistic : ItemStatistic.values()) {
-                        if (experiencedStatistics.contains(statistic.name())) continue;
-
-                        List<String> description = ItemStatistics.getDescription(statistic);
-
-                        double experiencedValue = statistics.getOverall(statistic);
-                        if (experiencedValue <= 0) continue;
-
-                        experiencedStatistics.add(statistic.name());
-                        player.getSkyblockDataHandler().get(
-                                SkyBlockDataHandler.Data.EXPERIENCED_STATISTICS, DatapointStringList.class
-                        ).setValue(experiencedStatistics);
-
-                        player.sendMessage("<a><l>▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬");
-                        player.sendMessage("<6><l>NEW STAT DISCOVERED! <r>{}", statistic.getCompleteDisplayName());
-                        player.sendMessage(" ");
-                        player.sendMessage(Text.parse(String.join(" ", description).replace("<7>", "")));
-                        player.sendMessage(" ");
-                        player.sendMessage("<hover:'<e>Click to view the {} Wiki page!'><click:url:'https://wiki.hypixel.net/{}'><e><l>CLICK HERE <r><e>to learn more on the Official SkyBlock Wiki!</click></hover>",
-                            statistic.getDisplayName(),
-                            StringUtility.toNormalCase(statistic.name()).replace(" ", "_"));
-                        player.sendMessage("<a><l>▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬");
-                    }
-                });
+                    player.sendMessage("<a><l>▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬");
+                    player.sendMessage("<6><l>NEW STAT DISCOVERED! <r>{}", statistic.getCompleteDisplayName());
+                    player.sendMessage(" ");
+                    player.sendMessage(Text.parse(String.join(" ", description).replace("<7>", "")));
+                    player.sendMessage(" ");
+                    player.sendMessage("<hover:'<e>Click to view the {} Wiki page!'><click:url:'https://wiki.hypixel.net/{}'><e><l>CLICK HERE <r><e>to learn more on the Official SkyBlock Wiki!</click></hover>",
+                        statistic.getDisplayName(),
+                        StringUtility.toNormalCase(statistic.name()).replace(" ", "_"));
+                    player.sendMessage("<a><l>▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬");
+                }
             });
             return TaskSchedule.seconds(10);
         });
@@ -739,9 +725,7 @@ public class PlayerStatistics {
         Scheduler scheduler = MinecraftServer.getSchedulerManager();
         scheduler.submitTask(() -> {
             SkyBlockGenericLoader.getLoadedPlayers().forEach(player -> {
-                Thread.startVirtualThread(() -> {
-                    player.getStatistics().updateAccessoryStatistics();
-                });
+                player.getStatistics().updateAccessoryStatistics();
             });
             return TaskSchedule.seconds(2);
         });
@@ -751,11 +735,9 @@ public class PlayerStatistics {
         Scheduler scheduler = MinecraftServer.getSchedulerManager();
         scheduler.submitTask(() -> {
             SkyBlockGenericLoader.getLoadedPlayers().forEach(player -> {
-                Thread.startVirtualThread(() -> {
-                    double speed = player.getStatistics().allStatistics().getOverall(ItemStatistic.SPEED);
-                    if (player.isSpeedManaged()) return; // if the Speed is currently managed by another source, don't override it
-                    player.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue((float) (speed / 1000));
-                });
+                double speed = player.getStatistics().allStatistics().getOverall(ItemStatistic.SPEED);
+                if (player.isSpeedManaged()) return; // if the Speed is currently managed by another source, don't override it
+                player.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue((float) (speed / 1000));
             });
             return TaskSchedule.tick(4);
         });
@@ -783,6 +765,15 @@ public class PlayerStatistics {
         }, ExecutionType.TICK_END);
     }
 
+    static BossBar removeCachedBossBar(UUID playerId) {
+        return barCache.remove(playerId);
+    }
+
+    public static void clearBossBar(SkyBlockPlayer player) {
+        BossBar bar = removeCachedBossBar(player.getUuid());
+        if (bar != null) player.hideBossBar(bar);
+    }
+
     public static void missionLoop() {
         Scheduler scheduler = MinecraftServer.getSchedulerManager();
         scheduler.submitTask(() -> {
@@ -792,10 +783,9 @@ public class PlayerStatistics {
                 List<MissionData.ActiveMission> activeMissions = player.getMissionData().getActiveMissions(region);
 
                 if (activeMissions.isEmpty()) {
-                    if (barCache.containsKey(player)) {
-                        BossBar oldBar = barCache.get(player);
+                    BossBar oldBar = barCache.remove(player.getUuid());
+                    if (oldBar != null) {
                         player.hideBossBar(oldBar);
-                        barCache.remove(player);
                     }
                     return;
                 }
@@ -821,13 +811,15 @@ public class PlayerStatistics {
                             BossBar.Overlay.NOTCHED_6);
                 }
 
-                if (barCache.containsKey(player)) {
-                    BossBar oldBar = barCache.get(player);
-                    if (oldBar.equals(bar)) return;
-                    player.hideBossBar(oldBar);
+                BossBar cachedBar = barCache.put(player.getUuid(), bar);
+                if (cachedBar != null) {
+                    if (cachedBar.equals(bar)) {
+                        barCache.put(player.getUuid(), cachedBar);
+                        return;
+                    }
+                    player.hideBossBar(cachedBar);
                 }
                 player.showBossBar(bar);
-                barCache.put(player, bar);
             });
             return TaskSchedule.tick(30);
         }, ExecutionType.TICK_END);

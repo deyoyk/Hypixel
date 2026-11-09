@@ -5,6 +5,7 @@ import net.minestom.server.inventory.InventoryType;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import com.deyo.hypixel.commons.text.Text;
+import com.deyo.hypixel.type.generic.gui.HypixelSignGUI;
 import com.deyo.hypixel.type.generic.gui.inventory.HypixelInventoryGUI;
 import com.deyo.hypixel.type.generic.gui.inventory.ItemStacks;
 import com.deyo.hypixel.type.generic.gui.inventory.item.GUIClickableItem;
@@ -109,7 +110,7 @@ public class GUIFishingShip extends HypixelInventoryGUI {
                 skyBlockPlayer.openView(new GUINavigator());
             }
         });
-        set(new GUIItem(44) {
+        set(new GUIClickableItem(44) {
             @Override
             public ItemStack.Builder getItem(HypixelPlayer player) {
                 SkyBlockPlayer skyBlockPlayer = (SkyBlockPlayer) player;
@@ -120,8 +121,24 @@ public class GUIFishingShip extends HypixelInventoryGUI {
 
                         <7>Current Name: <6>{}
 
-                        <7>Renaming is not implemented yet.""",
+                        <e>Click to rename!""",
                     FishingShipService.getState(skyBlockPlayer).getShipName());
+            }
+
+            @Override
+            public void run(InventoryPreClickEvent e, HypixelPlayer player) {
+                SkyBlockPlayer skyBlockPlayer = (SkyBlockPlayer) player;
+                String currentName = FishingShipService.getState(skyBlockPlayer).getShipName();
+                new HypixelSignGUI(player).open(new String[]{currentName, ""}).thenAccept(name -> {
+                    if (name == null) return;
+                    if (FishingShipService.renameShip(skyBlockPlayer, name)) {
+                        player.sendMessage("<a>Ship renamed to <6>{}<a>!",
+                                FishingShipService.getState(skyBlockPlayer).getShipName());
+                    } else {
+                        player.sendMessage("<c>That ship name is invalid!");
+                    }
+                    new GUIFishingShip().open(player);
+                });
             }
         });
         set(GUIClickableItem.getCloseItem(40));

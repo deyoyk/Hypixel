@@ -13,6 +13,7 @@ import com.deyo.hypixel.type.skyblockgeneric.item.updater.NonPlayerItemUpdater;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 final class AttributeGUIItems {
     static final int[] CONTENT_SLOTS = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25,
@@ -30,7 +31,7 @@ final class AttributeGUIItems {
         int owned = data.shardCount(definition.id());
         TextColor rarityColour = definition.rarity().itemRarity().getColor();
         List<Text> lore = new ArrayList<>();
-        if (definition.family() != AttributeDefinition.AttributeFamily.NONE)
+        if (definition.families().stream().anyMatch(family -> family != AttributeDefinition.AttributeFamily.NONE))
             lore.add(Text.of("<8>{} Family", familyName(definition)));
         lore.add(Text.empty());
         lore.add(Text.of("<6>{}", definition.name())
@@ -114,7 +115,10 @@ final class AttributeGUIItems {
     }
 
     private static String familyName(AttributeDefinition definition) {
-        return title(definition.family().name().replace('_', ' '));
+        return definition.families().stream()
+                .filter(family -> family != AttributeDefinition.AttributeFamily.NONE)
+                .map(family -> title(family.name().replace('_', ' ')))
+                .collect(Collectors.joining(", "));
     }
 
     private static String title(String value) {

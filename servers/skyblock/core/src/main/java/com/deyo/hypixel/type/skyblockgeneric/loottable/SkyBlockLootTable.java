@@ -41,7 +41,7 @@ public abstract class SkyBlockLootTable {
                 cumulativeChance += record.chancePercent;
             }
 
-            int random = (int) (Math.random() * cumulativeChance);
+            double random = Math.random() * cumulativeChance;
             double current = 0;
 
             for (LootRecord record : getLootTable()) {
@@ -82,13 +82,10 @@ public abstract class SkyBlockLootTable {
                 }
             }
 
-            int random = (int) (Math.random() * cumulativeChance);
+            double random = Math.random() * cumulativeChance;
             double current = 0;
 
-            List<LootRecord> records = getLootTable();
-            Collections.shuffle(records);
-
-            for (LootRecord record : records) {
+            for (LootRecord record : getLootTable()) {
                 if (record.shouldCalculate.apply(player)) {
                     current += record.chancePercent;
                     if (random < current) {

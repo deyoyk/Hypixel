@@ -90,47 +90,23 @@ public class SkyBlockLevelCause {
     }
 
     public static FairySoulExchangeLevelCause getFairySoulExchangeCause(int exchangeCount) {
-        for (SkyBlockLevelCauseAbstr cause : CAUSES.values()) {
-            if (cause instanceof FairySoulExchangeLevelCause exchangeCause) {
-                if (exchangeCause.getExchangeCount() == exchangeCount) {
-                    return exchangeCause;
-                }
-            }
-        }
-        return null;
+        SkyBlockLevelCauseAbstr cause = CAUSES.get("fairy-soul-exchange-" + exchangeCount);
+        return cause instanceof FairySoulExchangeLevelCause exchangeCause ? exchangeCause : null;
     }
 
     public static MissionLevelCause getMissionCause(String missionKey) {
-        for (String key : CAUSES.keySet()) {
-            if (CAUSES.get(key) instanceof MissionLevelCause missionCause) {
-                if (missionCause.getMissionKey().equals(missionKey)) {
-                    return missionCause;
-                }
-            }
-        }
-        return null;
+        SkyBlockLevelCauseAbstr cause = CAUSES.get("mission-" + missionKey);
+        return cause instanceof MissionLevelCause missionCause ? missionCause : null;
     }
 
     public static MuseumLevelCause getMuseumCause(MuseumRewards reward) {
-        for (SkyBlockLevelCauseAbstr cause : CAUSES.values()) {
-            if (cause instanceof MuseumLevelCause museumCause) {
-                if (museumCause.getReward() == reward) {
-                    return museumCause;
-                }
-            }
-        }
-        return null;
+        SkyBlockLevelCauseAbstr cause = CAUSES.get("museum-" + reward.name());
+        return cause instanceof MuseumLevelCause museumCause ? museumCause : null;
     }
 
     public static CollectionLevelCause getCollectionCause(ItemType itemTypeLinker, int level) {
-        for (SkyBlockLevelCauseAbstr cause : CAUSES.values()) {
-            if (cause instanceof CollectionLevelCause collectionCause) {
-                if (collectionCause.getType() == itemTypeLinker && collectionCause.getLevel() == level) {
-                    return collectionCause;
-                }
-            }
-        }
-        return null;
+        SkyBlockLevelCauseAbstr cause = CAUSES.get("collection-" + itemTypeLinker.name() + "-" + level);
+        return cause instanceof CollectionLevelCause collectionCause ? collectionCause : null;
     }
 
     public static int getAmountOfCauses() {
@@ -138,36 +114,18 @@ public class SkyBlockLevelCause {
     }
 
     public static LevelCause getLevelCause(int level) {
-        for (SkyBlockLevelCauseAbstr cause : CAUSES.values()) {
-            if (cause instanceof LevelCause levelCause) {
-                if (levelCause.getLevel() == level) {
-                    return levelCause;
-                }
-            }
-        }
-        return null;
+        SkyBlockLevelCauseAbstr cause = CAUSES.get("level-" + level);
+        return cause instanceof LevelCause levelCause ? levelCause : null;
     }
 
     public static NewAccessoryLevelCause getAccessoryCause(ItemType itemTypeLinker) {
-        for (SkyBlockLevelCauseAbstr cause : CAUSES.values()) {
-            if (cause instanceof NewAccessoryLevelCause accessoryCause) {
-                if (accessoryCause.itemTypeLinker == itemTypeLinker) {
-                    return accessoryCause;
-                }
-            }
-        }
-        return null;
+        SkyBlockLevelCauseAbstr cause = CAUSES.get("accessory-" + itemTypeLinker.name());
+        return cause instanceof NewAccessoryLevelCause accessoryCause ? accessoryCause : null;
     }
 
     public static SkillLevelCause getSkillCause(SkillCategories category, int level) {
-        for (SkyBlockLevelCauseAbstr cause : CAUSES.values()) {
-            if (cause instanceof SkillLevelCause skillCause) {
-                if (skillCause.getCategory() == category && skillCause.getLevel() == level) {
-                    return skillCause;
-                }
-            }
-        }
-        return null;
+        SkyBlockLevelCauseAbstr cause = CAUSES.get("skill-" + category.name() + "-" + level);
+        return cause instanceof SkillLevelCause skillCause ? skillCause : null;
     }
 
     public static @Nullable SkyBlockLevelCauseAbstr getCause(String key) {

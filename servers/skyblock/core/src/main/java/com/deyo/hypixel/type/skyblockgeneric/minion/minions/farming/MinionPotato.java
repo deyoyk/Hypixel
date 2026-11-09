@@ -1,9 +1,11 @@
 package com.deyo.hypixel.type.skyblockgeneric.minion.minions.farming;
 
 import net.minestom.server.color.Color;
+import net.minestom.server.instance.block.Block;
 import net.minestom.server.item.Material;
 import com.deyo.hypixel.type.skyblockgeneric.minion.MinionAction;
 import com.deyo.hypixel.type.skyblockgeneric.minion.SkyBlockMinion;
+import com.deyo.hypixel.type.skyblockgeneric.minion.actions.MinionMineAction;
 
 import java.util.List;
 
@@ -67,11 +69,13 @@ public class MinionPotato extends SkyBlockMinion {
 
     @Override
     public List<MinionExpectation> getExpectations() {
-        throw new RuntimeException("Not implemented yet");
+        return List.of(
+                new BlockExpectation(-1, Block.POTATOES, Block.AIR)
+        );
     }
 
     @Override
     public MinionAction getAction() {
-        throw new RuntimeException("Not implemented yet");
+        return new MinionMineAction(Block.POTATOES);
     }
 }

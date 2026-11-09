@@ -15,6 +15,7 @@ import net.minestom.server.timer.TaskSchedule;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 public abstract class SkyBlockRegenConfiguration {
 
@@ -86,46 +87,48 @@ public abstract class SkyBlockRegenConfiguration {
 
     public static void startRepeater(Scheduler scheduler) {
         scheduler.submitTask(() -> {
-            Arrays.stream(RegionType.values())
-                    .parallel() // parallelism for time-consuming operations
-                    .map(RegionType::getMiningHandler) // map to mining handlers
-                    .filter(Objects::nonNull) // filter out null mining handlers
-                    .forEach((mining) -> {
-                        List<Pos> toRemove = new ArrayList<>();
-                        List<MiningTask> toAdd = new ArrayList<>();
+            for (RegionType regionType : RegionType.values()) {
+                SkyBlockRegenConfiguration mining = regionType.getMiningHandler();
+                if (mining == null) continue;
 
-                        mining.activeMiningTasks.forEach(task -> {
-                            if (task.getRegenerationTime() <= System.currentTimeMillis()) {
-                                task.getInstance().setBlock(task.getPosition(), task.getReviveBlock());
+                List<Pos> toRemove = new ArrayList<>();
+                List<MiningTask> toAdd = new ArrayList<>();
 
-                                toRemove.add(task.getPosition());
+                mining.activeMiningTasks.forEach(task -> {
+                    if (task.getRegenerationTime() <= System.currentTimeMillis()) {
+                        task.getInstance().setBlock(task.getPosition(), task.getReviveBlock());
 
-                                if (task.getStage() == 2) {
-                                    task.setStage(1);
-                                    task.setRegenerationTime(System.currentTimeMillis() + mining.getRegenerationTime());
-                                    task.setIntermediaryBlock(task.getReviveBlock());
-                                    task.setReviveBlock(task.getInitialReviveBlock());
-                                    toAdd.add(task);
-                                }
-                            }
-                        });
+                        toRemove.add(task.getPosition());
 
-                        toRemove.forEach(mining::removeExistingTask);
-                        mining.activeMiningTasks.addAll(toAdd);
-                    });
+                        if (task.getStage() == 2) {
+                            task.setStage(1);
+                            task.setRegenerationTime(System.currentTimeMillis() + mining.getRegenerationTime());
+                            task.setIntermediaryBlock(task.getReviveBlock());
+                            task.setReviveBlock(task.getInitialReviveBlock());
+                            toAdd.add(task);
+                        }
+                    }
+                });
+
+                toRemove.forEach(mining::removeExistingTask);
+                mining.activeMiningTasks.addAll(toAdd);
+            }
             return TaskSchedule.tick(20);
         });
     }
 
     public static Block getRandomBlock(RegenerationConfig... regenerationConfigs) {
         int totalChance = Arrays.stream(regenerationConfigs).mapToInt(RegenerationConfig::chance).sum();
+        if (totalChance <= 0) return null;
+        return getRandomBlock(ThreadLocalRandom.current().nextInt(totalChance), regenerationConfigs);
+    }
 
-        int random = (int) (Math.random() * totalChance);
+    static Block getRandomBlock(int roll, RegenerationConfig... regenerationConfigs) {
         int currentCumulativeChance = 0;
 
         for (RegenerationConfig config : regenerationConfigs) {
             currentCumulativeChance += config.chance();
-            if (random <= currentCumulativeChance) {
+            if (roll < currentCumulativeChance) {
                 return config.block();
             }
         }

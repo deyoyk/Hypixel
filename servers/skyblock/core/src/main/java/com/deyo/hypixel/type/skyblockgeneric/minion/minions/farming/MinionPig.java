@@ -76,6 +76,6 @@ public class MinionPig extends SkyBlockMinion {
 
     @Override
     public MinionAction getAction() {
-        return new MinionKillMobAction(MobMinionPig::new);
+        return new MinionKillMobAction(MobMinionPig.class, MobMinionPig::new);
     }
 }

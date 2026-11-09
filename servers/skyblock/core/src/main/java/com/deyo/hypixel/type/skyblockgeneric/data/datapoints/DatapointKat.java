@@ -36,7 +36,10 @@ public class DatapointKat extends SkyBlockDatapoint<DatapointKat.PlayerKat> {
 
         @Override
         public PlayerKat clone(PlayerKat value) {
-            return new PlayerKat(new HashMap<>(value.katMap()));
+            Map<Long, SkyBlockItem> copy = new HashMap<>();
+            value.katMap().forEach((timestamp, item) ->
+                    copy.put(timestamp, item == null ? null : item.clone()));
+            return new PlayerKat(copy);
         }
     };
 

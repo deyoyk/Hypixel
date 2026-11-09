@@ -51,6 +51,11 @@ public class NPCIke extends HypixelNPC {
         SkyBlockPlayer player = (SkyBlockPlayer) event.getPlayer();
         if (dialogue().isInDialogue(player)) return;
 
+        if (!player.getToggles().get(DatapointToggles.Toggles.ToggleType.HAS_SPOKEN_TO_MICHAEL)) {
+            setDialogue(player, "talk-to-michael-first");
+            return;
+        }
+
         if (!player.getToggles().get(DatapointToggles.Toggles.ToggleType.HAS_SPOKEN_TO_IKE)) {
             setDialogue(player, "initial-hello").thenRun(() -> {
                 NPCOption.sendOption(player, "ike-intro", true, List.of(
@@ -93,11 +98,14 @@ public class NPCIke extends HypixelNPC {
         new GUICollectedMobTypes().open(player);
     }
 
-    //TODO handle haveing to talk to michael first before anything is done here
-
     @Override
     public DialogueSet[] dialogues(HypixelPlayer player) {
         return new DialogueSet[] {
+                DialogueSet.builder()
+                        .key("talk-to-michael-first").lines(
+                                "My mate <6>Michael<f> knows a lot about Mob Types.",
+                                "Go talk to him first!")
+                        .build(),
                 DialogueSet.builder()
                         .key("initial-hello").lines(
                                 "You heard what Michael said about Mob Types?"

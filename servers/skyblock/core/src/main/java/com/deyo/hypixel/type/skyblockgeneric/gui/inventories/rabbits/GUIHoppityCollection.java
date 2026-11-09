@@ -15,6 +15,7 @@ import com.deyo.hypixel.type.generic.gui.v2.context.ViewContext;
 import com.deyo.hypixel.type.skyblockgeneric.data.SkyBlockDataHandler;
 import com.deyo.hypixel.type.skyblockgeneric.data.datapoints.DatapointChocolateFactory;
 import com.deyo.hypixel.type.skyblockgeneric.rabbits.ChocolateRabbit;
+import com.deyo.hypixel.type.skyblockgeneric.region.IslandType;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 
 import java.util.*;
@@ -36,6 +37,10 @@ public class GUIHoppityCollection implements StatefulView<GUIHoppityCollection.S
     private static final int TOTAL_RABBITS = ChocolateRabbit.values().length;
     private static final int PROGRESS_BAR_SEGMENTS = 25;
     private static final double PERCENT_PER_PROGRESS_SEGMENT = 100.0 / PROGRESS_BAR_SEGMENTS;
+    private static final List<IslandType> LOCATION_FILTERS = Arrays.stream(IslandType.values())
+            .filter(location -> Arrays.stream(ChocolateRabbit.values())
+                    .anyMatch(rabbit -> rabbit.getLocation() == location))
+            .toList();
 
     private static final int[] BORDER_SLOTS = {
             0, 1, 2, 3, 4, 5, 6, 7, 8,
@@ -43,19 +48,23 @@ public class GUIHoppityCollection implements StatefulView<GUIHoppityCollection.S
             45, 46, 47, 48, 49, 50, 51, 52, 53
     };
 
-    public record State(int page, SortType sortType, FilterType filterType) {
+    public record State(int page, SortType sortType, FilterType filterType, IslandType locationFilter) {
     }
 
     @Override
     public State initialState() {
-        return new State(1, SortType.A_TO_Z, FilterType.NONE);
+        return new State(1, SortType.A_TO_Z, FilterType.NONE, null);
     }
 
     @Override
     public ViewConfiguration<State> configuration() {
         return ViewConfiguration.withText((state, ctx) -> {
-            int totalRabbits = ChocolateRabbit.values().length;
-            int totalPages = Math.max(1, (int) Math.ceil(totalRabbits / (double) RABBITS_PER_PAGE));
+            SkyBlockPlayer player = (SkyBlockPlayer) ctx.player();
+            DatapointChocolateFactory.ChocolateFactoryData data = player.getSkyblockDataHandler()
+                    .get(SkyBlockDataHandler.Data.CHOCOLATE_FACTORY, DatapointChocolateFactory.class).getValue();
+            List<ChocolateRabbit> rabbits = getFilteredAndSortedRabbits(
+                    data.getFoundRabbits(), state.sortType(), state.filterType(), state.locationFilter());
+            int totalPages = Math.max(1, (int) Math.ceil(rabbits.size() / (double) RABBITS_PER_PAGE));
             return Text.of("({}/{}) Hoppity's Collection", state.page(), totalPages);
         }, InventoryType.CHEST_6_ROW);
     }
@@ -66,7 +75,8 @@ public class GUIHoppityCollection implements StatefulView<GUIHoppityCollection.S
         DatapointChocolateFactory.ChocolateFactoryData data = player.getSkyblockDataHandler().get(SkyBlockDataHandler.Data.CHOCOLATE_FACTORY, DatapointChocolateFactory.class).getValue();
         Set<ChocolateRabbit> foundRabbits = data.getFoundRabbits();
 
-        List<ChocolateRabbit> rabbits = getFilteredAndSortedRabbits(foundRabbits, state.sortType(), state.filterType());
+        List<ChocolateRabbit> rabbits = getFilteredAndSortedRabbits(
+                foundRabbits, state.sortType(), state.filterType(), state.locationFilter());
         int totalPages = Math.max(1, (int) Math.ceil(rabbits.size() / (double) RABBITS_PER_PAGE));
         for (int slot : BORDER_SLOTS) {
             layout.slot(slot, (s, c) -> ItemStacks.named(Material.BLACK_STAINED_GLASS_PANE, " "));
@@ -90,25 +100,34 @@ public class GUIHoppityCollection implements StatefulView<GUIHoppityCollection.S
             }
         }
 
-        layout.slot(47, (s, c) -> ItemStacks.head(LOCATION_TEXTURE, """
-                <9>Rabbit Locations
-                <7>Each rabbit has a specific location
-                <7>on a specific island where it can be
-                <7>found, just for fun.
-
-                <7>The <9>Hotspot <7>of a Rabbit means that
-                <7>this season they have a <a>50% <7>higher
-                <7>chance to be found on this specific
-                <7>island.
-
-                <6>Resident <7>rabbits however, can <c>ONLY
-                <7>be found on their respective islands.
-
-                <7>Currently selected: <a>All Rabbits
-
-                <b>Right-click to go backwards!
-                <e>Click to cycle!"""),
-                (click, c) -> c.player().sendMessage("<7>Rabbit Locations filter coming soon!"));
+        layout.slot(47, (s, c) -> {
+            Text selected = s.locationFilter() == null
+                    ? Text.of("<a>All Rabbits")
+                    : s.locationFilter().getFormattedName();
+            List<Text> lore = List.of(
+                    Text.of("<7>Each rabbit has a specific location"),
+                    Text.of("<7>on a specific island where it can be"),
+                    Text.of("<7>found, just for fun."),
+                    Text.empty(),
+                    Text.of("<7>The <9>Hotspot <7>of a Rabbit means that"),
+                    Text.of("<7>this season they have a <a>50% <7>higher"),
+                    Text.of("<7>chance to be found on this specific"),
+                    Text.of("<7>island."),
+                    Text.empty(),
+                    Text.of("<6>Resident <7>rabbits however, can <c>ONLY"),
+                    Text.of("<7>be found on their respective islands."),
+                    Text.empty(),
+                    Text.of("<7>Currently selected: {}", selected),
+                    Text.empty(),
+                    Text.of("<b>Right-click to go backwards!"),
+                    Text.of("<e>Click to cycle!")
+            );
+            return ItemStacks.head(LOCATION_TEXTURE, Text.of("<9>Rabbit Locations"), lore);
+        }, (click, c) -> {
+            boolean isRightClick = click.click() instanceof Click.Right;
+            IslandType newFilter = cycleLocation(state.locationFilter(), isRightClick);
+            c.session(State.class).setState(new State(1, state.sortType(), state.filterType(), newFilter));
+        });
 
         Components.back(layout, 48, ctx);
         Components.close(layout, 49);
@@ -127,7 +146,7 @@ public class GUIHoppityCollection implements StatefulView<GUIHoppityCollection.S
         }, (click, c) -> {
             boolean isRightClick = click.click() instanceof Click.Right;
             SortType newSort = isRightClick ? state.sortType().previous() : state.sortType().next();
-            c.session(State.class).setState(new State(1, newSort, state.filterType()));
+            c.session(State.class).setState(new State(1, newSort, state.filterType(), state.locationFilter()));
         });
 
         layout.slot(51, (s, c) -> {
@@ -144,21 +163,21 @@ public class GUIHoppityCollection implements StatefulView<GUIHoppityCollection.S
         }, (click, c) -> {
             boolean isRightClick = click.click() instanceof Click.Right;
             FilterType newFilter = isRightClick ? state.filterType().previous() : state.filterType().next();
-            c.session(State.class).setState(new State(1, state.sortType(), newFilter));
+            c.session(State.class).setState(new State(1, state.sortType(), newFilter, state.locationFilter()));
         });
 
         if (state.page() < totalPages) {
             layout.slot(53, (s, c) -> ItemStacks.item(Material.ARROW, """
                     <a>Next Page
                     <e>Page {}""", s.page() + 1),
-                    (click, c) -> c.session(State.class).setState(new State(state.page() + 1, state.sortType(), state.filterType())));
+                    (click, c) -> c.session(State.class).setState(new State(state.page() + 1, state.sortType(), state.filterType(), state.locationFilter())));
         }
 
         if (state.page() > 1) {
             layout.slot(45, (s, c) -> ItemStacks.item(Material.ARROW, """
                     <a>Previous Page
                     <e>Page {}""", s.page() - 1),
-                    (click, c) -> c.session(State.class).setState(new State(state.page() - 1, state.sortType(), state.filterType())));
+                    (click, c) -> c.session(State.class).setState(new State(state.page() - 1, state.sortType(), state.filterType(), state.locationFilter())));
         }
     }
 
@@ -253,8 +272,10 @@ public class GUIHoppityCollection implements StatefulView<GUIHoppityCollection.S
         }
     }
 
-    private List<ChocolateRabbit> getFilteredAndSortedRabbits(Set<ChocolateRabbit> foundRabbits, SortType sortType, FilterType filterType) {
+    static List<ChocolateRabbit> getFilteredAndSortedRabbits(Set<ChocolateRabbit> foundRabbits, SortType sortType,
+                                                             FilterType filterType, IslandType locationFilter) {
         List<ChocolateRabbit> rabbits = Arrays.stream(ChocolateRabbit.values())
+                .filter(rabbit -> locationFilter == null || rabbit.getLocation() == locationFilter)
                 .filter(rabbit -> {
                     boolean found = foundRabbits.contains(rabbit);
                     return switch (filterType) {
@@ -276,6 +297,19 @@ public class GUIHoppityCollection implements StatefulView<GUIHoppityCollection.S
         }
 
         return rabbits;
+    }
+
+    static IslandType cycleLocation(IslandType current, boolean backwards) {
+        if (LOCATION_FILTERS.isEmpty()) return null;
+        if (current == null) {
+            return backwards
+                    ? LOCATION_FILTERS.get(LOCATION_FILTERS.size() - 1)
+                    : LOCATION_FILTERS.get(0);
+        }
+        int index = LOCATION_FILTERS.indexOf(current);
+        if (index < 0) return null;
+        int nextIndex = backwards ? index - 1 : index + 1;
+        return nextIndex < 0 || nextIndex >= LOCATION_FILTERS.size() ? null : LOCATION_FILTERS.get(nextIndex);
     }
 
     private Text createProgressBar(double progress, int found) {

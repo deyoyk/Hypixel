@@ -13,8 +13,6 @@ import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 import java.util.ArrayList;
 import java.util.List;
 
-//TODO make messages clickable to open the right mob gui
-
 public class ActionBestiaryLevelUp implements HypixelEventClass {
 
 	private final BestiaryData bestiaryData = new BestiaryData();
@@ -26,19 +24,20 @@ public class ActionBestiaryLevelUp implements HypixelEventClass {
 		int oldKills = event.getOldTotalValue();
 		int newKills = event.getNewTotalValue();
 		String mobName = mob.getDisplayName();
+		String command = "/bestiary " + mob.getMobID();
 
 		int oldTier = bestiaryData.getCurrentBestiaryTier(mob, oldKills);
 		int newTier = bestiaryData.getCurrentBestiaryTier(mob, newKills);
 
 		if (newKills == 1) {
-			player.sendMessage("  <3><l>BESTIARY FAMILY UNLOCKED </l><b>{}", mobName);
+			player.sendMessage("<click:run:'" + command + "'><3><l>BESTIARY FAMILY UNLOCKED </l><b>{}</click>", mobName);
 			return;
 		}
 
 		if (newTier == oldTier + 1) {
 			Text transitionLine = oldTier == 0
-					? Text.of("<center><b>{} {:roman}</center>", mobName, newTier)
-					: Text.of("<center><b>{} <8>{:roman} ➡ <b>{:roman}</center>", mobName, oldTier, newTier);
+					? Text.of("<click:run:'" + command + "'><center><b>{} {:roman}</center></click>", mobName, newTier)
+					: Text.of("<click:run:'" + command + "'><center><b>{} <8>{:roman} ➡ <b>{:roman}</center></click>", mobName, oldTier, newTier);
 
 			int magicFind = bestiaryData.getMagicFind(newTier);
 			int strength = bestiaryData.getStrength(newTier);

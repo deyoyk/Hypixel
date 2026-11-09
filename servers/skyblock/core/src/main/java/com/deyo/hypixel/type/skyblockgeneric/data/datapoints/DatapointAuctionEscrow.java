@@ -43,7 +43,10 @@ public class DatapointAuctionEscrow extends SkyBlockDatapoint<DatapointAuctionEs
 
             @Override
             public AuctionEscrow clone(AuctionEscrow value) {
-                return new AuctionEscrow(value.getItem(), value.getPrice(), value.getDuration(), value.isBin());
+                SkyBlockItem item = value.getItem();
+                return new AuctionEscrow(
+                        item == null ? null : item.clone(),
+                        value.getPrice(), value.getDuration(), value.isBin());
             }
         });
     }

@@ -8,6 +8,7 @@ import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistic;
 import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistics;
 import com.deyo.hypixel.type.skyblockgeneric.entity.mob.MobType;
 import com.deyo.hypixel.type.skyblockgeneric.entity.mob.SkyBlockMob;
+import com.deyo.hypixel.commons.skyblock.item.ItemType;
 import com.deyo.hypixel.type.skyblockgeneric.loottable.OtherLoot;
 import com.deyo.hypixel.type.skyblockgeneric.loottable.SkyBlockLootTable;
 import com.deyo.hypixel.type.skyblockgeneric.skill.SkillCategories;
@@ -54,7 +55,17 @@ public class MobMinionPig extends SkyBlockMob {
 
     @Override
     public @Nullable SkyBlockLootTable getLootTable() {
-        return null;
+        return new SkyBlockLootTable() {
+            @Override
+            public List<LootRecord> getLootTable() {
+                return List.of(new LootRecord(ItemType.PORKCHOP, 1, 100));
+            }
+
+            @Override
+            public CalculationMode getCalculationMode() {
+                return CalculationMode.CALCULATE_INDIVIDUAL;
+            }
+        };
     }
 
     @Override

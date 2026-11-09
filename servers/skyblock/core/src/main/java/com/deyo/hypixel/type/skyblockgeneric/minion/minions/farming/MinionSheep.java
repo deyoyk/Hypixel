@@ -76,6 +76,6 @@ public class MinionSheep extends SkyBlockMinion {
 
     @Override
     public MinionAction getAction() {
-        return new MinionKillMobAction(MobMinionSheep::new);
+        return new MinionKillMobAction(MobMinionSheep.class, MobMinionSheep::new);
     }
 }

@@ -13,7 +13,7 @@ public record AttributeDefinition(
         String name,
         AttributeRarity rarity,
         AttributeCategory category,
-        AttributeFamily family,
+        List<AttributeFamily> families,
         AttributeSkill skill,
         List<AttributeEffect> effects,
         List<AttributeSource> sources,
@@ -21,9 +21,14 @@ public record AttributeDefinition(
         List<String> huntInfo
 ) {
     public AttributeDefinition {
+        families = families == null || families.isEmpty() ? List.of(AttributeFamily.NONE) : List.copyOf(families);
         effects = List.copyOf(effects);
         sources = List.copyOf(sources);
         huntInfo = List.copyOf(huntInfo);
+    }
+
+    public boolean hasFamily(AttributeFamily family) {
+        return families.contains(family);
     }
 
     public String shardName() {

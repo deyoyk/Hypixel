@@ -12,6 +12,7 @@ import com.deyo.hypixel.type.skyblockgeneric.data.SkyBlockDatapoint;
 import com.deyo.hypixel.type.skyblockgeneric.item.SkyBlockItem;
 import com.deyo.hypixel.type.skyblockgeneric.item.TieredTalismansRegistry;
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -23,9 +24,8 @@ public class DatapointAccessoryBag extends SkyBlockDatapoint<DatapointAccessoryB
     public static Serializer<DatapointAccessoryBag.PlayerAccessoryBag> serializer = new Serializer<>() {
         @Override
         public String serialize(DatapointAccessoryBag.PlayerAccessoryBag value) {
-            Map<String, String> serialized = new HashMap<>();
-
-            serialized.put("discoveredAccessories", new JSONObject(value.getDiscoveredAccessories()).toString());
+            Map<String, Object> serialized = new HashMap<>();
+            serialized.put("discoveredAccessories", new JSONArray(value.getDiscoveredAccessories()));
 
             for (Map.Entry<Integer, SkyBlockItem> entry : value.getAccessoryMap().entrySet()) {
                 serialized.put(String.valueOf(entry.getKey()),
@@ -44,10 +44,14 @@ public class DatapointAccessoryBag extends SkyBlockDatapoint<DatapointAccessoryB
             for (String key : obj.keySet()) {
                 if (key.equals("discoveredAccessories")) {
                     if (obj.isNull(key)) continue;
-                    if (obj.get(key) instanceof String) continue;
-                    if (obj.getJSONArray(key).isEmpty()) continue;
-                    for (Object o : obj.getJSONArray(key)) {
-                        discoveredAccessories.add(ItemType.valueOf(o.toString()));
+                    JSONArray array = obj.optJSONArray(key);
+                    if (array == null && obj.opt(key) instanceof String string) {
+                        array = new JSONArray(string);
+                    }
+                    if (array != null) {
+                        for (Object o : array) {
+                            discoveredAccessories.add(ItemType.valueOf(o.toString()));
+                        }
                     }
                     continue;
                 }
@@ -61,7 +65,11 @@ public class DatapointAccessoryBag extends SkyBlockDatapoint<DatapointAccessoryB
 
         @Override
         public DatapointAccessoryBag.PlayerAccessoryBag clone(DatapointAccessoryBag.PlayerAccessoryBag value) {
-            return new DatapointAccessoryBag.PlayerAccessoryBag(value.getAccessoryMap(), value.getDiscoveredAccessories());
+            Map<Integer, SkyBlockItem> accessories = new HashMap<>();
+            value.getAccessoryMap().forEach((slot, item) ->
+                    accessories.put(slot, item == null ? null : item.clone()));
+            return new DatapointAccessoryBag.PlayerAccessoryBag(
+                    accessories, new ArrayList<>(value.getDiscoveredAccessories()));
         }
     };
 

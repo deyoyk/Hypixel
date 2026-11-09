@@ -109,8 +109,8 @@ public class DatapointChocolateFactory extends SkyBlockDatapoint<DatapointChocol
             for (Map.Entry<EmployeeType, EmployeeData> entry : employees.entrySet()) {
                 JSONObject employeeJson = new JSONObject();
                 EmployeeData employee = entry.getValue();
-                employeeJson.put("level", employee.getLevel());
-                employeeJson.put("baseProduction", employee.getBaseProduction());
+                employeeJson.put("level", employee.level());
+                employeeJson.put("baseProduction", employee.baseProduction());
                 employeesJson.put(entry.getKey().name(), employeeJson);
             }
             return employeesJson;
@@ -161,8 +161,8 @@ public class DatapointChocolateFactory extends SkyBlockDatapoint<DatapointChocol
             for (Map.Entry<EmployeeType, EmployeeData> entry : employees.entrySet()) {
                 EmployeeData employee = entry.getValue();
                 clonedEmployees.put(entry.getKey(), new EmployeeData(
-                        employee.getLevel(),
-                        employee.getBaseProduction()
+                        employee.level(),
+                        employee.baseProduction()
                 ));
             }
             return clonedEmployees;
@@ -378,15 +378,7 @@ public class DatapointChocolateFactory extends SkyBlockDatapoint<DatapointChocol
         }
     }
 
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Getter
-    @Setter
-    // TODO: record
-    public static class EmployeeData {
-        private int level;
-        private double baseProduction;
-
+    public record EmployeeData(int level, double baseProduction) {
         public double getProductionPerSecond() {
             return baseProduction * level;
         }

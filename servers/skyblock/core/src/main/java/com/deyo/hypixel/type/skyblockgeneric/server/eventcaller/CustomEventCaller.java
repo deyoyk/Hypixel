@@ -7,12 +7,13 @@ import com.deyo.hypixel.type.skyblockgeneric.SkyBlockGenericLoader;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 
 import java.util.AbstractMap;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 public class CustomEventCaller {
-    private static final Map<SkyBlockPlayer, PlayerValues> playerValuesCache = new HashMap<>();
+    private static final Map<SkyBlockPlayer, PlayerValues> playerValuesCache = new ConcurrentHashMap<>();
     private static ServerValues serverValuesCache = null;
 
     public static void start() {
@@ -20,18 +21,18 @@ public class CustomEventCaller {
 
         // Per Player Caller
         scheduler.submitTask(() -> {
-            for (SkyBlockPlayer player : SkyBlockGenericLoader.getLoadedPlayers()) {
-                if (!playerValuesCache.containsKey(player)) {
-                    playerValuesCache.put(player, new PlayerValues(player, PlayerValues.Value.getValues()));
-                    return TaskSchedule.seconds(1);
-                }
+            List<SkyBlockPlayer> loadedPlayers = SkyBlockGenericLoader.getLoadedPlayers();
+            initializeMissing(loadedPlayers, playerValuesCache, player ->
+                    playerValuesCache.put(player, new PlayerValues(player, PlayerValues.Value.getValues())));
 
+            for (SkyBlockPlayer player : loadedPlayers) {
+                PlayerValues previousValues = playerValuesCache.get(player);
                 PlayerValues newValues = new PlayerValues(player, PlayerValues.Value.getValues());
-                List<PlayerValues.Value> differentValues = playerValuesCache.get(player).getDifferentValues(newValues);
+                List<PlayerValues.Value> differentValues = previousValues.getDifferentValues(newValues);
 
                 differentValues.forEach(playerValue -> {
                     playerValue.getConsumer().accept(player, safeEntry(
-                            playerValuesCache.get(player).getValue(playerValue),
+                            previousValues.getValue(playerValue),
                             newValues.getValue(playerValue)
                     ));
                 });
@@ -61,6 +62,14 @@ public class CustomEventCaller {
             serverValuesCache = newValues;
             return TaskSchedule.seconds(1);
         });
+    }
+
+    static <P> void initializeMissing(Iterable<P> players, Map<P, ?> cache, Consumer<P> initializer) {
+        for (P player : players) {
+            if (!cache.containsKey(player)) {
+                initializer.accept(player);
+            }
+        }
     }
 
     public static void clearCache(SkyBlockPlayer player) {

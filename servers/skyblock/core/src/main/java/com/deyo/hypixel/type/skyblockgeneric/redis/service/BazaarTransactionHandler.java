@@ -5,6 +5,7 @@ import com.deyo.hypixel.commons.protocol.objects.bazaar.BazaarTransactionPushPro
 import com.deyo.hypixel.commons.protocol.objects.bazaar.BazaarTransactionPushProtocol.Request;
 import com.deyo.hypixel.commons.protocol.objects.bazaar.BazaarTransactionPushProtocol.Response;
 import com.deyo.hypixel.commons.skyblock.bazaar.BazaarTransaction;
+import com.deyo.hypixel.commons.skyblock.bazaar.BuyOrderRefundTransaction;
 import com.deyo.hypixel.commons.skyblock.bazaar.OrderExpiredBazaarTransaction;
 import com.deyo.hypixel.commons.skyblock.bazaar.SuccessfulBazaarTransaction;
 import com.deyo.hypixel.commons.redis.RedisMessageHandler;
@@ -43,6 +44,7 @@ public class BazaarTransactionHandler implements RedisMessageHandler<Request, Re
             return switch (transaction) {
                 case SuccessfulBazaarTransaction success -> handleSuccessfulTransaction(success);
                 case OrderExpiredBazaarTransaction expired -> handleExpiredTransaction(expired);
+                case BuyOrderRefundTransaction refund -> handleRefundTransaction(refund);
                 default -> {
                     Logger.error("Unknown transaction type: " + transaction.getClass().getSimpleName());
                     yield Response.failure("Unknown transaction type");
@@ -63,6 +65,9 @@ public class BazaarTransactionHandler implements RedisMessageHandler<Request, Re
                 ).fromJSON(data);
                 case "OrderExpiredBazaarTransaction" -> new OrderExpiredBazaarTransaction(
                         null, null, null, null, null, 0, 0, null
+                ).fromJSON(data);
+                case "BuyOrderRefundTransaction" -> new BuyOrderRefundTransaction(
+                        null, null, null, null, 0, null, null
                 ).fromJSON(data);
                 default -> {
                     Logger.error("Unknown transaction type: " + type);
@@ -114,6 +119,18 @@ public class BazaarTransactionHandler implements RedisMessageHandler<Request, Re
         } else {
             Logger.info("Owner " + transaction.owner() + " is offline or on different profile");
         }
+
+        return new Response(true, ownerHandled, false, transaction.orderId().toString(), null);
+    }
+
+    private Response handleRefundTransaction(BuyOrderRefundTransaction transaction) {
+        Logger.info("Handling buy order refund for: {} owner: {}",
+                transaction.itemName(), transaction.owner());
+
+        SkyBlockPlayer owner = SkyBlockGenericLoader.getFromUUID(transaction.owner());
+        boolean ownerHandled = owner != null
+                && owner.getProfiles().getCurrentlySelected().equals(transaction.ownerProfile())
+                && BazaarAwarder.processRefundTransaction(owner, transaction);
 
         return new Response(true, ownerHandled, false, transaction.orderId().toString(), null);
     }

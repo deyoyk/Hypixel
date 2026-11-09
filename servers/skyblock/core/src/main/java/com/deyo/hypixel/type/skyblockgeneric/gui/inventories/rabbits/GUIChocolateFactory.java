@@ -375,7 +375,7 @@ public class GUIChocolateFactory implements StatefulView<GUIChocolateFactory.Sta
 
         DatapointChocolateFactory.EmployeeData existingEmployee = data.getEmployees().get(employeeType);
 
-        if (existingEmployee != null && existingEmployee.getLevel() >= EMPLOYEE_MAX_LEVEL) {
+        if (existingEmployee != null && existingEmployee.level() >= EMPLOYEE_MAX_LEVEL) {
             player.sendMessage("<b>{} <c>cannot ascend the corporate ladder any further!", employeeName);
             player.playSound(NOT_ENOUGH_CHOCOLATE_SOUND);
             return;
@@ -393,7 +393,7 @@ public class GUIChocolateFactory implements StatefulView<GUIChocolateFactory.Sta
         if (ChocolateFactoryHelper.hireOrUpgradeEmployee(player, employeeName)) {
             DatapointChocolateFactory.ChocolateFactoryData newData = ChocolateFactoryHelper.getData(player);
             DatapointChocolateFactory.EmployeeData emp = newData.getEmployees().get(employeeType);
-            int level = emp != null ? emp.getLevel() : 1;
+            int level = emp != null ? emp.level() : 1;
             String rank = getEmployeeRank(level);
             String rankColor = getEmployeeRankColor(level);
 
@@ -442,7 +442,7 @@ public class GUIChocolateFactory implements StatefulView<GUIChocolateFactory.Sta
                     canAfford ? Text.of("<e>Click to hire!") : NOT_ENOUGH_CHOCOLATE_MESSAGE));
         }
 
-        int level = employee.getLevel();
+        int level = employee.level();
         long cost = ChocolateFactoryHelper.getEmployeeCost(player, employeeName, level + 1);
         boolean canAfford = data.getChocolate() >= cost;
         double currentProduction = baseProduction * level;

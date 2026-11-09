@@ -2,6 +2,7 @@ package com.deyo.hypixel.type.skyblockgeneric.levels;
 
 import lombok.Getter;
 import net.minestom.server.item.Material;
+import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistics;
 import com.deyo.hypixel.type.skyblockgeneric.levels.unlocks.SkyBlockLevelStatisticUnlock;
 import org.jetbrains.annotations.Nullable;
 import org.tinylog.Logger;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 @Getter
 public class SkyBlockLevelRequirement {
     private static final Map<Integer, SkyBlockLevelRequirement> LEVELS = new LinkedHashMap<>();
+    private static Map<Integer, ItemStatistics> cumulativeStatisticUnlocks = Map.of();
     private static boolean isLoaded = false;
 
     private final int level;
@@ -55,6 +57,8 @@ public class SkyBlockLevelRequirement {
                 LEVELS.put(level.getLevel(), level);
             }
 
+            cumulativeStatisticUnlocks = buildCumulativeStatisticUnlocks(LEVELS);
+
             SkyBlockLevelLoader.initializeCustomLevelAwardCache(levels);
             isLoaded = true;
 
@@ -83,6 +87,32 @@ public class SkyBlockLevelRequirement {
     public static int getMaxLevel() {
         ensureLoaded();
         return LEVELS.keySet().stream().max(Integer::compareTo).orElse(0);
+    }
+
+    public static ItemStatistics getCumulativeStatisticUnlocks(int level) {
+        ensureLoaded();
+        return cumulativeStatisticUnlocks.getOrDefault(level, ItemStatistics.empty());
+    }
+
+    static Map<Integer, ItemStatistics> buildCumulativeStatisticUnlocks(
+            Map<Integer, SkyBlockLevelRequirement> levels) {
+        Map<Integer, ItemStatistics> cumulativeByLevel = new HashMap<>();
+        ItemStatistics cumulative = ItemStatistics.empty();
+        int maxLevel = levels.keySet().stream().mapToInt(Integer::intValue).max().orElse(0);
+
+        for (int level = 0; level <= maxLevel; level++) {
+            SkyBlockLevelRequirement requirement = levels.get(level);
+            if (requirement != null) {
+                for (SkyBlockLevelUnlock unlock : requirement.getUnlocks()) {
+                    if (unlock instanceof SkyBlockLevelStatisticUnlock statisticUnlock) {
+                        cumulative = ItemStatistics.add(cumulative, statisticUnlock.getStatistics());
+                    }
+                }
+            }
+            cumulativeByLevel.put(level, cumulative);
+        }
+
+        return cumulativeByLevel;
     }
 
     private static void ensureLoaded() {

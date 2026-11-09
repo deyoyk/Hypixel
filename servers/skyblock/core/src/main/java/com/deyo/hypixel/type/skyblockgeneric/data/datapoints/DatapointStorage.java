@@ -44,7 +44,16 @@ public class DatapointStorage extends SkyBlockDatapoint<DatapointStorage.PlayerS
 
         @Override
         public PlayerStorage clone(PlayerStorage value) {
-            return new PlayerStorage(value.slots);
+            List<PlayerStorage.StorageSlot> slots = new ArrayList<>();
+            for (PlayerStorage.StorageSlot slot : value.slots) {
+                SkyBlockItem[] items = new SkyBlockItem[slot.items.length];
+                for (int i = 0; i < items.length; i++) {
+                    SkyBlockItem item = slot.items[i];
+                    items[i] = item == null ? null : item.clone();
+                }
+                slots.add(new PlayerStorage.StorageSlot(slot.page, slot.display, items));
+            }
+            return new PlayerStorage(slots);
         }
     };
 

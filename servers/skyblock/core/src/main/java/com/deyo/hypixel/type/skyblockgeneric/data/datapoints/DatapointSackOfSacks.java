@@ -36,7 +36,12 @@ public class DatapointSackOfSacks extends SkyBlockDatapoint<DatapointSackOfSacks
 
         @Override
         public PlayerSackOfSacks clone(PlayerSackOfSacks value) {
-            return new PlayerSackOfSacks(new ArrayList<>(value.sackMap));
+            List<Map.Entry<Integer, SkyBlockItem>> sacks = new ArrayList<>();
+            for (Map.Entry<Integer, SkyBlockItem> entry : value.sackMap) {
+                sacks.add(Map.entry(entry.getKey(),
+                        entry.getValue() == null ? null : entry.getValue().clone()));
+            }
+            return new PlayerSackOfSacks(sacks);
         }
     };
 

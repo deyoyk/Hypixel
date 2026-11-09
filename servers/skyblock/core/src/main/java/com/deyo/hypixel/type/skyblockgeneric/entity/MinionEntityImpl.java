@@ -16,14 +16,13 @@ import com.deyo.hypixel.type.skyblockgeneric.minion.IslandMinionData;
 import com.deyo.hypixel.type.skyblockgeneric.minion.SkyBlockMinion;
 import com.deyo.hypixel.type.skyblockgeneric.minion.extension.extensions.MinionSkinExtension;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Getter
 public class MinionEntityImpl extends LivingEntity {
     @Getter
-    private static final List<MinionEntityImpl> activeMinions = Collections.synchronizedList(new ArrayList<>());
+    private static final List<MinionEntityImpl> activeMinions = new CopyOnWriteArrayList<>();
 
     private final SkyBlockMinion minion;
     private IslandMinionData.IslandMinion islandMinion;

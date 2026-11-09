@@ -6,12 +6,17 @@ import com.deyo.hypixel.type.skyblockgeneric.entity.mob.impl.RegionPopulator;
 import org.tinylog.Logger;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Getter
 public class MobRegistry {
-    public static final List<MobRegistry> REGISTERED_MOBS = new ArrayList<>(List.of());
+    public static final List<MobRegistry> REGISTERED_MOBS = new CopyOnWriteArrayList<>();
+    private static final Map<Class<? extends SkyBlockMob>, MobRegistry> MOBS_BY_CLASS = new ConcurrentHashMap<>();
+    private static final Map<String, BestiaryMob> MOBS_BY_ID = new ConcurrentHashMap<>();
+    private static volatile List<MobRegistry> regionPopulators = List.of();
 
     private final EntityType entityType;
     private final Class<? extends SkyBlockMob> clazz;
@@ -36,26 +41,37 @@ public class MobRegistry {
     }
 
     public static void registerExtraMob(Class<? extends SkyBlockMob> clazz) {
-        REGISTERED_MOBS.add(new MobRegistry(clazz));
+        if (MOBS_BY_CLASS.containsKey(clazz)) {
+            return;
+        }
+
+        MobRegistry registry = new MobRegistry(clazz);
+        if (MOBS_BY_CLASS.putIfAbsent(clazz, registry) != null) {
+            return;
+        }
+
+        REGISTERED_MOBS.add(registry);
+
+        if (registry.getMobCache() instanceof BestiaryMob mob && mob.getMobID() != null) {
+            MOBS_BY_ID.putIfAbsent(mob.getMobID(), mob);
+        }
+
+        if (registry.getMobCache() instanceof RegionPopulator) {
+            regionPopulators = REGISTERED_MOBS.stream()
+                    .filter(candidate -> candidate.getMobCache() instanceof RegionPopulator)
+                    .toList();
+        }
     }
 
     public static List<MobRegistry> getMobsToRegionPopulate() {
-        return REGISTERED_MOBS.stream().filter(mobRegistry -> mobRegistry.getMobCache() instanceof RegionPopulator).toList();
+        return regionPopulators;
     }
 
     public static MobRegistry getFromMob(SkyBlockMob mob) {
-        return REGISTERED_MOBS.stream().filter(mobRegistry -> mobRegistry.getClazz() == mob.getClass()).findFirst().orElse(null);
+        return MOBS_BY_CLASS.get(mob.getClass());
     }
 
     public static BestiaryMob getMobById(String id) {
-        for (MobRegistry registry : REGISTERED_MOBS) {
-            if (registry.getMobCache() instanceof BestiaryMob mob) {
-                String mobName = mob.getMobID();
-                if (mobName.equals(id)) {
-                    return mob;
-                }
-            }
-        }
-        return null;
+        return MOBS_BY_ID.get(id);
     }
 }

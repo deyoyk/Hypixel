@@ -69,7 +69,9 @@ public class MinionCactus extends SkyBlockMinion {
 
     @Override
     public List<MinionExpectation> getExpectations() {
-        throw new RuntimeException("Not implemented yet");
+        return List.of(
+                new BlockExpectation(-1, Block.CACTUS, Block.AIR)
+        );
     }
 
     @Override

@@ -27,9 +27,7 @@ public final class HoneyHarvesterAbility implements PetAbility {
 
         return List.of(
                 "<7>You have a <a>" + decimalify(chance, 3) + "% <7>chance to find a",
-                "<a>Honey Jar <7>when farming crops.",
-                "",
-                "<c>⚠ <l>NOT IMPLEMENTED<r><c> — no game hook for CropHarvested yet"
+                "<a>Honey Jar <7>when farming crops."
         );
     }
 

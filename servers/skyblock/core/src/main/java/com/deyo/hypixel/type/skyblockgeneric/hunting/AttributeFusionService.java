@@ -5,7 +5,6 @@ import com.deyo.hypixel.type.skyblockgeneric.data.datapoints.DatapointHunting;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 
 public final class AttributeFusionService {
@@ -13,9 +12,10 @@ public final class AttributeFusionService {
     }
 
     public static int required(AttributeDefinition definition) {
-        String family = definition.family().name().toLowerCase(Locale.ROOT);
         if (definition.shard().equalsIgnoreCase("Chameleon")) return 1;
-        if (family.contains("reptile") || family.contains("amphibian") || family.contains("elemental")) return 2;
+        if (definition.hasFamily(AttributeDefinition.AttributeFamily.REPTILE)
+                || definition.hasFamily(AttributeDefinition.AttributeFamily.AMPHIBIAN)
+                || definition.hasFamily(AttributeDefinition.AttributeFamily.ELEMENTAL)) return 2;
         return 5;
     }
 
@@ -56,8 +56,9 @@ public final class AttributeFusionService {
     }
 
     private static boolean isReptile(AttributeDefinition definition) {
-        String family = definition.family().name().toLowerCase(Locale.ROOT);
-        return family.contains("reptile") || family.contains("lizard") || family.contains("serpent");
+        return definition.hasFamily(AttributeDefinition.AttributeFamily.REPTILE)
+                || definition.hasFamily(AttributeDefinition.AttributeFamily.LIZARD)
+                || definition.hasFamily(AttributeDefinition.AttributeFamily.SERPENT);
     }
 
     private static List<AttributeDefinition> nextById(AttributeDefinition origin, boolean chameleon,

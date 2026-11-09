@@ -14,10 +14,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class ConfigurableSkyBlockItem {
-    private final static Map<String, ConfigurableSkyBlockItem> CACHED_ITEMS = new HashMap<>();
+    private final static Map<String, ConfigurableSkyBlockItem> CACHED_ITEMS = new ConcurrentHashMap<>();
 
     @Getter
     private final String id;
@@ -44,7 +45,7 @@ public class ConfigurableSkyBlockItem {
         this.id = id;
         this.material = material;
         this.name = name;
-        this.lore = lore;
+        this.lore = lore == null ? List.of() : List.copyOf(lore);
 
         ItemStatistics.Builder builder = ItemStatistics.builder();
         for (Map.Entry<String, Double> entry : statistics.entrySet()) {
@@ -60,7 +61,7 @@ public class ConfigurableSkyBlockItem {
         this.id = id;
         this.material = material;
         this.name = name;
-        this.lore = lore;
+        this.lore = lore == null ? List.of() : List.copyOf(lore);
         this.defaultStatistics = defaultStatistics;
 
         this.components.putAll(components);

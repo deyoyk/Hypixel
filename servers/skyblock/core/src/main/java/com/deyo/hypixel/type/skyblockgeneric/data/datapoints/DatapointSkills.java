@@ -66,7 +66,7 @@ public class DatapointSkills extends SkyBlockDatapoint<DatapointSkills.PlayerSki
 
         @Override
         public PlayerSkills clone(PlayerSkills value) {
-            return new PlayerSkills(value.getSkills(), value.getSkillStatistics());
+            return new PlayerSkills(new HashMap<>(value.getSkills()), value.getSkillStatistics());
         }
     };
 

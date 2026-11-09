@@ -26,7 +26,7 @@ public class DatapointQuiver extends SkyBlockDatapoint<DatapointQuiver.PlayerQui
                 serialized.put(
                         String.valueOf(entry.getKey()),
                         entry.getValue().toUnderstandable().serialize()
-                ).toString();
+                );
             }
 
             return new JSONObject(serialized).toString();
@@ -47,7 +47,10 @@ public class DatapointQuiver extends SkyBlockDatapoint<DatapointQuiver.PlayerQui
 
         @Override
         public PlayerQuiver clone(PlayerQuiver value) {
-            return new PlayerQuiver(value.getQuiverMap());
+            Map<Integer, SkyBlockItem> copy = new HashMap<>();
+            value.getQuiverMap().forEach((slot, item) ->
+                    copy.put(slot, item == null ? null : item.clone()));
+            return new PlayerQuiver(copy);
         }
     };
 
@@ -67,36 +70,43 @@ public class DatapointQuiver extends SkyBlockDatapoint<DatapointQuiver.PlayerQui
         private Map<Integer, SkyBlockItem> quiverMap = new HashMap<>();
 
         public @Nullable SkyBlockItem getFirstItemInQuiver() {
-            for (SkyBlockItem item : quiverMap.values()) {
-                if (item == null) continue;
-                if (item.getAmount() == 0) continue;
-                if (item.isNA()) continue;
-                if (item.getMaterial() == Material.AIR) continue;
+            int slot = getFirstItemSlot();
+            return slot < 0 ? null : quiverMap.get(slot);
+        }
 
-                return item;
+        public int getFirstItemSlot() {
+            int firstSlot = -1;
+            for (Map.Entry<Integer, SkyBlockItem> entry : quiverMap.entrySet()) {
+                if (!isUsableItem(entry.getValue())) continue;
+                if (firstSlot < 0 || entry.getKey() < firstSlot) {
+                    firstSlot = entry.getKey();
+                }
             }
-            return null;
+            return firstSlot;
+        }
+
+        public @Nullable SkyBlockItem consumeFirstItem() {
+            int slot = getFirstItemSlot();
+            if (slot < 0) return null;
+
+            SkyBlockItem item = quiverMap.get(slot);
+            if (item.getAmount() > 1) {
+                item.setAmount(item.getAmount() - 1);
+            } else {
+                quiverMap.remove(slot);
+            }
+            return item;
         }
 
         public @Nullable SkyBlockItem getInSlot(int slot) {
             return quiverMap.get(slot);
         }
 
-        public void setFirstItemInQuiver(SkyBlockItem item) {
-            int firstFilledSlot = -1;
-            for (int i = 0; i < 9; i++) {
-                if (quiverMap.get(i) != null) {
-                    firstFilledSlot = i;
-                    break;
-                }
-            }
-
-            if (firstFilledSlot == -1) {
-                quiverMap.put(0, item);
-                return;
-            }
-
-            quiverMap.put(firstFilledSlot, item);
+        private static boolean isUsableItem(@Nullable SkyBlockItem item) {
+            return item != null
+                    && item.getAmount() > 0
+                    && !item.isNA()
+                    && item.getMaterial() != Material.AIR;
         }
 
         public boolean isEmpty() {

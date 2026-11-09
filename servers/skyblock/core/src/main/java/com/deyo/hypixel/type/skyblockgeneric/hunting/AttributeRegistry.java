@@ -48,7 +48,8 @@ public final class AttributeRegistry {
     public static List<AttributeDefinition> search(String query) {
         String normalized = query == null ? "" : query.toLowerCase(Locale.ROOT);
         return SORTED.stream().filter(value -> String.join(" ", value.id().toString(), value.shard(), value.name(),
-                value.family().name(), value.category().name(), value.skill().name()).toLowerCase(Locale.ROOT).contains(normalized)).toList();
+                String.join(" ", value.families().stream().map(Enum::name).toList()),
+                value.category().name(), value.skill().name()).toLowerCase(Locale.ROOT).contains(normalized)).toList();
     }
 
     @SuppressWarnings("unchecked")
@@ -77,7 +78,7 @@ public final class AttributeRegistry {
                 }
                 AttributeDefinition definition = new AttributeDefinition(id, text(value, "shard"), text(value, "name"),
                         enumValue(AttributeRarity.class, value.get("rarity")), enumValue(AttributeCategory.class, value.get("category")),
-                        enumValue(AttributeFamily.class, value.get("family")), enumValue(AttributeSkill.class, value.get("skill")),
+                        families(value.get("family")), enumValue(AttributeSkill.class, value.get("skill")),
                         effects, sources, text(value, "description"), strings(value.get("huntInfo")));
                 if (id.rarity() != definition.rarity())
                     throw new IllegalStateException("Rarity does not match id " + id);
@@ -105,6 +106,13 @@ public final class AttributeRegistry {
 
     private static List<String> strings(Object value) {
         return value instanceof List<?> list ? list.stream().map(Object::toString).toList() : List.of();
+    }
+
+    private static List<AttributeFamily> families(Object value) {
+        if (value instanceof List<?> list)
+            return list.stream().map(item -> enumValue(AttributeFamily.class, item)).filter(Objects::nonNull).distinct().toList();
+        AttributeFamily family = enumValue(AttributeFamily.class, value);
+        return family == null ? List.of(AttributeFamily.NONE) : List.of(family);
     }
 
     private static <E extends Enum<E>> List<E> enums(Class<E> type, Object value) {

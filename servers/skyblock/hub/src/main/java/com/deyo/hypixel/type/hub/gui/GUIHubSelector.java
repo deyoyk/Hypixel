@@ -8,7 +8,6 @@ import net.minestom.server.item.Material;
 import com.deyo.hypixel.commons.ServerType;
 import com.deyo.hypixel.commons.UnderstandableProxyServer;
 import com.deyo.hypixel.commons.text.Text;
-import com.deyo.hypixel.proxyapi.ProxyInformation;
 import com.deyo.hypixel.proxyapi.ProxyPlayer;
 import com.deyo.hypixel.type.generic.HypixelConst;
 import com.deyo.hypixel.type.generic.gui.inventory.HypixelPaginatedGUI;
@@ -17,6 +16,7 @@ import com.deyo.hypixel.type.generic.gui.inventory.RefreshingGUI;
 import com.deyo.hypixel.type.generic.gui.inventory.item.GUIClickableItem;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 import com.deyo.hypixel.type.generic.utility.PaginationList;
+import com.deyo.hypixel.type.generic.utility.ServerInfoCache;
 import com.deyo.hypixel.type.skyblockgeneric.SkyBlockGenericLoader;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 
@@ -26,15 +26,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class GUIHubSelector extends HypixelPaginatedGUI<UnderstandableProxyServer> implements RefreshingGUI {
-    private final ProxyInformation information;
     private List<UnderstandableProxyServer> servers;
     private int counter = 0;
     private boolean sending = false;
 
     public GUIHubSelector() {
         super(InventoryType.CHEST_6_ROW);
-
-        information = new ProxyInformation();
     }
 
     @Override
@@ -50,7 +47,8 @@ public class GUIHubSelector extends HypixelPaginatedGUI<UnderstandableProxyServe
     @Override
     protected PaginationList<UnderstandableProxyServer> fillPaged(HypixelPlayer player, PaginationList<UnderstandableProxyServer> paged) {
         fill(ItemStacks.filler(Material.BLACK_STAINED_GLASS_PANE));
-        servers = information.getServerInformation(ServerType.SKYBLOCK_HUB).join();
+        servers = ServerInfoCache.getCachedServersByType(ServerType.SKYBLOCK_HUB);
+        ServerInfoCache.ensureRefreshedAsync();
         paged.addAll(servers);
 
         set(GUIClickableItem.getCloseItem(49));
@@ -221,7 +219,8 @@ public class GUIHubSelector extends HypixelPaginatedGUI<UnderstandableProxyServe
 
     @Override
     public void refreshItems(HypixelPlayer player) {
-        servers = information.getServerInformation(ServerType.SKYBLOCK_HUB).join();
+        servers = ServerInfoCache.getCachedServersByType(ServerType.SKYBLOCK_HUB);
+        ServerInfoCache.ensureRefreshedAsync();
         PaginationList<UnderstandableProxyServer> paged = fillPaged(player, new PaginationList<>(getPaginatedSlots().length));
         int page = 1;
         counter = 0;

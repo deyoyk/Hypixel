@@ -2,19 +2,18 @@ package com.deyo.hypixel.type.skyblockgeneric.entity;
 
 import lombok.Getter;
 import com.deyo.hypixel.type.generic.entity.drop.VanillaItemEntity;
+import com.deyo.hypixel.type.generic.utility.BoundedList;
 import com.deyo.hypixel.type.skyblockgeneric.item.SkyBlockItem;
 import com.deyo.hypixel.type.skyblockgeneric.item.updater.NonPlayerItemUpdater;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Getter
 public class DroppedItemEntityImpl extends VanillaItemEntity {
     @Getter
-    private static final Map<SkyBlockPlayer, List<DroppedItemEntityImpl>> droppedItems = new HashMap<>();
+    private static final Map<SkyBlockPlayer, BoundedList<DroppedItemEntityImpl>> droppedItems = new ConcurrentHashMap<>();
     private final SkyBlockPlayer player;
 
     public DroppedItemEntityImpl(SkyBlockItem item, SkyBlockPlayer player) {
@@ -24,14 +23,16 @@ public class DroppedItemEntityImpl extends VanillaItemEntity {
 
         setAutoViewable(false);
 
-        droppedItems.computeIfPresent(player, (key, value) -> {
-            if (value.size() > 50) {
-                value.getFirst().remove();
-            }
-            value.add(this);
-            return value;
-        });
-        droppedItems.putIfAbsent(player, new ArrayList<>(List.of(this)));
+        droppedItems.computeIfAbsent(player,
+                        key -> new BoundedList<>(50, DroppedItemEntityImpl::isRemoved, DroppedItemEntityImpl::remove))
+                .add(this);
+    }
+
+    public static void clearDroppedItems(SkyBlockPlayer player) {
+        BoundedList<DroppedItemEntityImpl> items = droppedItems.remove(player);
+        if (items == null) return;
+        items.snapshot().stream().filter(item -> !item.isRemoved()).forEach(DroppedItemEntityImpl::remove);
+        items.clear();
     }
 
     @Override

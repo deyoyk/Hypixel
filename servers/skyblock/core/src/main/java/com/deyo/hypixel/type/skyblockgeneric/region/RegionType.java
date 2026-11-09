@@ -58,7 +58,7 @@ public enum RegionType {
     FISHERMANS_HUT("Fisherman's Hut"),
     ARTISTS_ABODE("Artist's Abode", NamedTextColor.YELLOW),
     FOREST("Forest", NamedTextColor.DARK_GREEN, MineLogsConfiguration.class),
-    FORAGING_CAMP("Foraging Camp", NamedTextColor.DARK_GREEN, MineLogsConfiguration.class), // TODO: you can't break everything here though
+    FORAGING_CAMP("Foraging Camp", NamedTextColor.DARK_GREEN, MineLogsConfiguration.class),
     REGALIA_ROOM("Regalia Room", NamedTextColor.GOLD),
     ABIPHONES_AND_CO("Abiphones & Co.", NamedTextColor.AQUA),
     FASHION_SHOP("Fashion Shop", NamedTextColor.LIGHT_PURPLE),

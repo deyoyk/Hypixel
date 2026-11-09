@@ -6,6 +6,7 @@ import lombok.Setter;
 import com.deyo.hypixel.commons.skyblock.item.UnderstandableSkyBlockItem;
 import com.deyo.hypixel.commons.protocol.Serializer;
 import com.deyo.hypixel.type.skyblockgeneric.data.SkyBlockDatapoint;
+import com.deyo.hypixel.type.skyblockgeneric.item.SkyBlockItem;
 import org.json.JSONObject;
 
 import java.util.HashMap;
@@ -37,7 +38,10 @@ public class DatapointBackpacks extends SkyBlockDatapoint<DatapointBackpacks.Pla
 
         @Override
         public PlayerBackpacks clone(PlayerBackpacks value) {
-            return new PlayerBackpacks(value.backpacks, value.unlockedSlots);
+            Map<Integer, UnderstandableSkyBlockItem> backpacks = new HashMap<>();
+            value.backpacks.forEach((slot, item) -> backpacks.put(slot,
+                    item == null ? null : new SkyBlockItem(item).toUnderstandable()));
+            return new PlayerBackpacks(backpacks, value.unlockedSlots);
         }
     };
 

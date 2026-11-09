@@ -39,7 +39,18 @@ public enum MuseumDisplays {
         new Pos(25.5, 68.5, 23.5)
     );
 
-    private static final Map<UUID, Map<MuseumDisplayEntityImpl, PlayerHolograms.ExternalPlayerHologram>> displayEntities = new HashMap<>();
+    static final Map<UUID, Map<MuseumDisplayEntityImpl, PlayerHolograms.ExternalPlayerHologram>> displayEntities = new HashMap<>();
+
+    public static void clearDisplay(UUID playerId) {
+        Map<MuseumDisplayEntityImpl, PlayerHolograms.ExternalPlayerHologram> displays = displayEntities.remove(playerId);
+        if (displays == null) return;
+        displays.forEach((displayEntity, hologram) -> {
+            if (hologram != null)
+                PlayerHolograms.removeExternalPlayerHologram(hologram);
+            if (displayEntity != null)
+                displayEntity.remove();
+        });
+    }
 
     private final MuseumDisplay displayHandler;
     private final List<MuseumableItemCategory> allowedItemCategories;
@@ -83,13 +94,7 @@ public enum MuseumDisplays {
         }
 
         if (displayEntities.containsKey(player.getUuid())) {
-            displayEntities.get(player.getUuid()).forEach((displayEntity, hologram) -> {
-                if (hologram != null)
-                    PlayerHolograms.removeExternalPlayerHologram(hologram);
-                if (displayEntity != null)
-                    displayEntity.remove();
-            });
-            displayEntities.remove(player.getUuid());
+            clearDisplay(player.getUuid());
         }
 
         Map<MuseumDisplayEntityImpl, PlayerHolograms.ExternalPlayerHologram> newDisplayEntities = new HashMap<>();

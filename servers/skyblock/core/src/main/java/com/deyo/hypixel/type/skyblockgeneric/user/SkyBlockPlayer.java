@@ -249,15 +249,9 @@ public class SkyBlockPlayer extends HypixelPlayer {
         if (!hasCustomCollectionAward(CustomCollectionAward.QUIVER)) return null;
 
         DatapointQuiver.PlayerQuiver quiver = getQuiver();
-        SkyBlockItem item = quiver.getFirstItemInQuiver();
+        SkyBlockItem item = quiver.consumeFirstItem();
         if (item == null) return null;
 
-        if (item.getAmount() > 1) {
-            item.setAmount(item.getAmount() - 1);
-            quiver.setFirstItemInQuiver(item);
-        } else {
-            quiver.setFirstItemInQuiver(null);
-        }
         getSkyblockDataHandler().get(SkyBlockDataHandler.Data.QUIVER, DatapointQuiver.class).setValue(quiver);
         ActionPlayerChangeHypixelMenuDisplay.runCheck(this);
         return item;

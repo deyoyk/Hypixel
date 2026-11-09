@@ -14,9 +14,7 @@ import org.tinylog.Logger;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -36,8 +34,11 @@ public record CalendarEvent(
     private static final long THREE_DAYS = 3L * SkyBlockCalendar.DAY;
     private static final long YEAR = SkyBlockCalendar.YEAR;
     private static final long MONTH = SkyBlockCalendar.MONTH;
-    private static final Map<Long, List<CalendarEvent>> eventCache = new HashMap<>();
     private static final List<CalendarEvent> allEvents = new ArrayList<>();
+
+    public CalendarEvent {
+        times = times.stream().sorted().toList();
+    }
 
     public static CalendarEvent NEW_YEAR = new CalendarEvent(
         "new_year",
@@ -155,34 +156,34 @@ public record CalendarEvent(
 
     private static void registerEvent(CalendarEvent event) {
         allEvents.add(event);
-        for (Long time : event.times()) {
-            eventCache.computeIfAbsent(time, k -> new ArrayList<>()).add(event);
-        }
     }
 
     public static List<CalendarEvent> getCurrentEvents(long time) {
         List<CalendarEvent> activeEvents = new ArrayList<>();
         for (CalendarEvent event : allEvents) {
-            for (Long eventStartTime : event.times()) {
-                // convert ticks to milliseconds
-                Duration timeSinceEventStart = Duration.ofMillis((time - eventStartTime) * 50);
-
-                // checks if the event is currently active
-                if (!timeSinceEventStart.isNegative() && timeSinceEventStart.compareTo(event.duration()) < 0) {
-                    activeEvents.add(event);
-                    break;
-                }
+            if (isActive(event, time)) {
+                activeEvents.add(event);
             }
         }
         return activeEvents;
     }
 
-    public static List<CalendarEvent> getAllEvents() {
-        return new ArrayList<>(allEvents);
+    private static boolean isActive(CalendarEvent event, long time) {
+        List<Long> starts = event.times();
+        int index = java.util.Collections.binarySearch(starts, time);
+        if (index < 0) {
+            index = -index - 2;
+        }
+        if (index < 0) {
+            return false;
+        }
+
+        long elapsed = time - starts.get(index);
+        return elapsed >= 0 && elapsed < event.duration().toMillis() / 50L;
     }
 
-    public static Map<Long, List<CalendarEvent>> getEventCache() {
-        return new HashMap<>(eventCache);
+    public static List<CalendarEvent> getAllEvents() {
+        return new ArrayList<>(allEvents);
     }
 
     public static CalendarEvent fromId(String id) {

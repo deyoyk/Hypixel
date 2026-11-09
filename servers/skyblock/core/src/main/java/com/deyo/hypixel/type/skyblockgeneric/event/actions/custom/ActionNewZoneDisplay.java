@@ -95,12 +95,10 @@ public class ActionNewZoneDisplay implements HypixelEventClass {
                 Text.of("Talk to the Lapis Miner."),
                 Text.of("Watch out for the zombies!"));
 
-            // TODO: Replace placeholder text with correct Pigmen's Den zone features
             case PIGMENS_DEN -> onNewZone(player, RegionType.PIGMENS_DEN,
-                Text.of("The Lift Operator will now let you travel to the <b>Lapis Quarry."),
-                Text.of("Access to Lapis Lazuli ore."),
-                Text.of("Talk to the Lapis Miner."),
-                Text.of("Watch out for the zombies!"));
+                Text.of("The Lift Operator will now let you travel to the <b>Pigmen's Den."),
+                Text.of("Mine <c>Redstone ore<f>."),
+                Text.of("Watch out for the <c>Redstone Pigmen<f>!"));
 
             case SLIMEHILL -> onNewZone(player, RegionType.SLIMEHILL,
                 Text.of("The Lift Operator will now let you travel to the <b>Slimehill."),

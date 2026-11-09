@@ -33,6 +33,14 @@ public final class SkyBlockCalendar {
             "Late Spring", "Early Summer", "Summer", "Late Summer", "Early Autumn",
             "Autumn", "Late Autumn", "Early Winter", "Winter", "Late Winter");
 
+    private static final String[] MINUTE_DISPLAYS = new String[60];
+
+    static {
+        for (int minute = 0; minute < MINUTE_DISPLAYS.length; minute++) {
+            MINUTE_DISPLAYS[minute] = String.format("%02d", minute);
+        }
+    }
+
     private static final Set<String> firedEvents = new HashSet<>();
 
     @Getter
@@ -118,109 +126,72 @@ public final class SkyBlockCalendar {
     public record EventInfo(long timeUntilBegin, Duration duration, int year) {}
 
     public static Map<EventInfo, CalendarEvent> getEventsWithDurationUntil(int amount) {
+        return getEventsWithDurationUntil(amount, List.of());
+    }
+
+    public static Map<EventInfo, CalendarEvent> getEventsWithDurationUntilSkipSpecific(int amount, List<CalendarEvent> event) {
+        return getEventsWithDurationUntil(amount, event);
+    }
+
+    private static Map<EventInfo, CalendarEvent> getEventsWithDurationUntil(int amount, List<CalendarEvent> excluded) {
         Map<EventInfo, CalendarEvent> result = new LinkedHashMap<>();
         long currentElapsed = getElapsed();
         int currentYear = getYear();
+        List<CalendarEvent> events = CalendarEvent.getAllEvents();
 
         int foundEvents = 0;
         int yearsAhead = 0;
 
-        while (foundEvents < amount) {
+        while (foundEvents < amount && yearsAhead <= 100) {
             int targetYear = currentYear + yearsAhead;
             long yearStartElapsed = (long) (targetYear - 1) * YEAR;
+            long threshold = currentElapsed - yearStartElapsed;
 
-            for (CalendarEvent event : CalendarEvent.getAllEvents()) {
-                if (foundEvents >= amount) break;
+            for (CalendarEvent event : events) {
+                if (excluded.contains(event)) continue;
 
-                for (Long eventTime : event.times()) {
-                    if (foundEvents >= amount) break;
-
-                    long eventElapsed = yearStartElapsed + eventTime;
-
-                    // Skip events that have already passed (including currently ongoing ones that started)
-                    if (eventElapsed <= currentElapsed) {
-                        continue;
-                    }
-
+                List<Long> times = event.times();
+                for (int index = firstIndexAfter(times, threshold);
+                     index < times.size() && foundEvents < amount;
+                     index++) {
+                    long eventElapsed = yearStartElapsed + times.get(index);
                     long timeUntilBegin = eventElapsed - currentElapsed;
 
                     EventInfo info = new EventInfo(timeUntilBegin, event.duration(), targetYear);
                     result.put(info, event);
                     foundEvents++;
                 }
+
+                if (foundEvents >= amount) break;
             }
             yearsAhead++;
-
-            // Safety check to prevent infinite loops
-            if (yearsAhead > 100) break;
         }
 
         return result;
+    }
+
+    private static int firstIndexAfter(List<Long> sortedTimes, long threshold) {
+        int index = Collections.binarySearch(sortedTimes, threshold);
+        return index < 0 ? -index - 1 : index + 1;
     }
 
     public static long ticksUntilEvent(CalendarEvent event) {
         long currentElapsed = getElapsed();
         int currentYear = getYear();
+        List<Long> times = event.times();
 
         for (int yearsAhead = 0; yearsAhead <= 100; yearsAhead++) {
             int targetYear = currentYear + yearsAhead;
             long yearStartElapsed = (long) (targetYear - 1) * YEAR;
+            long threshold = currentElapsed - yearStartElapsed;
 
-            List<Long> sortedTimes = new ArrayList<>(event.times());
-            Collections.sort(sortedTimes);
-
-            for (Long eventTime : sortedTimes) {
-                long eventElapsed = yearStartElapsed + eventTime;
-
-                if (eventElapsed > currentElapsed) {
-                    return eventElapsed - currentElapsed;
-                }
+            int index = firstIndexAfter(times, threshold);
+            if (index < times.size()) {
+                return yearStartElapsed + times.get(index) - currentElapsed;
             }
         }
 
         return -1;
-    }
-
-    public static Map<EventInfo, CalendarEvent> getEventsWithDurationUntilSkipSpecific(int amount, List<CalendarEvent> event) {
-        Map<EventInfo, CalendarEvent> result = new LinkedHashMap<>();
-        long currentElapsed = getElapsed();
-        int currentYear = getYear();
-
-        int foundEvents = 0;
-        int yearsAhead = 0;
-
-        while (foundEvents < amount) {
-            int targetYear = currentYear + yearsAhead;
-            long yearStartElapsed = (long) (targetYear - 1) * YEAR;
-
-            for (CalendarEvent e : CalendarEvent.getAllEvents()) {
-                if (event.contains(e)) continue; // Skip specified events
-                if (foundEvents >= amount) break;
-
-                for (Long eventTime : e.times()) {
-                    if (foundEvents >= amount) break;
-
-                    long eventElapsed = yearStartElapsed + eventTime;
-
-                    // Skip events that have already passed (including currently ongoing ones that started)
-                    if (eventElapsed <= currentElapsed) {
-                        continue;
-                    }
-
-                    long timeUntilBegin = eventElapsed - currentElapsed;
-
-                    EventInfo info = new EventInfo(timeUntilBegin, e.duration(), targetYear);
-                    result.put(info, e);
-                    foundEvents++;
-                }
-            }
-            yearsAhead++;
-
-            // Safety check to prevent infinite loops
-            if (yearsAhead > 100) break;
-        }
-
-        return result;
     }
 
     public static String getMonthName(long elapsed) {
@@ -237,7 +208,7 @@ public final class SkyBlockCalendar {
         if (currentTime < 0) currentTime += DAY;
         int hours = 6 + (currentTime / 1000);
         int minutes = (currentTime % 1000) * 60 / 1000; // Corrected minutes calculation
-        String formattedMinutes = String.format("%02d", minutes);
+        String formattedMinutes = MINUTE_DISPLAYS[minutes];
         if (hours >= 24) hours -= 24;
         if (hours < 6 || hours >= 20) isDaytime = false;
 

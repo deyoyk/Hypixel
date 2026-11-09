@@ -77,10 +77,11 @@ public class DatapointStash extends SkyBlockDatapoint<DatapointStash.PlayerStash
 
         @Override
         public PlayerStash clone(PlayerStash value) {
-            return new PlayerStash(
-                    new ArrayList<>(value.itemStash),
-                    new HashMap<>(value.materialStash)
-            );
+            List<SkyBlockItem> items = new ArrayList<>();
+            for (SkyBlockItem item : value.itemStash) {
+                items.add(item == null ? null : item.clone());
+            }
+            return new PlayerStash(items, new HashMap<>(value.materialStash));
         }
     };
 

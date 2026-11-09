@@ -16,8 +16,8 @@ public final class MiningHandlers {
         return new PickaxeMiningHandler(strength, powerRequirement);
     }
 
-    public static SkyBlockMiningHandler hand(double strength, int powerRequirement) {
-        return new PickaxeMiningHandler(strength, powerRequirement);
+    public static SkyBlockMiningHandler hand(double strength) {
+        return new HandMiningHandler(strength);
     }
 
     /**

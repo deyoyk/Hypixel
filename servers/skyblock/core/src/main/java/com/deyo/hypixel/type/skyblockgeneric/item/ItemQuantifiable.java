@@ -25,7 +25,7 @@ public class ItemQuantifiable {
     }
 
     public ItemQuantifiable(@NonNull ItemQuantifiable itemQuantifiable) {
-        this(itemQuantifiable.item, itemQuantifiable.amount);
+        this(itemQuantifiable.item.clone(), itemQuantifiable.amount);
     }
 
     public SkyBlockItem getItem() {
@@ -52,12 +52,13 @@ public class ItemQuantifiable {
     }
 
     public ItemQuantifiable clone() {
-        return new ItemQuantifiable(item, amount);
+        return new ItemQuantifiable(item.clone(), amount);
     }
 
     public SkyBlockItem toSkyBlockItem() {
-        item.setAmount(amount);
-        return item;
+        SkyBlockItem copy = item.clone();
+        copy.setAmount(amount);
+        return copy;
     }
 
     public boolean matchesType(SkyBlockItem item) {

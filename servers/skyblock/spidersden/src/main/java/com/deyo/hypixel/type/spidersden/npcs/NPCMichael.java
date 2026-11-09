@@ -2,6 +2,7 @@ package com.deyo.hypixel.type.spidersden.npcs;
 
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.coordinate.Pos;
+import com.deyo.hypixel.type.generic.data.datapoints.DatapointToggles;
 import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
 import com.deyo.hypixel.type.generic.entity.npc.NPCOption;
 import com.deyo.hypixel.type.generic.entity.npc.configuration.HumanConfiguration;
@@ -57,9 +58,10 @@ public class NPCMichael extends HypixelNPC {
                             false,
                             "No, I am verry silly",
                             (p) -> {
-                                setDialogue(player, "selected-dont-know-mob-types").thenRun(() -> {
-                                    setDialogue(player, "explaining-mob-types");
-                                });
+                                setDialogue(player, "selected-dont-know-mob-types").thenRun(() ->
+                                        setDialogue(player, "explaining-mob-types").thenRun(() ->
+                                                player.getToggles().set(
+                                                        DatapointToggles.Toggles.ToggleType.HAS_SPOKEN_TO_MICHAEL, true)));
                             }
                     ),
                     new NPCOption.Option(
@@ -68,9 +70,10 @@ public class NPCMichael extends HypixelNPC {
                             false,
                             "Yes, I am very smart",
                             (p) -> {
-                                setDialogue(player, "selected-know-mob-types").thenRun(() -> {
-                                    setDialogue(player, "explaining-mob-types");
-                                });
+                                setDialogue(player, "selected-know-mob-types").thenRun(() ->
+                                        setDialogue(player, "explaining-mob-types").thenRun(() ->
+                                                player.getToggles().set(
+                                                        DatapointToggles.Toggles.ToggleType.HAS_SPOKEN_TO_MICHAEL, true)));
                             }
                     )
             ));

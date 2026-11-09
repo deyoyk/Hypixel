@@ -17,12 +17,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Getter
 @Setter
 public class SkyBlockRegion {
-    private static final Map<String, SkyBlockRegion> REGION_CACHE = new HashMap<>();
+    private static final Map<String, SkyBlockRegion> REGION_CACHE = new ConcurrentHashMap<>();
+    private static volatile List<SkyBlockRegion> regionList = List.of();
 
     private final String name;
     private Pos firstLocation;
@@ -36,25 +38,31 @@ public class SkyBlockRegion {
         this.secondLocation = secondLocation;
         this.type = type;
         this.serverType = serverType;
+        invalidateBounds();
+    }
+
+    public void setFirstLocation(Pos firstLocation) {
+        this.firstLocation = firstLocation;
+        invalidateBounds();
+    }
+
+    public void setSecondLocation(Pos secondLocation) {
+        this.secondLocation = secondLocation;
+        invalidateBounds();
     }
 
     public void save() {
         RegionCatalog.save(this);
         REGION_CACHE.put(name, this);
+        regionList = List.copyOf(REGION_CACHE.values());
     }
 
     public Pos getRandomPosition() {
-        List<Integer> bounds = getBounds();
+        ensureBounds();
 
-        int xMin = bounds.get(0), xMax = bounds.get(1);
-        int yMin = bounds.get(2), yMax = bounds.get(3);
-        int zMin = bounds.get(4), zMax = bounds.get(5);
-
-        Random random = new Random();
-
-        int x = xMax > xMin ? random.nextInt(xMax - xMin) + xMin : xMin;
-        int y = yMax > yMin ? random.nextInt(yMax - yMin) + yMin : yMin;
-        int z = zMax > zMin ? random.nextInt(zMax - zMin) + zMin : zMin;
+        int x = maxX >= minX ? ThreadLocalRandom.current().nextInt(minX, maxX + 1) : minX;
+        int y = maxY >= minY ? ThreadLocalRandom.current().nextInt(minY, maxY + 1) : minY;
+        int z = maxZ >= minZ ? ThreadLocalRandom.current().nextInt(minZ, maxZ + 1) : minZ;
 
         return new Pos(x, y, z);
     }
@@ -92,10 +100,11 @@ public class SkyBlockRegion {
     public void delete() {
         REGION_CACHE.remove(name);
         RegionCatalog.delete(name);
+        regionList = List.copyOf(REGION_CACHE.values());
     }
 
     public static List<SkyBlockRegion> getRegions() {
-        return new ArrayList<>(REGION_CACHE.values());
+        return regionList;
     }
 
     public static SkyBlockRegion getFromID(String id) {
@@ -124,36 +133,66 @@ public class SkyBlockRegion {
     }
 
     public static SkyBlockRegion getRandomRegionOfType(RegionType type) {
-        List<SkyBlockRegion> regions = new ArrayList<>();
-        for (SkyBlockRegion region : getRegions()) {
-            if (region.getType() == type)
-                regions.add(region);
+        SkyBlockRegion selected = null;
+        int matching = 0;
+        for (SkyBlockRegion region : regionList) {
+            if (region.getType() != type) continue;
+            matching++;
+            if (Math.random() * matching < 1) {
+                selected = region;
+            }
         }
-        if (regions.isEmpty()) return null;
-        double random = Math.random();
-        int index = (int) (random * regions.size());
-        return regions.get(index);
+        return selected;
     }
 
+    private int minX, maxX, minY, maxY, minZ, maxZ;
     private long cachedVolume = -1;
+    private boolean boundsCached;
+
+    private void invalidateBounds() {
+        boundsCached = false;
+        cachedVolume = -1;
+    }
+
+    private void ensureBounds() {
+        if (boundsCached) {
+            return;
+        }
+        boundsCached = true;
+
+        if (firstLocation == null || secondLocation == null) {
+            cachedVolume = 0;
+            return;
+        }
+
+        minX = Math.min(firstLocation.blockX(), secondLocation.blockX());
+        maxX = Math.max(firstLocation.blockX(), secondLocation.blockX());
+        minY = Math.min(firstLocation.blockY(), secondLocation.blockY());
+        maxY = Math.max(firstLocation.blockY(), secondLocation.blockY());
+        minZ = Math.min(firstLocation.blockZ(), secondLocation.blockZ());
+        maxZ = Math.max(firstLocation.blockZ(), secondLocation.blockZ());
+
+        long x = (long) maxX - minX + 1;
+        long y = (long) maxY - minY + 1;
+        long z = (long) maxZ - minZ + 1;
+        cachedVolume = x * y * z;
+    }
 
     public long getVolume() {
-        if (cachedVolume == -1) {
-            List<Integer> bounds = getBounds();
-            long x = (long) bounds.get(1) - bounds.get(0) + 1;
-            long y = (long) bounds.get(3) - bounds.get(2) + 1;
-            long z = (long) bounds.get(5) - bounds.get(4) + 1;
-            cachedVolume = x * y * z;
-        }
+        ensureBounds();
         return cachedVolume;
     }
 
     public static SkyBlockRegion getRegionOfPosition(Pos position) {
+        return getRegionOfPosition(position.x(), position.y(), position.z());
+    }
+
+    public static SkyBlockRegion getRegionOfPosition(double x, double y, double z) {
         SkyBlockRegion smallest = null;
         long smallestVolume = Long.MAX_VALUE;
 
-        for (SkyBlockRegion region : getRegions()) {
-            if (!region.insideRegion(position))
+        for (SkyBlockRegion region : regionList) {
+            if (!region.insideRegion(x, y, z))
                 continue;
 
             long volume = region.getVolume();
@@ -171,25 +210,23 @@ public class SkyBlockRegion {
     }
 
     public boolean insideRegion(Pos location) {
-        List<Integer> bounds = getBounds();
-        double x = location.x();
-        double y = location.y();
-        double z = location.z();
-        if (firstLocation == null)
+        return insideRegion(location.x(), location.y(), location.z());
+    }
+
+    public boolean insideRegion(double x, double y, double z) {
+        if (firstLocation == null || secondLocation == null)
             return false;
-        return x >= (double) bounds.get(0) && x <= (double) bounds.get(1) &&
-            y >= (double) bounds.get(2) && y <= (double) bounds.get(3) &&
-            z >= (double) bounds.get(4) && z <= (double) bounds.get(5);
+
+        ensureBounds();
+
+        return x >= minX && x <= maxX &&
+            y >= minY && y <= maxY &&
+            z >= minZ && z <= maxZ;
     }
 
     public List<Integer> getBounds() {
-        int sx = Math.min(firstLocation.blockX(), secondLocation.blockX()),
-            ex = Math.max(firstLocation.blockX(), secondLocation.blockX()),
-            sy = Math.min(firstLocation.blockY(), secondLocation.blockY()),
-            ey = Math.max(firstLocation.blockY(), secondLocation.blockY()),
-            sz = Math.min(firstLocation.blockZ(), secondLocation.blockZ()),
-            ez = Math.max(firstLocation.blockZ(), secondLocation.blockZ());
-        return Arrays.asList(sx, ex, sy, ey, sz, ez);
+        ensureBounds();
+        return Arrays.asList(minX, maxX, minY, maxY, minZ, maxZ);
     }
 
     public static void cacheRegions() {
@@ -209,6 +246,7 @@ public class SkyBlockRegion {
             new Pos(0, 0, 0),
             RegionType.PRIVATE_ISLAND,
             ServerType.SKYBLOCK_ISLAND));
+        regionList = List.copyOf(REGION_CACHE.values());
     }
 
     public static SkyBlockRegion getIslandRegion() {

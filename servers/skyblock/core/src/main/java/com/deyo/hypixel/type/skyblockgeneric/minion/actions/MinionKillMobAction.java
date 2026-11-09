@@ -1,6 +1,5 @@
 package com.deyo.hypixel.type.skyblockgeneric.minion.actions;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.damage.Damage;
@@ -21,12 +20,23 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
-@AllArgsConstructor
 @Getter
 public class MinionKillMobAction extends MinionAction {
+    private static final Map<Class<?>, SkyBlockLootTable> LOOT_TABLES = new ConcurrentHashMap<>();
     private final Supplier<SkyBlockMob> mobSupplier;
+    private final Class<? extends SkyBlockMob> mobClass;
+
+    public MinionKillMobAction(Supplier<SkyBlockMob> mobSupplier) {
+        this(mobSupplier.get().getClass(), mobSupplier);
+    }
+
+    public MinionKillMobAction(Class<? extends SkyBlockMob> mobClass, Supplier<SkyBlockMob> mobSupplier) {
+        this.mobClass = mobClass;
+        this.mobSupplier = mobSupplier;
+    }
 
     @Override
     public @NotNull List<SkyBlockItem> onAction(MinionActionEvent event, IslandMinionData.IslandMinion minion, Instance island) {
@@ -49,11 +59,11 @@ public class MinionKillMobAction extends MinionAction {
 
         List<SkyBlockMob> mobs = new ArrayList<>();
         for (Pos pos : verticalCheckPositions) {
-            mobs.addAll(SkyBlockMob.getMobFromFuzzyPosition(pos));
+            mobs.addAll(SkyBlockMob.getMobFromFuzzyPosition(island, pos));
         }
 
         for (SkyBlockMob mob : mobs) {
-            if (mob.getClass() == mobSupplier.get().getClass()) {
+            if (mob.getClass() == mobClass) {
                 event.setToLook(mob.getPosition());
 
                 event.setAction(() -> {
@@ -105,9 +115,12 @@ public class MinionKillMobAction extends MinionAction {
 
     @Override
     public boolean checkMaterials(IslandMinionData.IslandMinion minion, Instance island) {
-        SkyBlockMob toKill = this.mobSupplier.get();
-        if (toKill.getLootTable() == null) throw new RuntimeException("Mob has no loot table");
-        List<ItemType> lootTableItems = toKill.getLootTable().getLootTableItems();
+        SkyBlockLootTable lootTable = LOOT_TABLES.computeIfAbsent(mobClass, ignored -> {
+            SkyBlockLootTable table = mobSupplier.get().getLootTable();
+            if (table == null) throw new RuntimeException("Mob has no loot table");
+            return table;
+        });
+        List<ItemType> lootTableItems = lootTable.getLootTableItems();
         List<ItemQuantifiable> itemsInMinion = minion.getItemsInMinion();
 
         if (itemsInMinion.stream().noneMatch(item -> {

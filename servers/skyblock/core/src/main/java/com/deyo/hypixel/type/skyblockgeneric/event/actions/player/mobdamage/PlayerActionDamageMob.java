@@ -10,6 +10,7 @@ import com.deyo.hypixel.type.generic.event.EventNodes;
 import com.deyo.hypixel.type.generic.event.HypixelEventClass;
 import com.deyo.hypixel.type.generic.event.phase.EventPhase;
 import com.deyo.hypixel.type.generic.event.phase.PhasedEvent;
+import com.deyo.hypixel.type.generic.utility.CooldownTracker;
 import com.deyo.hypixel.type.generic.utility.MathUtility;
 import com.deyo.hypixel.type.skyblockgeneric.enchantment.SkyBlockEnchantment;
 import com.deyo.hypixel.type.skyblockgeneric.enchantment.abstr.DamageEventEnchant;
@@ -23,12 +24,15 @@ import com.deyo.hypixel.type.skyblockgeneric.item.updater.PlayerItemOrigin;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 import com.deyo.hypixel.type.skyblockgeneric.utility.AttackService;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 public class PlayerActionDamageMob implements HypixelEventClass {
-    private static final Map<UUID, Long> COOLDOWN = new HashMap<>();
+    private static final CooldownTracker COOLDOWN = new CooldownTracker();
+
+    public static void clearCooldown(UUID playerId) {
+        COOLDOWN.clear(playerId);
+    }
 
     @PhasedEvent(node = EventNodes.ALL, requireDataLoaded = false, phase = EventPhase.GAMEPLAY)
     public void run(EntityAttackEvent event) {
@@ -56,10 +60,9 @@ public class PlayerActionDamageMob implements HypixelEventClass {
                 (SkyBlockPlayer) event.getEntity(), (float) damage, mob);
         SkyBlockValueEvent.callValueUpdateEvent(valueEvent);
 
-        if (COOLDOWN.containsKey(player.getUuid()) && System.currentTimeMillis() < COOLDOWN.get(player.getUuid()))
-                return;
-        COOLDOWN.put(player.getUuid(), System.currentTimeMillis() +
-                MathUtility.ticksToMilliseconds(player.getStatistics().getInvulnerabilityTime()));
+        if (!COOLDOWN.tryUse(player.getUuid(),
+                MathUtility.ticksToMilliseconds(player.getStatistics().getInvulnerabilityTime())))
+            return;
 
         float damageAmount = ((Number) valueEvent.getValue()).floatValue();
         if (!AttackService.applyHit(player, mob, damageAmount, critical)) return;

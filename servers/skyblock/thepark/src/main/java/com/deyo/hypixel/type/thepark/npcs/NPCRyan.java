@@ -13,14 +13,14 @@ import com.deyo.hypixel.type.skyblockgeneric.mission.MissionData;
 import com.deyo.hypixel.type.skyblockgeneric.mission.missions.thepark.darkthicket.*;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class NPCRyan extends HypixelNPC {
 
-	public static final Map<UUID, Boolean> hasInteractedMap = new HashMap<>();
+	public static final Map<UUID, Boolean> hasInteractedMap = new ConcurrentHashMap<>();
 
 	public NPCRyan() {
 		super(new HumanConfiguration() {

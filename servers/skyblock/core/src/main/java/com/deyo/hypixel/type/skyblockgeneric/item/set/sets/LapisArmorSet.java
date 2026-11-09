@@ -24,7 +24,6 @@ public class LapisArmorSet implements ArmorSet, SetEvents, MuseumableSet {
 
 	@Override
 	public void setPutOn(SkyBlockPlayer player) {
-		// TODO: Implement Exp boost when mining
 	}
 
 	@Override

@@ -661,6 +661,10 @@ public class SkyBlockDataHandler extends DataHandler {
             for (Data data : values()) if (data.getKey().equals(key)) return data;
             return null;
         }
+
+        static final List<Data> REPEAT_SET_VALUE = Arrays.stream(values())
+                .filter(data -> data.repeatSetValue)
+                .toList();
     }
 
     public static void startRepeatSetValueLoop() {
@@ -668,8 +672,7 @@ public class SkyBlockDataHandler extends DataHandler {
             SkyBlockGenericLoader.getLoadedPlayers().forEach(player -> {
                 SkyBlockDataHandler h = PlayerDataService.find(SkyBlockDomain.KEY, player.getUuid()).orElse(null);
                 if (h == null) return;
-                for (Data data : Data.values()) {
-                    if (!data.repeatSetValue) continue;
+                for (Data data : Data.REPEAT_SET_VALUE) {
                     try {
                         Datapoint<?> dp = h.get(data);
                         @SuppressWarnings("unchecked")

@@ -114,10 +114,12 @@ public class ElectionData {
             candidate.setMayorName(mayor.name());
             candidate.setIndex(selected.indexOf(mayor));
 
+            List<String> perkPool = perkNames(mayor);
+            candidate.setPerkPool(perkPool);
+
             List<String> perks = candidateActivePerks.get(mayor.name());
             if (perks == null || perks.isEmpty()) {
-                SkyBlockMayor.Perk[] allPerks = mayor.getAllPerks();
-                candidate.setActivePerks(List.of(allPerks[ThreadLocalRandom.current().nextInt(allPerks.length)].name()));
+                candidate.setActivePerks(List.of(perkPool.get(ThreadLocalRandom.current().nextInt(perkPool.size()))));
             } else {
                 candidate.setActivePerks(new ArrayList<>(perks));
             }
@@ -132,7 +134,8 @@ public class ElectionData {
             CandidateData candidate = new CandidateData();
             candidate.setMayorName(specialCandidate.name());
             candidate.setIndex(candidates.size());
-            candidate.setActivePerks(Arrays.stream(specialCandidate.getAllPerks()).map(Enum::name).toList());
+            candidate.setPerkPool(perkNames(specialCandidate));
+            candidate.setActivePerks(new ArrayList<>(candidate.getPerkPool()));
             candidates.add(candidate);
         }
 
@@ -148,7 +151,8 @@ public class ElectionData {
                 CandidateData diazCandidate = new CandidateData();
                 diazCandidate.setMayorName(SkyBlockMayor.DIAZ.name());
                 diazCandidate.setIndex(candidates.size());
-                diazCandidate.setActivePerks(Arrays.stream(SkyBlockMayor.DIAZ.getAllPerks()).map(Enum::name).toList());
+                diazCandidate.setPerkPool(perkNames(SkyBlockMayor.DIAZ));
+                diazCandidate.setActivePerks(new ArrayList<>(diazCandidate.getPerkPool()));
                 candidates.add(diazCandidate);
             }
         }
@@ -158,6 +162,10 @@ public class ElectionData {
         Integer lastYear = lastElectedYear.get(mayorName);
         if (lastYear == null) return -1;
         return currentYear - lastYear;
+    }
+
+    private static List<String> perkNames(SkyBlockMayor mayor) {
+        return Arrays.stream(mayor.getAllPerks()).map(Enum::name).toList();
     }
 
     public static TextColor colorForIndex(int index) {
@@ -178,6 +186,7 @@ public class ElectionData {
         private int index;
         private String mayorName;
         private List<String> activePerks = new ArrayList<>();
+        private List<String> perkPool = new ArrayList<>();
 
         public CandidateData() {}
 

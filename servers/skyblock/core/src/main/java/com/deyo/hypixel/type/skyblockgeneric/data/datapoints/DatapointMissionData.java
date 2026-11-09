@@ -35,6 +35,6 @@ public class DatapointMissionData extends SkyBlockDatapoint<MissionData> {
     }
 
     public DatapointMissionData(String key) {
-        super(key, null, serializer);
+        super(key, new MissionData(), serializer);
     }
 }

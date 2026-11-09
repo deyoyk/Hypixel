@@ -30,6 +30,7 @@ import com.deyo.hypixel.type.skyblockgeneric.region.SkyBlockRegion;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -43,10 +44,21 @@ public class SkyBlockScoreboard {
         Scheduler scheduler = MinecraftServer.getSchedulerManager();
 
         scheduler.submitTask(() -> {
-            skyblockName++;
-            if (skyblockName > 50) {
-                skyblockName = 0;
-            }
+            skyblockName = (skyblockName + 1) % 51;
+
+            String date = DATE_FORMAT.format(LocalDateTime.now(ZoneId.systemDefault()));
+            String serverName = HypixelConst.getServerName();
+            String calendarMonthName = SkyBlockCalendar.getMonthName();
+            String calendarDay = StringUtility.ntify(SkyBlockCalendar.getDay());
+            Text calendarTime = SkyBlockCalendar.getDisplay(SkyBlockCalendar.getElapsed());
+            int calendarYear = SkyBlockCalendar.getYear();
+            Map<String, Long> totalVotes = ElectionManager.getElectionData().tallyVotes();
+            long maxVotes = totalVotes.values().stream().mapToLong(Long::longValue).max().orElse(1);
+            var candidates = ElectionManager.getElectionData().getCandidates();
+            DarkAuctionHandler.DarkAuctionLocalState auctionState = DarkAuctionHandler.getLocalState();
+            Text auctionItemDisplay = auctionState != null
+                ? getAuctionItemDisplay(auctionState.getCurrentItemType())
+                : null;
 
             for (SkyBlockPlayer player : SkyBlockGenericLoader.getLoadedPlayers()) {
                 Locale l = player.getLocale();
@@ -59,26 +71,21 @@ public class SkyBlockScoreboard {
                 }
 
                 TextBody body = new TextBody();
-                body.section("date").line(Text.key("scoreboard.common.date_line",
-                    DATE_FORMAT.format(LocalDateTime.now(ZoneId.systemDefault())),
-                    HypixelConst.getServerName()));
+                body.section("date").line(Text.key("scoreboard.common.date_line", date, serverName));
 
                 TextBody.Section location = body.section("location");
                 location.line(BLANK);
-                location.line(Text.key("scoreboard.skyblock.calendar_date_line",
-                    SkyBlockCalendar.getMonthName(),
-                    StringUtility.ntify(SkyBlockCalendar.getDay())));
-                location.line(Text.key("scoreboard.skyblock.calendar_time_line",
-                    SkyBlockCalendar.getDisplay(SkyBlockCalendar.getElapsed())));
-                try {
-                    RegionType type = region.getType();
+                location.line(Text.key("scoreboard.skyblock.calendar_date_line", calendarMonthName, calendarDay));
+                location.line(Text.key("scoreboard.skyblock.calendar_time_line", calendarTime));
+                RegionType type = region != null ? region.getType() : null;
+                if (type != null) {
                     String name = type.getName();
                     if (type == RegionType.PLAYER_MUSEUM) {
                         name = name.formatted(player.getUsername());
                     }
                     location.line(Text.key("scoreboard.skyblock.region_line",
                         Text.of("<color:{}>{}", type.getColor(), name)));
-                } catch (NullPointerException ignored) {
+                } else {
                     location.line(" {}", Text.key("scoreboard.skyblock.region_unknown"));
                 }
 
@@ -88,10 +95,8 @@ public class SkyBlockScoreboard {
                 if (electionRoom) {
                     election.line(BLANK);
                     election.line(Text.key("scoreboard.skyblock.election_votes_title",
-                        SkyBlockCalendar.getYear()));
-                    Map<String, Long> totalVotes = ElectionManager.getElectionData().tallyVotes();
-                    long maxVotes = totalVotes.values().stream().mapToLong(Long::longValue).max().orElse(1);
-                    ElectionManager.getElectionData().getCandidates().forEach(candidate -> {
+                        calendarYear));
+                    candidates.forEach(candidate -> {
                         long votes = totalVotes.getOrDefault(candidate.getMayorName(), 0L);
                         int barLength = maxVotes > 0 ? (int) Math.round((votes * 15.0) / maxVotes) : 0;
                         Text bars = Text.of("<color:{0}>{1}", candidate.getColor(), "|".repeat(barLength))
@@ -117,44 +122,37 @@ public class SkyBlockScoreboard {
                     }
                 }
 
+                DarkAuctionHandler.DarkAuctionLocalState currentAuctionState = DarkAuctionHandler.getLocalState();
                 boolean darkAuction = !electionRoom
+                    && currentAuctionState != null
                     && DarkAuctionHandler.isPlayerInAuction(player.getUuid())
-                    && DarkAuctionHandler.getLocalState() != null
-                    && DarkAuctionHandler.getLocalState().getPhase() == DarkAuctionPhase.BIDDING;
+                    && currentAuctionState.getPhase() == DarkAuctionPhase.BIDDING;
                 TextBody.Section auction = body.section("dark_auction").when(() -> darkAuction);
                 if (darkAuction) {
                     auction.line("<8> ");
-                    DarkAuctionHandler.DarkAuctionLocalState auctionState = DarkAuctionHandler.getLocalState();
                     int timeRemaining = DarkAuctionHandler.getTimeLeft().get();
 
                     auction.line(Text.key("scoreboard.skyblock.dark_auction.time_left_line",
                         timeRemaining));
                     auction.line(Text.key("scoreboard.skyblock.dark_auction.current_item_label"));
 
-                    String currentItem = auctionState.getCurrentItemType();
-                    if (currentItem != null) {
-                        try {
-                            ItemType itemType = ItemType.valueOf(currentItem);
-                            SkyBlockItem item = new SkyBlockItem(itemType);
-                            auction.line(" {}",
-                                Text.key("scoreboard.skyblock.dark_auction.current_item_line",
-                                    item.getDisplayName()));
-                        } catch (Exception e) {
-                            auction.line(" {}",
-                                Text.key("scoreboard.skyblock.dark_auction.current_item_line",
-                                    currentItem.replace("_", " ")));
-                        }
+                    if (auctionItemDisplay != null) {
+                        auction.line(" {}",
+                            Text.key("scoreboard.skyblock.dark_auction.current_item_line",
+                                auctionItemDisplay));
                     } else {
                         auction.line(" {}", Text.key("scoreboard.skyblock.dark_auction.waiting"));
                     }
                 }
 
-                boolean objective = !electionRoom && !darkAuction && region != null
-                    && !missionData.getActiveMissions(region.getType()).isEmpty();
+                List<MissionData.ActiveMission> activeMissions = region != null
+                    ? missionData.getActiveMissions(region.getType())
+                    : List.of();
+                boolean objective = !electionRoom && !darkAuction && !activeMissions.isEmpty();
                 TextBody.Section objectives = body.section("objective").when(() -> objective);
                 if (objective) {
                     objectives.line(BLANK);
-                    MissionData.ActiveMission mission = missionData.getActiveMissions(region.getType()).getFirst();
+                    MissionData.ActiveMission mission = activeMissions.getFirst();
                     SkyBlockMission skyBlockMission = MissionData.getMissionClass(mission.getMissionID());
 
                     if (skyBlockMission instanceof LocationAssociatedMission locationAssociatedMission) {
@@ -185,6 +183,18 @@ public class SkyBlockScoreboard {
 
     public static void removeCache(Player player) {
         scoreboard.removeScoreboard(player);
+    }
+
+    static Text getAuctionItemDisplay(String currentItem) {
+        if (currentItem == null) {
+            return null;
+        }
+
+        try {
+            return new SkyBlockItem(ItemType.valueOf(currentItem)).getDisplayNameText();
+        } catch (RuntimeException exception) {
+            return Text.of(currentItem.replace("_", " "));
+        }
     }
 
     private static Text getSidebarName(int counter, boolean isGuest, Locale locale) {

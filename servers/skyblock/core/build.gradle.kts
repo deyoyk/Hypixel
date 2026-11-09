@@ -80,11 +80,11 @@ dependencies {
 
 tasks.processResources {
 
-    from(rootProject.file("configuration/skyblock/Minestom.fairysouls.yml"))
+    from(rootProject.file("config/game/skyblock/Minestom.fairysouls.yml"))
 
-    from(rootProject.file("configuration/skyblock/Minestom.regions.yml"))
+    from(rootProject.file("config/game/skyblock/Minestom.regions.yml"))
 
-    from(rootProject.file("configuration/skyblock/Minestom.crystals.yml"))
+    from(rootProject.file("config/game/skyblock/Minestom.crystals.yml"))
 
 }
 

@@ -17,20 +17,19 @@ import com.deyo.hypixel.type.skyblockgeneric.mission.missions.thepark.darkthicke
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TrialOfFire {
 
-	private static final Map<UUID, Integer> competingPlayers = new HashMap<>();
+	private static final Map<UUID, Integer> competingPlayers = new ConcurrentHashMap<>();
 
 	public static void init() {
 		MinecraftServer.getSchedulerManager().scheduleTask(() -> {
 			for (SkyBlockPlayer player : SkyBlockGenericLoader.getLoadedPlayers()) {
 				if (!player.getMissionData().isCurrentlyActive(MissionCompleteTrialOfFireOne.class)) {
-					return;
+					continue;
 				}
 
 				Block block = player.getInstance().getBlock(player.getPosition().sub(0, 0.3, 0));
@@ -48,26 +47,21 @@ public class TrialOfFire {
 
 		SkyBlockDataHandler dataHandler = player.getSkyblockDataHandler();
 		int level = dataHandler.get(SkyBlockDataHandler.Data.TRIAL_OF_FIRE_LEVEL, DatapointInteger.class).getValue();
-		Trial trial = Arrays.stream(Trial.values())
-				.filter(t -> (t.ordinal() + 1) == (level + 1))
-				.findFirst()
-				.orElse(null);
+		Trial[] trials = Trial.values();
+		Trial trial = level >= 0 && level < trials.length ? trials[level] : null;
 
 		if (trial == null) {
 			sendMessage(player, "<c>You have already completed the <6>Trial of Fire<f>!");
 			return;
 		}
 
-		// TODO: remove this
-		if (trial == Trial.II) {
-			sendMessage(player, "<c>Trials are not finished.");
-			player.notImplemented();
-			return;
-		}
-
 		competingPlayers.put(player.getUuid(), 0);
 		MinecraftServer.getSchedulerManager().submitTask(() -> {
-			int iterations = competingPlayers.get(player.getUuid());
+			Integer iterations = competingPlayers.get(player.getUuid());
+			if (iterations == null || !player.isOnline()) {
+				competingPlayers.remove(player.getUuid());
+				return TaskSchedule.stop();
+			}
 			if (iterations == 0) {
 				sendMessage(player, "Started <6>Trial of Fire<f>!");
 			}

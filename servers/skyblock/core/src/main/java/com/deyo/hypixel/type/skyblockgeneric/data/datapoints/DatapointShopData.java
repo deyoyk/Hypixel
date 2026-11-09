@@ -12,6 +12,6 @@ public class DatapointShopData extends SkyBlockDatapoint<PlayerShopData> {
     }
 
     public DatapointShopData(String key) {
-        super(key, null, serializer);
+        super(key, new PlayerShopData(), serializer);
     }
 }

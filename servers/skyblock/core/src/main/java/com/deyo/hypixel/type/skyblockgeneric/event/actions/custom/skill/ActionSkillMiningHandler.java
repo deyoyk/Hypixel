@@ -8,6 +8,7 @@ import com.deyo.hypixel.type.skyblockgeneric.data.datapoints.DatapointSkills;
 import com.deyo.hypixel.type.skyblockgeneric.event.custom.CustomBlockBreakEvent;
 import com.deyo.hypixel.type.skyblockgeneric.item.SkyBlockItem;
 import com.deyo.hypixel.type.skyblockgeneric.item.components.SkillableMineComponent;
+import com.deyo.hypixel.type.skyblockgeneric.item.set.ArmorSetRegistry;
 import com.deyo.hypixel.type.skyblockgeneric.skill.SkillCategories;
 
 public class ActionSkillMiningHandler implements HypixelEventClass {
@@ -24,6 +25,14 @@ public class ActionSkillMiningHandler implements HypixelEventClass {
         SkillCategories skillCategory = skillableMine.getCategory();
         DatapointSkills.PlayerSkills skills = event.getPlayer().getSkills();
 
-        skills.increase(event.getPlayer(), skillCategory, skillableMine.getMiningValue());
+        boolean wearingLapisArmor = skillCategory == SkillCategories.MINING
+                && event.getPlayer().getArmorSet() == ArmorSetRegistry.LAPIS;
+        double experience = applyMiningExperienceBonus(skillableMine.getMiningValue(), wearingLapisArmor);
+
+        skills.increase(event.getPlayer(), skillCategory, experience);
+    }
+
+    static double applyMiningExperienceBonus(double experience, boolean wearingLapisArmor) {
+        return wearingLapisArmor ? experience * 1.5 : experience;
     }
 }

@@ -57,7 +57,8 @@ public class DatapointSkyBlockExperience extends SkyBlockDatapoint<DatapointSkyB
 
         @Override
         public PlayerSkyBlockExperience clone(PlayerSkyBlockExperience value) {
-            return new PlayerSkyBlockExperience(value.getCompletedExperienceCauses(), value.getCurrentEmblem());
+            return new PlayerSkyBlockExperience(
+                    new ArrayList<>(value.getCompletedExperienceCauses()), value.getCurrentEmblem());
         }
     };
 

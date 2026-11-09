@@ -2,6 +2,7 @@ package com.deyo.hypixel.type.skyblockgeneric.event.actions.player;
 
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.EntityType;
@@ -9,6 +10,8 @@ import net.minestom.server.entity.LivingEntity;
 import net.minestom.server.event.player.PlayerMoveEvent;
 import net.minestom.server.network.packet.server.play.ParticlePacket;
 import net.minestom.server.particle.Particle;
+import net.minestom.server.timer.Task;
+import net.minestom.server.timer.TaskSchedule;
 import com.deyo.hypixel.commons.ServerType;
 import com.deyo.hypixel.commons.StringUtility;
 import com.deyo.hypixel.commons.UnderstandableProxyServer;
@@ -26,15 +29,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ActionPlayerLaunchPads implements HypixelEventClass {
     private static final int SEGMENTS = 30;
-    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private static final Set<UUID> notifiedPlayers = ConcurrentHashMap.newKeySet();
 
     @PhasedEvent(node = EventNodes.PLAYER, requireDataLoaded = true, isAsync = true, phase = EventPhase.GAMEPLAY)
@@ -97,6 +95,12 @@ public class ActionPlayerLaunchPads implements HypixelEventClass {
         }
 
         Pos originalPosition = player.getPosition();
+        List<Pos> curve = MathUtility.bezierCurve(player.getPosition(), pad.getDestination(), SEGMENTS);
+        MinecraftServer.getSchedulerManager().scheduleNextTick(
+                () -> startLaunch(player, pad, originalPosition, curve));
+    }
+
+    private void startLaunch(SkyBlockPlayer player, LaunchPads pad, Pos originalPosition, List<Pos> curve) {
         player.playSound(Sound.sound(Key.key("entity.firework_rocket.launch"), Sound.Source.PLAYER, 1, 1));
 
         LivingEntity armorStand = new LivingEntity(EntityType.ARMOR_STAND);
@@ -105,50 +109,37 @@ public class ActionPlayerLaunchPads implements HypixelEventClass {
         armorStand.setInstance(player.getInstance(), player.getPosition());
         armorStand.addPassenger(player);
 
-        List<Pos> curve = MathUtility.bezierCurve(player.getPosition(), pad.getDestination(), SEGMENTS);
         long timeToSleep = 3000 / SEGMENTS;
-
-        // Use ScheduledExecutorService to run the launch trajectory with delays
         AtomicInteger index = new AtomicInteger(0);
-        ScheduledFuture<?>[] taskHolder = new ScheduledFuture<?>[1];
-        taskHolder[0] = scheduler.scheduleAtFixedRate(() -> {
+        Task[] taskHolder = new Task[1];
+        taskHolder[0] = MinecraftServer.getSchedulerManager().buildTask(() -> {
             int currentIndex = index.getAndIncrement();
             if (currentIndex >= curve.size()) {
-                // Cancel the task
                 if (taskHolder[0] != null) {
-                    taskHolder[0].cancel(false);
+                    taskHolder[0].cancel();
                 }
 
                 player.setInLaunchpad(false);
                 notifiedPlayers.remove(player.getUuid());
-
-                // Execute the after finished callback
                 pad.getAfterFinished().accept(player);
 
-                // Check after a delay if player is still on this server (transfer failed)
                 if (pad.getServerType() != pad.getTargetServerType()) {
-                    scheduler.schedule(() -> {
-                        // If player is still on the same server and instance, teleport them back
+                    MinecraftServer.getSchedulerManager().buildTask(() -> {
                         if (player.getInstance() != null && player.getInstance().equals(armorStand.getInstance())) {
                             player.teleport(originalPosition);
                             player.sendMessage("<c>Failed to connect to the server. You have been teleported back.");
                         }
-                        try {
-                            armorStand.remove();
-                        } catch (Exception _) {
-                        }
-                    }, 2, TimeUnit.SECONDS);
+                        armorStand.remove();
+                    }).delay(TaskSchedule.seconds(2)).schedule();
                 } else {
                     armorStand.remove();
                 }
-
                 return;
             }
 
             Pos pos = curve.get(currentIndex);
-            Vec toGoTo = pos.asVec();
-            Vec direction = toGoTo.sub(player.getPosition().asVec()).normalize();
+            Vec direction = pos.asVec().sub(player.getPosition().asVec()).normalize();
             armorStand.setVelocity(direction.mul(50, 5, 50));
-        }, 0, timeToSleep, TimeUnit.MILLISECONDS);
+        }).repeat(TaskSchedule.millis(timeToSleep)).schedule();
     }
 }

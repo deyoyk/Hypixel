@@ -100,7 +100,7 @@ public final class AttributeEffectService {
 
     private static double familyMultiplier(DatapointHunting.HuntingData data, AttributeDefinition definition) {
         double multiplier = 1, echo = 1 + rawValue(data, "L6") / 100D;
-        if (definition.family() == AttributeFamily.ELEMENTAL && !definition.id().equals(AttributeId.parse("L44")))
+        if (definition.hasFamily(AttributeFamily.ELEMENTAL) && !definition.id().equals(AttributeId.parse("L44")))
             multiplier += rawValue(data, "L44") * echo / 100D;
         return multiplier;
     }

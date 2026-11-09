@@ -16,6 +16,7 @@ import com.deyo.hypixel.type.skyblockgeneric.abiphone.AbiphoneNPC;
 import com.deyo.hypixel.type.skyblockgeneric.abiphone.AbiphoneRegistry;
 import com.deyo.hypixel.type.skyblockgeneric.item.SkyBlockItem;
 
+import java.util.Comparator;
 import java.util.List;
 
 public final class AbiphoneView extends PaginatedView<AbiphoneNPC, AbiphoneView.State> {
@@ -82,6 +83,17 @@ public final class AbiphoneView extends PaginatedView<AbiphoneNPC, AbiphoneView.
     }
 
     @Override
+    protected List<AbiphoneNPC> getFilteredItems(State state) {
+        List<AbiphoneNPC> filtered = super.getFilteredItems(state);
+        if (state.sortType() != SortType.ALPHABETICAL) {
+            return filtered;
+        }
+        return filtered.stream()
+                .sorted(Comparator.comparing(npc -> npc.getName().plain(), String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    @Override
     protected void layoutCustom(ViewLayout<State> layout, State state, ViewContext ctx) {
         List<AbiphoneNPC> contacts = state.abiphone().getAttributeHandler().getAbiphoneNPCs();
         Components.close(layout, 49);
@@ -91,7 +103,9 @@ public final class AbiphoneView extends PaginatedView<AbiphoneNPC, AbiphoneView.
                 Text.key("gui_abiphone.sort_button"),
                 Text.keyLines("gui_abiphone.sort_button.lore")
         ), (click, viewCtx) -> {
-            // TODO: Implement sorting
+            SortType next = nextSortType(click.state().sortType());
+            viewCtx.session(State.class).update(current -> current.withSortType(next));
+            viewCtx.player().sendMessage(Text.of("<e>Sorting contacts: <a>{}", next.name()));
         });
 
         layout.slot(51, (s, c) -> ItemStacks.item(
@@ -101,9 +115,20 @@ public final class AbiphoneView extends PaginatedView<AbiphoneNPC, AbiphoneView.
                 Text.keyLines("gui_abiphone.contacts_directory.lore",
                         contacts.size(),
                         AbiphoneRegistry.getRegisteredContactNPCs().size())
-        ), (click, viewCtx) -> {
-            // TODO: Open contacts directory
-        });
+        ), (click, viewCtx) -> viewCtx.push(
+                new AbiphoneDirectoryView(),
+                new AbiphoneDirectoryView.State(
+                        click.state().abiphone(),
+                        List.copyOf(AbiphoneRegistry.getRegisteredContactNPCs()),
+                        0,
+                        ""
+                )
+        ));
+    }
+
+    static SortType nextSortType(SortType current) {
+        SortType[] values = SortType.values();
+        return values[(current.ordinal() + 1) % values.length];
     }
 
     @Override

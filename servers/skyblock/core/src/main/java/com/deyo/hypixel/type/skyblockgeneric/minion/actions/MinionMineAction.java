@@ -29,9 +29,9 @@ public class MinionMineAction extends MinionAction {
 
         boolean hasAir = minePositions.stream().anyMatch(pos -> island.getBlock(pos).air());
 
-        List<Pos> possiblePositions = MathUtility.getRangeExcludingSelf(
-                minion.getPosition().sub(0, 1, 0), 2 + minion.getBonusRange()
-        ).stream().filter(pos -> !hasAir || island.getBlock(pos).air()).toList();
+        List<Pos> possiblePositions = hasAir
+                ? minePositions.stream().filter(pos -> island.getBlock(pos).air()).toList()
+                : minePositions;
 
         event.setToLook(MathUtility.getRandomElement(possiblePositions));
 

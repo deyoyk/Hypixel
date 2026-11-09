@@ -25,11 +25,45 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MobRedstonePigman extends BestiaryMob implements RegionPopulator {
 
+	private static final long ORE_BREAKER_MEMORY_MS = 30_000;
+	private static final Map<UUID, Long> ORE_BREAKERS = new ConcurrentHashMap<>();
+
 	public MobRedstonePigman() {
 		super(EntityType.ZOMBIFIED_PIGLIN);
+	}
+
+	public static void markOreBreaker(UUID playerUuid) {
+		markOreBreaker(playerUuid, System.currentTimeMillis());
+	}
+
+	static void markOreBreaker(UUID playerUuid, long now) {
+		ORE_BREAKERS.put(playerUuid, now);
+	}
+
+	public static boolean isOreBreaker(UUID playerUuid) {
+		return isOreBreaker(playerUuid, System.currentTimeMillis());
+	}
+
+	static boolean isOreBreaker(UUID playerUuid, long now) {
+		Long brokenAt = ORE_BREAKERS.get(playerUuid);
+		if (brokenAt == null) {
+			return false;
+		}
+		if (now - brokenAt >= ORE_BREAKER_MEMORY_MS) {
+			ORE_BREAKERS.remove(playerUuid, brokenAt);
+			return false;
+		}
+		return true;
+	}
+
+	static void clearOreBreakers() {
+		ORE_BREAKERS.clear();
 	}
 
 	@Override
@@ -49,7 +83,7 @@ public class MobRedstonePigman extends BestiaryMob implements RegionPopulator {
 						1.6,
 						20,
 						TimeUnit.SERVER_TICK,
-						RegionType.LAPIS_QUARRY), // TODO: only attack target if they broke a redstone ore, or they attacked first
+						RegionType.PIGMENS_DEN),
 				new RandomRegionStrollGoal(this, 15, RegionType.PIGMENS_DEN)  // Walk around
 		);
 	}
@@ -60,8 +94,8 @@ public class MobRedstonePigman extends BestiaryMob implements RegionPopulator {
 				new LastEntityDamagerTarget(this, 12), // First target the last entity which attacked you
 				new ClosestEntityRegionTarget(this,
 						6,
-						entity -> entity instanceof SkyBlockPlayer,
-						RegionType.PIGMENS_DEN) // If there is none, target the nearest player
+						entity -> entity instanceof SkyBlockPlayer player && isOreBreaker(player.getUuid()),
+						RegionType.PIGMENS_DEN)
 		);
 	}
 

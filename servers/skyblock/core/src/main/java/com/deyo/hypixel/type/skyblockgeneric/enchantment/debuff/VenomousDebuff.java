@@ -4,6 +4,8 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.attribute.Attribute;
 import net.minestom.server.timer.TaskSchedule;
 import com.deyo.hypixel.type.skyblockgeneric.entity.mob.SkyBlockMob;
+import com.deyo.hypixel.type.skyblockgeneric.region.RegionType;
+import com.deyo.hypixel.type.skyblockgeneric.region.SkyBlockRegion;
 import com.deyo.hypixel.type.skyblockgeneric.utility.DamageIndicator;
 import net.minestom.server.entity.damage.Damage;
 import net.minestom.server.entity.damage.DamageType;
@@ -36,17 +38,25 @@ public class VenomousDebuff {
     }
 
     private static void applySpeedReduction(SkyBlockMob mob, int level) {
-        double speedReduction = SPEED_REDUCTION_PERCENTAGES[level - 1];
+        double originalSpeed = mobOriginalSpeeds.computeIfAbsent(mob.getUuid(),
+                ignored -> mob.getAttribute(Attribute.MOVEMENT_SPEED).getBaseValue());
+        boolean catacombs = isInCatacombs(mob);
 
-        // Apply Catacombs nerf (-80% effect in Catacombs)
-        // TODO: Check if in Catacombs and apply speedReduction *= 0.2;
+        mob.getAttribute(Attribute.MOVEMENT_SPEED)
+                .setBaseValue(reducedSpeed(originalSpeed, level, catacombs));
+    }
 
-        double originalSpeed = mob.getAttribute(Attribute.MOVEMENT_SPEED).getBaseValue();
-        double reducedSpeed = originalSpeed * (1.0 - speedReduction);
+    static double reducedSpeed(double originalSpeed, int level, boolean catacombs) {
+        double speedReduction = SPEED_REDUCTION_PERCENTAGES[Math.clamp(level, 1, 6) - 1];
+        if (catacombs) {
+            speedReduction *= 0.2;
+        }
+        return originalSpeed * (1.0 - speedReduction);
+    }
 
-        mob.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue(reducedSpeed);
-
-        mobOriginalSpeeds.put(mob.getUuid(), originalSpeed);
+    private static boolean isInCatacombs(SkyBlockMob mob) {
+        SkyBlockRegion region = SkyBlockRegion.getRegionOfEntity(mob);
+        return region != null && region.getType() == RegionType.CATACOMBS;
     }
 
     private static final Map<UUID, Double> mobOriginalSpeeds = new ConcurrentHashMap<>();
@@ -62,7 +72,6 @@ public class VenomousDebuff {
         private final SkyBlockPlayer player;
         private final SkyBlockMob mob;
         private final List<VenomStack> stacks = new ArrayList<>();
-        private boolean scheduledCleanup = false;
 
         public VenomousEffect(SkyBlockPlayer player, SkyBlockMob mob) {
             this.player = player;
@@ -70,15 +79,13 @@ public class VenomousDebuff {
         }
 
         public void addStack(double damageDealt, int level) {
-            if (stacks.size() < MAX_STACKS) {
-                VenomStack stack = new VenomStack(damageDealt, level, System.currentTimeMillis());
-                stacks.add(stack);
+            if (stacks.size() >= MAX_STACKS) return;
 
-                if (!scheduledCleanup) {
-                    scheduledCleanup = true;
-                    startDamageTicks();
-                    scheduleCleanup();
-                }
+            boolean wasEmpty = stacks.isEmpty();
+            stacks.add(new VenomStack(damageDealt, level, System.currentTimeMillis()));
+
+            if (wasEmpty) {
+                startDamageTicks();
             }
         }
 
@@ -89,6 +96,7 @@ public class VenomousDebuff {
         private void startDamageTicks() {
             MinecraftServer.getSchedulerManager().scheduleTask(() -> {
                 if (mob.isRemoved() || mob.isDead()) {
+                    cleanup();
                     return;
                 }
 
@@ -119,16 +127,14 @@ public class VenomousDebuff {
                 if (!stacks.isEmpty()) {
                     startDamageTicks();
                 } else {
-                    resetMobSpeed(mob);
+                    cleanup();
                 }
             }, TaskSchedule.seconds(1), TaskSchedule.stop());
         }
 
-        private void scheduleCleanup() {
-            MinecraftServer.getSchedulerManager().scheduleTask(() -> {
-                activeEffects.remove(mob.getUuid());
-                resetMobSpeed(mob);
-            }, TaskSchedule.seconds(DURATION_SECONDS), TaskSchedule.stop());
+        private void cleanup() {
+            activeEffects.remove(mob.getUuid(), this);
+            resetMobSpeed(mob);
         }
     }
 

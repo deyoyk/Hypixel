@@ -287,7 +287,7 @@ public class ChocolateFactoryHelper {
 
         DatapointChocolateFactory.ChocolateFactoryData data = player.getSkyblockDataHandler().get(SkyBlockDataHandler.Data.CHOCOLATE_FACTORY, DatapointChocolateFactory.class).getValue();
         DatapointChocolateFactory.EmployeeData prereqEmployee = data.getEmployees().get(EmployeeType.values()[employeeType.ordinal() - 1]);
-        return prereqEmployee != null && prereqEmployee.getLevel() >= 20;
+        return prereqEmployee != null && prereqEmployee.level() >= 20;
     }
 
     /**
@@ -332,7 +332,7 @@ public class ChocolateFactoryHelper {
 
         EmployeeType employeeType = getEmployeeType(employeeName);
         DatapointChocolateFactory.EmployeeData existing = data.getEmployees().get(employeeType);
-        int targetLevel = existing != null ? existing.getLevel() + 1 : 1;
+        int targetLevel = existing != null ? existing.level() + 1 : 1;
 
         // Check if employee is unlocked (prerequisite employee at level 20)
         if (!isEmployeeUnlocked(player, employeeName)) {

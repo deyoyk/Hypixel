@@ -37,6 +37,9 @@ public class RaceEvents implements HypixelEventClass {
 	@PhasedEvent(node = EventNodes.PLAYER, requireDataLoaded = false, phase = EventPhase.GAMEPLAY)
 	public void onPlayerDisconnect(PlayerDisconnectEvent event) {
 		SkyBlockPlayer player = (SkyBlockPlayer) event.getPlayer();
+		lastClickedTimes.remove(player.getUuid());
+		RaceManager.removePlayerHolograms(player.getUuid());
+
 		if (!(HypixelConst.getTypeLoader() instanceof RaceInstance raceInstance)) {
 			return;
 		}

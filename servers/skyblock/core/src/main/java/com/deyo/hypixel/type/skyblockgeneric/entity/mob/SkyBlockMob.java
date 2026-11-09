@@ -54,14 +54,20 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Setter
 public abstract class SkyBlockMob extends EntityCreature {
     @Getter
-    private static List<SkyBlockMob> mobs = new ArrayList<>();
+    private static final List<SkyBlockMob> mobs = new CopyOnWriteArrayList<>();
+    private static final Map<Instance, Map<Long, List<SkyBlockMob>>> mobsByInstance = new ConcurrentHashMap<>();
+    private Instance spatialInstance;
+    private long spatialChunkKey;
     @Getter
     private long lastAttack = System.currentTimeMillis();
     @Getter
@@ -73,31 +79,44 @@ public abstract class SkyBlockMob extends EntityCreature {
     // Fully self-contained vanilla navigator (own A* + own follow loop + vanilla physics). Every mob
     // movement goal paths through this instead of Minestom's Navigator.
     private final VanillaNavigator vanillaNavigator = new VanillaNavigator(this);
+    private final MobType primaryMobType;
 
     public VanillaNavigator getVanillaNavigator() {
         return vanillaNavigator;
     }
 
     public SkyBlockMob(EntityType entityType) {
+        this(entityType, MobType.UNDEAD);
+    }
+
+    public SkyBlockMob(EntityType entityType, MobType primaryMobType) {
         super(entityType);
+        this.primaryMobType = primaryMobType;
         init();
+    }
+
+    public List<MobType> getMobTypes() {
+        return List.of(primaryMobType);
     }
 
     private void init() {
         this.setCustomNameVisible(true);
 
+        ItemStatistics baseStatistics = getBaseStatistics();
+        double maxHealth = baseStatistics.getOverall(ItemStatistic.HEALTH);
+
         this.getAttribute(Attribute.MAX_HEALTH)
-                .setBaseValue(getBaseStatistics().getOverall(ItemStatistic.HEALTH).floatValue());
+                .setBaseValue((float) maxHealth);
         this.getAttribute(Attribute.MOVEMENT_SPEED)
-                .setBaseValue((float) ((getBaseStatistics().getOverall(ItemStatistic.SPEED).floatValue() / 1000) * 2.5));
-        this.setHealth(getBaseStatistics().getOverall(ItemStatistic.HEALTH).floatValue());
+                .setBaseValue((float) ((baseStatistics.getOverall(ItemStatistic.SPEED).floatValue() / 1000) * 2.5));
+        this.setHealth((float) maxHealth);
 
         this.customName = Text.of("<8>[<7>Lv{}<8>] <c>{}<c> {} <a>{}<f>/<a>{}",
                 getLevel(),
                 Text.parse(getMobTypes().getFirst().getColor() + getMobTypes().getFirst().getSymbol()),
                 getDisplayName(),
                 Math.round(getHealth()),
-                Math.round(getBaseStatistics().getOverall(ItemStatistic.HEALTH).floatValue())
+                Math.round(maxHealth)
         );
         this.set(DataComponents.CUSTOM_NAME, customName.asComponent());
         nameDisplayEntity = new TextDisplayEntity(customName, meta -> meta.setTranslation(new Pos(0, getNameDisplayHeightOffset(), 0)));
@@ -147,6 +166,7 @@ public abstract class SkyBlockMob extends EntityCreature {
     public void spawn() {
         super.spawn();
         mobs.add(this);
+        updateSpatialIndex();
         addPassenger(nameDisplayEntity);
         updateCustomName(customName);
         onSpawn();
@@ -173,7 +193,6 @@ public abstract class SkyBlockMob extends EntityCreature {
     public abstract SkillCategories getSkillCategory();
     public abstract long damageCooldown();
     public abstract OtherLoot getOtherLoot();
-    public abstract List<MobType> getMobTypes();
 
     /**
      * Whether this mob should collide with other mobs.
@@ -184,7 +203,7 @@ public abstract class SkyBlockMob extends EntityCreature {
     }
 
     public ItemStatistics getStatistics() {
-        ItemStatistics statistics = getBaseStatistics().clone();
+        ItemStatistics statistics = getBaseStatistics();
         ItemStatistics toSubtract = ItemStatistics.builder()
             .withBase(ItemStatistic.HEALTH, (double) getHealth())
             .build();
@@ -219,9 +238,11 @@ public abstract class SkyBlockMob extends EntityCreature {
     public void kill() {
         super.kill();
         mobs.remove(this);
+        unregisterSpatialIndex();
         nameDisplayEntity.remove();
 
-        if (!(getLastDamageSource().getAttacker() instanceof SkyBlockPlayer player)) return;
+        Damage lastDamage = getLastDamageSource();
+        if (lastDamage == null || !(lastDamage.getAttacker() instanceof SkyBlockPlayer player)) return;
 
         HypixelEventHandler.callCustomEvent(new PlayerKilledSkyBlockMobEvent(player, this));
 
@@ -229,8 +250,6 @@ public abstract class SkyBlockMob extends EntityCreature {
         player.playSound(Sound.sound(Key.key("entity." + getEntityType().name().toLowerCase().replace("minecraft:", "") + ".death"), Sound.Source.PLAYER, 1f, 1f), Sound.Emitter.self());
 
         if (getLootTable() == null) return;
-        if (getLastDamageSource() == null) return;
-        if (getLastDamageSource().getAttacker() == null) return;
 
         Map<ItemType, SkyBlockLootTable.LootRecord> drops = new HashMap<>();
 
@@ -296,32 +315,50 @@ public abstract class SkyBlockMob extends EntityCreature {
         scheduler.submitTask(() -> {
             if (SkyBlockGenericLoader.getLoadedPlayers().isEmpty()) return TaskSchedule.seconds(10);
 
-            MobRegistry.getMobsToRegionPopulate().forEach(mobRegistry -> {
+            List<MobRegistry> regionMobs = MobRegistry.getMobsToRegionPopulate();
+            Map<RegionType, Map<MobRegistry, Integer>> regionCounts = new HashMap<>();
+
+            for (MobRegistry mobRegistry : regionMobs) {
+                RegionPopulator regionPopulator = (RegionPopulator) mobRegistry.getMobCache();
+                for (RegionPopulator.Populator populator : regionPopulator.getPopulators()) {
+                    regionCounts.computeIfAbsent(populator.regionType(), SkyBlockMob::countMobsByRegistry);
+                }
+            }
+
+            for (MobRegistry mobRegistry : regionMobs) {
                 RegionPopulator regionPopulator = (RegionPopulator) mobRegistry.getMobCache();
 
-                regionPopulator.getPopulators().forEach(populator -> {
-                    RegionType regionType = populator.regionType();
+                for (RegionPopulator.Populator populator : regionPopulator.getPopulators()) {
                     int minimumAmountToPopulate = populator.minimumAmountToPopulate();
-
-                    int amountInRegion = 0;
-
-                    for (SkyBlockMob mob : SkyBlockRegion.getMobsInRegion(regionType)) {
-                        if (!MobRegistry.getFromMob(mob).equals(mobRegistry)) {
-                            continue;
-                        }
-
-                        amountInRegion++;
-                    }
+                    int amountInRegion = regionCounts.get(populator.regionType())
+                            .getOrDefault(mobRegistry, 0);
 
                     if (amountInRegion < minimumAmountToPopulate) {
                         for (int i = 0; i < minimumAmountToPopulate - amountInRegion; i++)
                             RegionPopulator.populateRegion(mobRegistry, populator);
                     }
-                });
-            });
+                }
+            }
 
             return TaskSchedule.seconds(5);
         });
+    }
+
+    static Map<MobRegistry, Integer> countMobsByRegistry(RegionType regionType) {
+        return countMobsByRegistry(SkyBlockRegion.getMobsInRegion(regionType));
+    }
+
+    static Map<MobRegistry, Integer> countMobsByRegistry(Collection<? extends SkyBlockMob> mobs) {
+        Map<MobRegistry, Integer> counts = new HashMap<>();
+
+        for (SkyBlockMob mob : mobs) {
+            MobRegistry registry = MobRegistry.getFromMob(mob);
+            if (registry != null) {
+                counts.merge(registry, 1, Integer::sum);
+            }
+        }
+
+        return counts;
     }
 
     @Override
@@ -333,8 +370,10 @@ public abstract class SkyBlockMob extends EntityCreature {
             return;
         }
 
+        updateSpatialIndex();
+
         if (!instance.isChunkLoaded(position)) {
-            instance.loadChunk(position).join();
+            return;
         }
 
         // Entity collision handling
@@ -352,41 +391,103 @@ public abstract class SkyBlockMob extends EntityCreature {
         }
     }
 
-    private void applyEntityCollision() {
-        for (SkyBlockMob other : mobs) {
-            if (other == this || !other.hasCollision()) continue;
-            if (other.getInstance() != getInstance()) continue;
+    private static long chunkKey(int chunkX, int chunkZ) {
+        return ((long) chunkX << 32) ^ (chunkZ & 0xffffffffL);
+    }
 
-            double dx = getPosition().x() - other.getPosition().x();
-            double dz = getPosition().z() - other.getPosition().z();
-            double distanceSquared = dx * dx + dz * dz;
+    private void updateSpatialIndex() {
+        Instance current = getInstance();
+        if (current == null) {
+            unregisterSpatialIndex();
+            return;
+        }
 
-            // Check if within collision range - using larger hitbox multiplier
-            double combinedWidth = (getBoundingBox().width() + other.getBoundingBox().width()) / 2;
-            double minDistance = combinedWidth * 1.5;
+        long key = chunkKey(getPosition().chunkX(), getPosition().chunkZ());
+        if (current == spatialInstance && key == spatialChunkKey) {
+            return;
+        }
 
-            if (distanceSquared < minDistance * minDistance && distanceSquared > 0.0001) {
-                double distance = Math.sqrt(distanceSquared);
-                double overlap = minDistance - distance;
+        unregisterSpatialIndex();
+        spatialInstance = current;
+        spatialChunkKey = key;
+        mobsByInstance
+                .computeIfAbsent(current, ignored -> new ConcurrentHashMap<>())
+                .computeIfAbsent(key, ignored -> new CopyOnWriteArrayList<>())
+                .add(this);
+    }
 
-                // Normalize direction
-                double nx = dx / distance;
-                double nz = dz / distance;
+    private void unregisterSpatialIndex() {
+        if (spatialInstance == null) {
+            return;
+        }
 
-                // Aggressive push to prevent overlap while in motion
-                double baseStrength = overlap * 1.2;
-
-                // Extra push if either entity is moving (prevents clipping during movement)
-                double thisSpeed = getVelocity().length();
-                double otherSpeed = other.getVelocity().length();
-                double motionMultiplier = 1.0 + Math.max(thisSpeed, otherSpeed) * 2.0;
-
-                double pushStrength = Math.min(baseStrength * motionMultiplier, 0.8);
-
-                // Apply velocity to both entities (equal and opposite)
-                setVelocity(getVelocity().add(nx * pushStrength, 0, nz * pushStrength));
-                other.setVelocity(other.getVelocity().add(-nx * pushStrength, 0, -nz * pushStrength));
+        Map<Long, List<SkyBlockMob>> buckets = mobsByInstance.get(spatialInstance);
+        if (buckets != null) {
+            List<SkyBlockMob> bucket = buckets.get(spatialChunkKey);
+            if (bucket != null) {
+                bucket.remove(this);
+                if (bucket.isEmpty()) {
+                    buckets.remove(spatialChunkKey);
+                }
             }
+            if (buckets.isEmpty()) {
+                mobsByInstance.remove(spatialInstance);
+            }
+        }
+        spatialInstance = null;
+    }
+
+    private void applyEntityCollision() {
+        Instance instance = getInstance();
+        Map<Long, List<SkyBlockMob>> buckets = mobsByInstance.get(instance);
+        if (buckets == null) return;
+
+        int centerX = getPosition().chunkX();
+        int centerZ = getPosition().chunkZ();
+        for (int offsetX = -1; offsetX <= 1; offsetX++) {
+            for (int offsetZ = -1; offsetZ <= 1; offsetZ++) {
+                List<SkyBlockMob> bucket = buckets.get(chunkKey(centerX + offsetX, centerZ + offsetZ));
+                if (bucket == null) continue;
+                for (SkyBlockMob other : bucket) {
+                    collideWith(other);
+                }
+            }
+        }
+    }
+
+    private void collideWith(SkyBlockMob other) {
+        if (other == this || !other.hasCollision()) return;
+        if (other.getInstance() != getInstance()) return;
+
+        double dx = getPosition().x() - other.getPosition().x();
+        double dz = getPosition().z() - other.getPosition().z();
+        double distanceSquared = dx * dx + dz * dz;
+
+        // Check if within collision range - using larger hitbox multiplier
+        double combinedWidth = (getBoundingBox().width() + other.getBoundingBox().width()) / 2;
+        double minDistance = combinedWidth * 1.5;
+
+        if (distanceSquared < minDistance * minDistance && distanceSquared > 0.0001) {
+            double distance = Math.sqrt(distanceSquared);
+            double overlap = minDistance - distance;
+
+            // Normalize direction
+            double nx = dx / distance;
+            double nz = dz / distance;
+
+            // Aggressive push to prevent overlap while in motion
+            double baseStrength = overlap * 1.2;
+
+            // Extra push if either entity is moving (prevents clipping during movement)
+            double thisSpeed = getVelocity().length();
+            double otherSpeed = other.getVelocity().length();
+            double motionMultiplier = 1.0 + Math.max(thisSpeed, otherSpeed) * 2.0;
+
+            double pushStrength = Math.min(baseStrength * motionMultiplier, 0.8);
+
+            // Apply velocity to both entities (equal and opposite)
+            setVelocity(getVelocity().add(nx * pushStrength, 0, nz * pushStrength));
+            other.setVelocity(other.getVelocity().add(-nx * pushStrength, 0, -nz * pushStrength));
         }
     }
 
@@ -398,5 +499,21 @@ public abstract class SkyBlockMob extends EntityCreature {
             }
         }
         return mobs;
+    }
+
+    public static @NonNull List<SkyBlockMob> getMobFromFuzzyPosition(Instance instance, Pos position) {
+        Map<Long, List<SkyBlockMob>> buckets = mobsByInstance.get(instance);
+        if (buckets == null) return List.of();
+
+        List<SkyBlockMob> bucket = buckets.get(chunkKey(position.chunkX(), position.chunkZ()));
+        if (bucket == null) return List.of();
+
+        List<SkyBlockMob> found = new ArrayList<>();
+        for (SkyBlockMob mob : bucket) {
+            if (MathUtility.isWithinSameBlock(mob.getPosition(), position)) {
+                found.add(mob);
+            }
+        }
+        return found;
     }
 }

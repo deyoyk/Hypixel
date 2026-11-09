@@ -20,7 +20,6 @@ import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockActionBar;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -36,7 +35,7 @@ public class RaceManager {
 	private final Map<UUID, RunData> perPlayerStartTime = new ConcurrentHashMap<>();
 
 	@Getter
-	private static final Map<UUID, HologramCache> perPlayerHolo = new HashMap<>();
+	private static final Map<UUID, HologramCache> perPlayerHolo = new ConcurrentHashMap<>();
 
 	public void updateForPlayer(Instance instance, SkyBlockPlayer player) {
 		List<Point> checkpoints = race.getCheckpoints();
@@ -224,6 +223,13 @@ public class RaceManager {
 		if (!perPlayerStartTime.containsKey(player.getUuid())) return;
 		perPlayerStartTime.remove(player.getUuid());
 		updateForPlayer(HypixelConst.getInstanceContainer(), player);
+	}
+
+	public static void removePlayerHolograms(UUID playerUuid) {
+		HologramCache cache = perPlayerHolo.remove(playerUuid);
+		if (cache != null) {
+			cache.getHolograms().forEach(PlayerHolograms::removeExternalPlayerHologram);
+		}
 	}
 
 	private Text title() {

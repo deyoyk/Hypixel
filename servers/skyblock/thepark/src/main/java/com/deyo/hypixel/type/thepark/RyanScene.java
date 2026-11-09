@@ -18,20 +18,26 @@ import com.deyo.hypixel.type.skyblockgeneric.mission.missions.thepark.darkthicke
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 import com.deyo.hypixel.type.thepark.npcs.NPCRyan;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RyanScene {
 
-	private static final Map<UUID, Long> lastTriggered = new HashMap<>();
+	private static final long TRIGGER_COOLDOWN_MS = 5000;
+	private static final Map<UUID, Long> lastTriggered = new ConcurrentHashMap<>();
 
 	public static void init() {
 		MinecraftServer.getSchedulerManager().scheduleTask(() -> {
+			pruneExpired(lastTriggered, System.currentTimeMillis(), TRIGGER_COOLDOWN_MS);
 			for (SkyBlockPlayer player : SkyBlockGenericLoader.getLoadedPlayers()) {
 				handlePlayer(player);
 			}
 		}, TaskSchedule.seconds(1), TaskSchedule.tick(5));
+	}
+
+	static void pruneExpired(Map<UUID, Long> triggered, long now, long ttlMs) {
+		triggered.entrySet().removeIf(entry -> now - entry.getValue() >= ttlMs);
 	}
 
 	private static void handlePlayer(SkyBlockPlayer player) {
@@ -63,6 +69,7 @@ public class RyanScene {
 		}
 
 		HypixelNPC.PlayerNPCCache npcCache = HypixelNPC.getPerPlayerNPCs().get(player.getUuid());
+		if (npcCache == null) return;
 		Entity entity = npcCache.getEntityImpls().get(ryan);
 
 		Pos pos = ryan.getParameters().position(player);

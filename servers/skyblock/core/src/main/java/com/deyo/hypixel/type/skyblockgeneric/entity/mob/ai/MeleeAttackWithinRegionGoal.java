@@ -45,6 +45,10 @@ public class MeleeAttackWithinRegionGoal extends GoalSelector {
         this.type = type;
     }
 
+    public RegionType getType() {
+        return type;
+    }
+
     @Override
     public boolean shouldStart() {
         this.cachedTarget = findTarget();
@@ -82,8 +86,8 @@ public class MeleeAttackWithinRegionGoal extends GoalSelector {
                 return;
             }
 
-            if (SkyBlockRegion.getRegionOfEntity(target) == null
-                    || SkyBlockRegion.getRegionOfEntity(target).getType() != type) {
+            SkyBlockRegion targetRegion = SkyBlockRegion.getRegionOfEntity(target);
+            if (targetRegion == null || targetRegion.getType() != type) {
                 this.stop = true;
                 end();
                 return;

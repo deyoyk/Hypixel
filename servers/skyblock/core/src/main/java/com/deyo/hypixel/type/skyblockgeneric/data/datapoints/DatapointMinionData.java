@@ -5,9 +5,10 @@ import com.deyo.hypixel.type.skyblockgeneric.data.SkyBlockDatapoint;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 
 public class DatapointMinionData extends SkyBlockDatapoint<DatapointMinionData.ProfileMinionData> {
 
@@ -20,9 +21,11 @@ public class DatapointMinionData extends SkyBlockDatapoint<DatapointMinionData.P
 
                 for (Map.Entry<String, List<Integer>> entry : value.craftedMinions) {
                     sb.append(entry.getKey()).append(":[");
-                    entry.getValue().forEach(tier -> sb.append(tier).append(","));
-                    if (sb.length() > 1) {
-                        sb.deleteCharAt(sb.length() - 1);
+                    boolean first = true;
+                    for (Integer tier : entry.getValue()) {
+                        if (!first) sb.append(',');
+                        sb.append(tier);
+                        first = false;
                     }
                     sb.append("],");
                 }
@@ -50,7 +53,11 @@ public class DatapointMinionData extends SkyBlockDatapoint<DatapointMinionData.P
 
             @Override
             public ProfileMinionData clone(ProfileMinionData value) {
-                return new ProfileMinionData(new ArrayList<>(value.craftedMinions));
+                List<Map.Entry<String, List<Integer>>> craftedMinions = new ArrayList<>();
+                for (Map.Entry<String, List<Integer>> entry : value.craftedMinions) {
+                    craftedMinions.add(Map.entry(entry.getKey(), new ArrayList<>(entry.getValue())));
+                }
+                return new ProfileMinionData(craftedMinions);
             }
         });
     }
@@ -60,24 +67,19 @@ public class DatapointMinionData extends SkyBlockDatapoint<DatapointMinionData.P
     }
 
     public record ProfileMinionData(List<Map.Entry<String, List<Integer>>> craftedMinions) {
-        private static final Map<Integer, Integer> SLOTS_FOR_CRAFTED = new HashMap<>(Map.of(
+        private static final NavigableMap<Integer, Integer> SLOTS_FOR_CRAFTED = new TreeMap<>(Map.of(
                 0, 5,
                 5, 6,
                 11, 7
         ));
 
         public int getUniqueMinions() {
-            // Check for every unique key in the map
             return (int) craftedMinions.stream().map(Map.Entry::getKey).distinct().count();
         }
 
         public int getSlots() {
-            for (Map.Entry<Integer, Integer> entry : SLOTS_FOR_CRAFTED.entrySet()) {
-                if (getUniqueMinions() <= entry.getKey()) {
-                    return entry.getValue();
-                }
-            }
-            return 0;
+            Map.Entry<Integer, Integer> entry = SLOTS_FOR_CRAFTED.floorEntry(getUniqueMinions());
+            return entry == null ? 0 : entry.getValue();
         }
     }
 }

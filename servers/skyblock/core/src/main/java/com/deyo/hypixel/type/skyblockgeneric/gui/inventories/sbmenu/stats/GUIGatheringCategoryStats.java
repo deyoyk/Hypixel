@@ -80,8 +80,7 @@ public class GUIGatheringCategoryStats extends StatelessView {
     private void categoryLayout(ViewLayout<DefaultState> layout) {
         layout.slot(4, (s, c) -> category.createSummary((SkyBlockPlayer) c.player(), false));
 
-        // TODO: using openView breaks back button
-        layout.slot(50, toggleItem(), (_, c) -> c.player().openView(
+        layout.slot(50, toggleItem(), (_, c) -> c.push(
             new GUIGatheringCategoryStats(category, null, Mode.CATEGORY, !showAll, false, false, null, null)));
 
         for (int index = 0; index < Math.min(category.statistics.size(), DISPLAY_SLOTS.length); index++) {
