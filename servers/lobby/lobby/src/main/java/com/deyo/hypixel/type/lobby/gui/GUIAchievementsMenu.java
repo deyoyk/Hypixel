@@ -109,7 +109,12 @@ public class GUIAchievementsMenu extends HypixelInventoryGUI {
             }
         });
 
-        set(new GUIItem(50) {
+        set(new GUIClickableItem(50) {
+            @Override
+            public void run(InventoryPreClickEvent e, HypixelPlayer player) {
+                new GUITrackedAchievements().open(player);
+            }
+
             @Override
             public ItemStack.Builder getItem(HypixelPlayer player) {
                 return ItemStacks.item(Material.REPEATER, """
