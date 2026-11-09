@@ -510,12 +510,8 @@ public class GUIGatheringCategoryStats extends StatelessView {
             this.statistics = statistics;
         }
 
-        public ItemStack.Builder createProfileSummary(SkyBlockPlayer player) {
-            return createSummary(player, true);
-        }
-
-        private ItemStack.Builder createSummary(SkyBlockPlayer player, boolean clickable) {
-            return createSummary(player.getStatistics().allStatistics(), clickable);
+        public ItemStack.Builder createProfileSummary(ItemStatistics values) {
+            return createSummary(values, true);
         }
 
         private ItemStack.Builder createSummary(ItemStatistics values, boolean clickable) {

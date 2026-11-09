@@ -7,6 +7,7 @@ import com.deyo.hypixel.commons.StringUtility;
 import com.deyo.hypixel.commons.skyblock.item.ItemType;
 import com.deyo.hypixel.commons.skyblock.item.UnderstandableSkyBlockItem;
 import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistic;
+import com.deyo.hypixel.commons.skyblock.statistics.ItemStatistics;
 import com.deyo.hypixel.commons.text.Text;
 import com.deyo.hypixel.type.generic.gui.inventory.ItemStacks;
 import com.deyo.hypixel.type.generic.gui.v2.Components;
@@ -23,7 +24,6 @@ import com.deyo.hypixel.type.skyblockgeneric.item.components.StandardItemCompone
 import com.deyo.hypixel.type.skyblockgeneric.item.updater.NonPlayerItemUpdater;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockInventory;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
-import com.deyo.hypixel.type.skyblockgeneric.user.statistics.PlayerStatistics;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,6 +43,8 @@ public class GUISkyBlockProfile extends StatelessView {
         Components.fill(layout);
         Components.close(layout, 49);
         Components.back(layout, 48, ctx);
+
+        ItemStatistics values = ((SkyBlockPlayer) ctx.player()).getStatistics().allStatistics();
 
         layout.slot(2, (s, c) -> new NonPlayerItemUpdater(new SkyBlockItem(ItemType.SKYBLOCK_MENU))
             .getUpdatedItem());
@@ -168,7 +170,6 @@ public class GUISkyBlockProfile extends StatelessView {
         // Combat Stats
         layout.slot(14, (s, c) -> {
             SkyBlockPlayer player = (SkyBlockPlayer) c.player();
-            PlayerStatistics statistics = player.getStatistics();
             List<Text> lore = new ArrayList<>();
             lore.add(Text.key("gui_sbmenu.profile.combat_stats.lore.1"));
             lore.add(Text.key("gui_sbmenu.profile.combat_stats.lore.2"));
@@ -178,11 +179,7 @@ public class GUISkyBlockProfile extends StatelessView {
                 ItemStatistic.CRITICAL_CHANCE, ItemStatistic.CRITICAL_DAMAGE, ItemStatistic.BONUS_ATTACK_SPEED, ItemStatistic.ABILITY_DAMAGE, ItemStatistic.TRUE_DEFENSE,
                 ItemStatistic.FEROCITY, ItemStatistic.HEALTH_REGENERATION, ItemStatistic.VITALITY, ItemStatistic.MENDING, ItemStatistic.SWING_RANGE);
 
-            for (ItemStatistic statistic : stats) {
-                double value = statistics.allStatistics().getOverall(statistic);
-                lore.add(Text.of(" <stat:{}> <f>{}{}", statistic.name(),
-                    StringUtility.decimalify(value, 2), statistic.getSuffix()));
-            }
+            addStatisticLines(lore, stats, values);
 
             lore.add(Text.literal(" "));
             lore.add(Text.key("gui_common.details"));
@@ -193,16 +190,15 @@ public class GUISkyBlockProfile extends StatelessView {
             c.player().openView(new GUIGatheringCategoryStats(GUIGatheringCategoryStats.Category.COMBAT));
         });
 
-        gatheringCategorySlot(layout, 15, GUIGatheringCategoryStats.Category.MINING);
-        gatheringCategorySlot(layout, 16, GUIGatheringCategoryStats.Category.FARMING);
-        gatheringCategorySlot(layout, 23, GUIGatheringCategoryStats.Category.FORAGING);
-        gatheringCategorySlot(layout, 24, GUIGatheringCategoryStats.Category.FISHING);
-        gatheringCategorySlot(layout, 32, GUIGatheringCategoryStats.Category.HUNTING);
+        gatheringCategorySlot(layout, 15, GUIGatheringCategoryStats.Category.MINING, values);
+        gatheringCategorySlot(layout, 16, GUIGatheringCategoryStats.Category.FARMING, values);
+        gatheringCategorySlot(layout, 23, GUIGatheringCategoryStats.Category.FORAGING, values);
+        gatheringCategorySlot(layout, 24, GUIGatheringCategoryStats.Category.FISHING, values);
+        gatheringCategorySlot(layout, 32, GUIGatheringCategoryStats.Category.HUNTING, values);
 
         // Wisdom Stats
         layout.slot(34, (s, c) -> {
             SkyBlockPlayer player = (SkyBlockPlayer) c.player();
-            PlayerStatistics statistics = player.getStatistics();
             List<Text> lore = new ArrayList<>();
             lore.add(Text.key("gui_sbmenu.profile.wisdom_stats.lore.1"));
             lore.add(Text.key("gui_sbmenu.profile.wisdom_stats.lore.2"));
@@ -213,11 +209,7 @@ public class GUISkyBlockProfile extends StatelessView {
                 ItemStatistic.ALCHEMY_WISDOM, ItemStatistic.CARPENTRY_WISDOM, ItemStatistic.RUNE_CRAFTING_WISDOM,
                 ItemStatistic.TAMING_WISDOM, ItemStatistic.SOCIAL_WISDOM, ItemStatistic.HUNTING_WISDOM);
 
-            for (ItemStatistic statistic : stats) {
-                double value = statistics.allStatistics().getOverall(statistic);
-                lore.add(Text.of(" <stat:{}> <f>{}{}", statistic.name(),
-                    StringUtility.decimalify(value, 2), statistic.getSuffix()));
-            }
+            addStatisticLines(lore, stats, values);
 
             lore.add(Text.literal(" "));
             lore.add(Text.key("gui_common.details"));
@@ -231,7 +223,6 @@ public class GUISkyBlockProfile extends StatelessView {
         // Misc Stats
         layout.slot(25, (s, c) -> {
             SkyBlockPlayer player = (SkyBlockPlayer) c.player();
-            PlayerStatistics statistics = player.getStatistics();
             List<Text> lore = new ArrayList<>();
             lore.add(Text.key("gui_sbmenu.profile.misc_stats.lore.1"));
             lore.add(Text.key("gui_sbmenu.profile.misc_stats.lore.2"));
@@ -241,11 +232,7 @@ public class GUISkyBlockProfile extends StatelessView {
                 ItemStatistic.HEAT_RESISTANCE, ItemStatistic.COLD_RESISTANCE, ItemStatistic.RESPIRATION,
                 ItemStatistic.PRESSURE_RESISTANCE, ItemStatistic.FEAR, ItemStatistic.TRACKING);
 
-            for (ItemStatistic statistic : stats) {
-                double value = statistics.allStatistics().getOverall(statistic);
-                lore.add(Text.of(" <stat:{}> <f>{}{}", statistic.name(),
-                    StringUtility.decimalify(value, 2), statistic.getSuffix()));
-            }
+            addStatisticLines(lore, stats, values);
 
             lore.add(Text.literal(" "));
             lore.add(Text.key("gui_common.details"));
@@ -311,12 +298,19 @@ public class GUISkyBlockProfile extends StatelessView {
     private static void gatheringCategorySlot(
         ViewLayout<DefaultState> layout,
         int slot,
-        GUIGatheringCategoryStats.Category category
+        GUIGatheringCategoryStats.Category category,
+        ItemStatistics values
     ) {
-        layout.slot(slot, (s, c) -> {
-            SkyBlockPlayer player = (SkyBlockPlayer) c.player();
-            return category.createProfileSummary(player);
-        }, (click, c) -> c.player().openView(new GUIGatheringCategoryStats(category)));
+        layout.slot(slot, (s, c) -> category.createProfileSummary(values),
+            (click, c) -> c.player().openView(new GUIGatheringCategoryStats(category)));
+    }
+
+    static void addStatisticLines(List<Text> lore, List<ItemStatistic> stats, ItemStatistics values) {
+        for (ItemStatistic statistic : stats) {
+            double value = values.getOverall(statistic);
+            lore.add(Text.of(" <stat:{}> <f>{}{}", statistic.name(),
+                StringUtility.decimalify(value, 2), statistic.getSuffix()));
+        }
     }
 
     private static SkyBlockInventory getStoredInventory(SkyBlockPlayer player) {
