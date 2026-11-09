@@ -119,6 +119,10 @@ public class QuestData {
         return completedQuests.containsKey(questId);
     }
 
+    public int getCompletedQuestCount() {
+        return completedQuests.size();
+    }
+
     public boolean isActive(String questId) {
         return activeQuests.containsKey(questId);
     }

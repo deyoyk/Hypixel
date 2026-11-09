@@ -14,6 +14,7 @@ import com.deyo.hypixel.type.generic.gui.inventory.item.GUIItem;
 import com.deyo.hypixel.type.generic.guild.GuildManager;
 import com.deyo.hypixel.type.generic.quest.QuestData;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.generic.utility.WebLinks;
 
 public class GUIMyProfile extends HypixelInventoryGUI {
     private static final int[] COLOURED_PANE_SLOTS = {
@@ -131,7 +132,7 @@ public class GUIMyProfile extends HypixelInventoryGUI {
                         <7>Click to edit your Social Media links.""");
             }
         });
-        set(new GUIItem(22) {
+        set(new GUIClickableItem(22) {
             @Override
             public ItemStack.Builder getItem(HypixelPlayer player) {
                 return ItemStacks.head(player.getSkin(), """
@@ -141,12 +142,18 @@ public class GUIMyProfile extends HypixelInventoryGUI {
                         <7>Experience until next Level: <6>{:,}
                         <7>Achievement Points: <e>{:,}
                         <7>Mystery Dust: <b>0
-                        <7>Quests Completed: <6>0
+                        <7>Quests Completed: <6>{}
                         <7>Karma: <d>0
                         <7>Hypixel Gold: <6>0
 
                         <e>Click to see the Hypixel Store link.""",
-                        player.getRankPrefix(), level, xpNeeded, achievementPoints);
+                        player.getRankPrefix(), level, xpNeeded, achievementPoints,
+                        questData.getCompletedQuestCount());
+            }
+
+            @Override
+            public void run(InventoryPreClickEvent e, HypixelPlayer player) {
+                WebLinks.sendStoreLink(player);
             }
         });
         set(new GUIItem(23) {
