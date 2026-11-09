@@ -22,14 +22,11 @@ import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockActionBar;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 public class ActionPlayerHandleTargetArchery implements HypixelEventClass {
     private static final Pos ARCHERY_POSITION = DatapointArcheryPractice.getArcheryPosition();
     private static final int TOTAL_TARGETS = 16;
-    private static final Map<UUID, TimedActivityHandler> activeArcheryHandlers = new HashMap<>();
 
     public ActionPlayerHandleTargetArchery() {}
 
@@ -46,7 +43,8 @@ public class ActionPlayerHandleTargetArchery implements HypixelEventClass {
     public void handleOnArrowHit(ArrowHitBlockEvent event) {
         if (!event.isSkyBlockPlayer()) return;
         final SkyBlockPlayer player = (SkyBlockPlayer) event.getShooter();
-        if (!TimedActivityHandler.hasActiveHandler(player)) return;
+        TimedActivityHandler<?> handler = TimedActivityHandler.getActiveHandler(player);
+        if (handler == null || !handler.isActive()) return;
 
         Block hitBlock = event.getHitBlock();
         Point hitPosition = event.getHitPosition();
@@ -62,7 +60,6 @@ public class ActionPlayerHandleTargetArchery implements HypixelEventClass {
         data.incrementTargetsHit(target);
 
         if (data.getTargetsHitList().size() >= TOTAL_TARGETS) {
-            TimedActivityHandler handler = TimedActivityHandler.getActiveHandler(player);
             handler.complete();
 
             data.incrementLevel(player);
@@ -96,11 +93,8 @@ public class ActionPlayerHandleTargetArchery implements HypixelEventClass {
             return;
         }
 
-        if (activeArcheryHandlers.containsKey(player.getUuid())) {
-            TimedActivityHandler handler = activeArcheryHandlers.get(player.getUuid());
-            handler.cancel();
-            activeArcheryHandlers.remove(player.getUuid());
-            return;
+        if (TimedActivityHandler.hasActiveHandler(player)) {
+            TimedActivityHandler.getActiveHandler(player).cancel();
         }
     }
 
@@ -151,7 +145,6 @@ public class ActionPlayerHandleTargetArchery implements HypixelEventClass {
                 })
                 .build();
         handler.start();
-        activeArcheryHandlers.put(player.getUuid(), handler);
     }
 
     private static void updateActionBar(SkyBlockPlayer player, int timeRemaining, int targetsHit) {

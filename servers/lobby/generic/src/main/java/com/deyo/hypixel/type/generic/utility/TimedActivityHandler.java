@@ -6,14 +6,14 @@ import net.minestom.server.timer.Task;
 import net.minestom.server.timer.TaskSchedule;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class TimedActivityHandler<T extends HypixelPlayer> {
-    private static final Map<UUID, TimedActivityHandler<?>> ACTIVE_HANDLERS = new HashMap<>();
+    private static final Map<UUID, TimedActivityHandler<?>> ACTIVE_HANDLERS = new ConcurrentHashMap<>();
 
     private final T player;
     private final int countdownSeconds;
@@ -25,11 +25,11 @@ public class TimedActivityHandler<T extends HypixelPlayer> {
     private final Consumer<T> onActivityCancelled;
 
     @Getter
-    private ActivityState state = ActivityState.IDLE;
-    private int currentCountdown;
+    private volatile ActivityState state = ActivityState.IDLE;
+    private volatile int currentCountdown;
     @Getter
-    private int elapsedActivityTime;
-    private Task scheduledTask;
+    private volatile int elapsedActivityTime;
+    private volatile Task scheduledTask;
 
     public enum ActivityState {
         IDLE,
@@ -61,24 +61,26 @@ public class TimedActivityHandler<T extends HypixelPlayer> {
     }
 
     public void start() {
-        if (state != ActivityState.IDLE) {
-            return;
-        }
+        synchronized (player) {
+            if (state != ActivityState.IDLE) {
+                return;
+            }
 
-        TimedActivityHandler<?> existing = ACTIVE_HANDLERS.get(player.getUuid());
-        if (existing != null && (existing.state == ActivityState.COUNTING_DOWN || existing.state == ActivityState.IN_PROGRESS)) {
-            existing.cancel();
-        }
+            TimedActivityHandler<?> existing = ACTIVE_HANDLERS.get(player.getUuid());
+            if (existing != null && existing != this && existing.isActive()) {
+                existing.cancel();
+            }
 
-        ACTIVE_HANDLERS.put(player.getUuid(), this);
-        currentCountdown = countdownSeconds;
-        elapsedActivityTime = 0;
+            ACTIVE_HANDLERS.put(player.getUuid(), this);
+            currentCountdown = countdownSeconds;
+            elapsedActivityTime = 0;
 
-        if (countdownSeconds > 0) {
-            state = ActivityState.COUNTING_DOWN;
-            scheduleCountdown();
-        } else {
-            startActivity();
+            if (countdownSeconds > 0) {
+                state = ActivityState.COUNTING_DOWN;
+                scheduleCountdown();
+            } else {
+                startActivity();
+            }
         }
     }
 
@@ -138,41 +140,45 @@ public class TimedActivityHandler<T extends HypixelPlayer> {
     }
 
     public void complete() {
-        if (state != ActivityState.IN_PROGRESS && state != ActivityState.COUNTING_DOWN) {
-            return;
+        synchronized (player) {
+            if (state != ActivityState.IN_PROGRESS && state != ActivityState.COUNTING_DOWN) {
+                return;
+            }
+
+            state = ActivityState.COMPLETED;
+
+            if (scheduledTask != null) {
+                scheduledTask.cancel();
+                scheduledTask = null;
+            }
+
+            if (onActivityComplete != null) {
+                onActivityComplete.accept(player);
+            }
+
+            ACTIVE_HANDLERS.remove(player.getUuid(), this);
         }
-
-        state = ActivityState.COMPLETED;
-
-        if (scheduledTask != null) {
-            scheduledTask.cancel();
-            scheduledTask = null;
-        }
-
-        if (onActivityComplete != null) {
-            onActivityComplete.accept(player);
-        }
-
-        ACTIVE_HANDLERS.remove(player.getUuid());
     }
 
     public void cancel() {
-        if (state != ActivityState.COUNTING_DOWN && state != ActivityState.IN_PROGRESS) {
-            return;
+        synchronized (player) {
+            if (state != ActivityState.COUNTING_DOWN && state != ActivityState.IN_PROGRESS) {
+                return;
+            }
+
+            state = ActivityState.CANCELLED;
+
+            if (scheduledTask != null) {
+                scheduledTask.cancel();
+                scheduledTask = null;
+            }
+
+            if (onActivityCancelled != null) {
+                onActivityCancelled.accept(player);
+            }
+
+            ACTIVE_HANDLERS.remove(player.getUuid(), this);
         }
-
-        state = ActivityState.CANCELLED;
-
-        if (scheduledTask != null) {
-            scheduledTask.cancel();
-            scheduledTask = null;
-        }
-
-        if (onActivityCancelled != null) {
-            onActivityCancelled.accept(player);
-        }
-
-        ACTIVE_HANDLERS.remove(player.getUuid());
     }
 
     public int getRemainingTime() {
