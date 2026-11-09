@@ -34,8 +34,15 @@ import java.util.Map;
 import java.util.UUID;
 
 public class GUIMuseumArmorCategory extends HypixelPaginatedGUI<ArmorSetRegistry> {
+    private final SkyBlockPlayer target;
+
     public GUIMuseumArmorCategory() {
+        this(null);
+    }
+
+    public GUIMuseumArmorCategory(SkyBlockPlayer target) {
         super(InventoryType.CHEST_6_ROW);
+        this.target = target;
     }
 
     @Override
@@ -55,6 +62,10 @@ public class GUIMuseumArmorCategory extends HypixelPaginatedGUI<ArmorSetRegistry
         }
 
         SkyBlockPlayer player = (SkyBlockPlayer) e.getPlayer();
+        if (!GUIYourMuseum.canModify(player, target)) {
+            player.sendMessage("<c>You can only modify your own museum!");
+            return;
+        }
         DatapointMuseum.MuseumData data = player.getMuseumData();
 
         if (data.getItemInMuseum(skyBlockItem.getAttributeHandler().getPotentialType()) != null) {
@@ -142,7 +153,7 @@ public class GUIMuseumArmorCategory extends HypixelPaginatedGUI<ArmorSetRegistry
             player.closeInventory();
             MuseumDisplays.updateDisplay(player);
 
-            new GUIMuseumArmorCategory().open(player);
+            new GUIMuseumArmorCategory(target).open(player);
             player.sendMessage(Text.key("gui_museum.armor_category.donated", armorSetRegistry.getDisplayName()));
         }
     }
@@ -178,10 +189,14 @@ public class GUIMuseumArmorCategory extends HypixelPaginatedGUI<ArmorSetRegistry
 
     @Override
     public void performSearch(HypixelPlayer player, String query, int page, int maxPage) {
+        if (!GUIYourMuseum.canModify(player, target)) {
+            player.sendMessage("<c>You can only search your own museum!");
+            return;
+        }
         border(ItemStacks.named(Material.BLACK_STAINED_GLASS_PANE, ""));
         set(GUIClickableItem.getCloseItem(49));
         set(createSearchItem(this, 50, query));
-        set(GUIClickableItem.getGoBackItem(48, new GUIYourMuseum()));
+        set(GUIClickableItem.getGoBackItem(48, new GUIYourMuseum(target)));
 
         if (page > 1) {
             set(createNavigationButton(this, 45, query, page, false));
@@ -235,7 +250,7 @@ public class GUIMuseumArmorCategory extends HypixelPaginatedGUI<ArmorSetRegistry
 
     @Override
     public GUIClickableItem createItemFor(ArmorSetRegistry armorSet, int slot, HypixelPlayer p) {
-        SkyBlockPlayer player = (SkyBlockPlayer) p;
+        SkyBlockPlayer player = GUIYourMuseum.owner(p, target);
         DatapointMuseum.MuseumData data = player.getMuseumData();
 
         SkyBlockItem helmet = data.getItem(MuseumableItemCategory.ARMOR_SETS, armorSet.getHelmet());
@@ -250,6 +265,10 @@ public class GUIMuseumArmorCategory extends HypixelPaginatedGUI<ArmorSetRegistry
             @Override
             public void run(InventoryPreClickEvent e, HypixelPlayer p) {
                 SkyBlockPlayer player = (SkyBlockPlayer) p;
+                if (!GUIYourMuseum.canModify(player, target)) {
+                    player.sendMessage("<c>You can only modify your own museum!");
+                    return;
+                }
                 if (!inMuseum || hasTakenItOut) {
                     return;
                 }
@@ -272,7 +291,7 @@ public class GUIMuseumArmorCategory extends HypixelPaginatedGUI<ArmorSetRegistry
                 MuseumDisplays.updateDisplay(player);
 
                 player.closeInventory();
-                new GUIMuseumArmorCategory().open(player);
+                new GUIMuseumArmorCategory(target).open(player);
             }
 
             @Override

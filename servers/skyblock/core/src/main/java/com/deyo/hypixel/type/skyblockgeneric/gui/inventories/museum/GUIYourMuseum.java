@@ -32,9 +32,15 @@ public class GUIYourMuseum extends HypixelInventoryGUI {
     );
     private static final String MUSEUM_INFO_TEXTURE =
             "597e4e27a04afa5f06108265a9bfb797630391c7f3d880d244f610bb1ff393d8";
+    private final SkyBlockPlayer target;
 
     public GUIYourMuseum() {
+        this(null);
+    }
+
+    public GUIYourMuseum(SkyBlockPlayer target) {
         super(Text.key("gui_museum.main.title"), InventoryType.CHEST_6_ROW);
+        this.target = target;
     }
 
     @SneakyThrows
@@ -46,7 +52,7 @@ public class GUIYourMuseum extends HypixelInventoryGUI {
             return;
         }
 
-        SkyBlockPlayer player = (SkyBlockPlayer) e.player();
+        SkyBlockPlayer player = owner(e.player(), target);
         DatapointMuseum.MuseumData data = player.getMuseumData();
         fill(ItemStacks.named(Material.BLACK_STAINED_GLASS_PANE, ""));
         set(GUIClickableItem.getCloseItem(49));
@@ -117,8 +123,8 @@ public class GUIYourMuseum extends HypixelInventoryGUI {
                 public void run(InventoryPreClickEvent e, HypixelPlayer p) {
                     SkyBlockPlayer player = (SkyBlockPlayer) p;
                     if (category == MuseumableItemCategory.ARMOR_SETS)
-                        new GUIMuseumArmorCategory().open(player);
-                    else new GUIMuseumCategory(category).open(player);
+                        new GUIMuseumArmorCategory(target).open(player);
+                    else new GUIMuseumCategory(category, target).open(player);
                 }
 
                 @Override
@@ -143,6 +149,14 @@ public class GUIYourMuseum extends HypixelInventoryGUI {
         }
 
         updateItemStacks(getInventory(), getPlayer());
+    }
+
+    static SkyBlockPlayer owner(HypixelPlayer viewer, SkyBlockPlayer target) {
+        return target != null ? target : (SkyBlockPlayer) viewer;
+    }
+
+    static boolean canModify(HypixelPlayer viewer, SkyBlockPlayer target) {
+        return target == null || target.getUuid().equals(viewer.getUuid());
     }
 
     public static Text getAsDisplay(int unlocked, int total) {

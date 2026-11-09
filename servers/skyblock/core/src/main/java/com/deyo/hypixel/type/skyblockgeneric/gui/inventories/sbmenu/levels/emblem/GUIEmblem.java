@@ -18,9 +18,15 @@ import java.util.List;
 
 public class GUIEmblem extends PaginatedView<SkyBlockEmblems.SkyBlockEmblem, GUIEmblem.EmblemState> {
     private final SkyBlockEmblems emblemCategory;
+    private final SkyBlockPlayer target;
 
     public GUIEmblem(SkyBlockEmblems emblemCategory) {
+        this(emblemCategory, null);
+    }
+
+    public GUIEmblem(SkyBlockEmblems emblemCategory, SkyBlockPlayer target) {
         this.emblemCategory = emblemCategory;
+        this.target = target;
     }
 
     @Override
@@ -57,8 +63,10 @@ public class GUIEmblem extends PaginatedView<SkyBlockEmblems.SkyBlockEmblem, GUI
 
     @Override
     protected ItemStack.Builder renderItem(SkyBlockEmblems.SkyBlockEmblem item, int index, HypixelPlayer player) {
-        SkyBlockPlayer sbPlayer = (SkyBlockPlayer) player;
-        boolean unlocked = sbPlayer.hasUnlockedXPCause(item.cause());
+        SkyBlockPlayer viewer = (SkyBlockPlayer) player;
+        SkyBlockPlayer owner = GUIEmblems.owner(viewer, target);
+        boolean unlocked = owner.hasUnlockedXPCause(item.cause());
+        boolean editable = editable(viewer, target);
         CauseEmblem causeEmblem = (CauseEmblem) item.cause();
 
         Text name = Text.of(unlocked ? "<a>{} " : "<c>{} ", item.displayName()).append(item.emblem());
@@ -68,9 +76,9 @@ public class GUIEmblem extends PaginatedView<SkyBlockEmblems.SkyBlockEmblem, GUI
             lore = new ArrayList<>(List.of(
                     Text.of("<8>{}", causeEmblem.emblemEisplayName()),
                     Text.literal(" "),
-                    Text.of("<7>Preview: ").append(sbPlayer.getFullDisplayName(item)),
+                    Text.of("<7>Preview: ").append(owner.getFullDisplayName(item)),
                     Text.literal(" "),
-                    Text.of("<e>Click to select!")
+                    Text.of(editable ? "<e>Click to select!" : "<7>Viewing another player's emblem.")
             ));
         } else {
             lore = new ArrayList<>(List.of(
@@ -86,6 +94,11 @@ public class GUIEmblem extends PaginatedView<SkyBlockEmblems.SkyBlockEmblem, GUI
     @Override
     protected void onItemClick(ClickContext<EmblemState> click, ViewContext ctx, SkyBlockEmblems.SkyBlockEmblem item, int index) {
         SkyBlockPlayer player = (SkyBlockPlayer) ctx.player();
+        if (!editable(player, target)) {
+            player.sendMessage("<c>You can only change your own emblems!");
+            return;
+        }
+
         boolean unlocked = player.hasUnlockedXPCause(item.cause());
 
         if (!unlocked) {
@@ -95,6 +108,10 @@ public class GUIEmblem extends PaginatedView<SkyBlockEmblems.SkyBlockEmblem, GUI
 
         player.getSkyBlockExperience().setEmblem(emblemCategory, item);
         player.sendMessage("<a>You have selected the {} emblem!", item.displayName());
+    }
+
+    static boolean editable(SkyBlockPlayer viewer, SkyBlockPlayer target) {
+        return target == null || target.getUuid().equals(viewer.getUuid());
     }
 
     @Override
