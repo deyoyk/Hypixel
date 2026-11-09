@@ -17,6 +17,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -533,6 +536,19 @@ public class GuildCache {
                 }
                 guild.setListedInFinder(!guild.isListedInFinder());
                 value = guild.isListedInFinder() ? "visible" : "hidden";
+            }
+            case "games" -> {
+                if (!rank.hasPermission(GuildPermission.MODIFY_GAMES)) {
+                    sendErrorToPlayer(changer, "<c>You do not have permission to modify guild games!");
+                    return;
+                }
+                List<String> games = Arrays.stream(value.split(","))
+                    .map(String::trim)
+                    .filter(game -> !game.isEmpty())
+                    .distinct()
+                    .toList();
+                guild.setGames(new ArrayList<>(games));
+                value = String.join(",", games);
             }
             case "notifications" -> {
                 GuildMember member = guild.getMember(changer);

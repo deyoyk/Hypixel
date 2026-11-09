@@ -3,11 +3,13 @@ package com.deyo.hypixel.commons.guild;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GuildDataTest {
 
@@ -18,6 +20,19 @@ class GuildDataTest {
         assertNotNull(data.getMembers());
         assertNotNull(data.getRanks());
         assertEquals(3, data.getRanks().size());
+    }
+
+    @Test
+    void guildGamesDefaultEmptyAndSurviveSerialization() {
+        GuildData data = new GuildData(UUID.randomUUID(), "Test", UUID.randomUUID());
+        assertTrue(data.getGames().isEmpty());
+
+        data.setGames(List.of("BED_WARS", "SKYWARS"));
+        GuildData loaded = GuildData.getStaticSerializer().deserialize(
+                GuildData.getStaticSerializer().serialize(data));
+
+        assertEquals(List.of("BED_WARS", "SKYWARS"), loaded.getGames());
+        assertTrue(GuildData.getStaticSerializer().deserialize("{\"name\":\"Legacy\"}").getGames().isEmpty());
     }
 
     @Test

@@ -33,6 +33,7 @@ public class GuildData {
     private String discordLink;
     private boolean listedInFinder;
     private boolean slowChat;
+    private List<String> games;
     private boolean everyoneMuted;
     private long everyoneMutedExpiry;
     private long createdAt;
@@ -73,6 +74,7 @@ public class GuildData {
         this.discordLink = "";
         this.listedInFinder = true;
         this.slowChat = false;
+        this.games = new ArrayList<>();
         this.everyoneMuted = false;
         this.everyoneMutedExpiry = 0;
         this.createdAt = System.currentTimeMillis();
@@ -85,6 +87,7 @@ public class GuildData {
                       @JsonProperty("members") List<GuildMember> members, @JsonProperty("ranks") List<GuildRank> ranks,
                       @JsonProperty("totalGexp") long totalGexp, @JsonProperty("level") int level, @JsonProperty("motd") String motd, @JsonProperty("description") String description,
                       @JsonProperty("discordLink") String discordLink, @JsonProperty("listedInFinder") boolean listedInFinder, @JsonProperty("slowChat") boolean slowChat,
+                      @JsonProperty("games") List<String> games,
                       @JsonProperty("everyoneMuted") boolean everyoneMuted, @JsonProperty("everyoneMutedExpiry") long everyoneMutedExpiry, @JsonProperty("createdAt") long createdAt,
                       @JsonProperty("auditLog") List<String> auditLog, @JsonProperty("dailyGexp") Long dailyGexp,
                       @JsonProperty("dailyWins") Integer dailyWins, @JsonProperty("dailyProgressDate") String dailyProgressDate,
@@ -106,6 +109,7 @@ public class GuildData {
         this.discordLink = discordLink;
         this.listedInFinder = listedInFinder;
         this.slowChat = slowChat;
+        this.games = games != null ? games : new ArrayList<>();
         this.everyoneMuted = everyoneMuted;
         this.everyoneMutedExpiry = everyoneMutedExpiry;
         this.createdAt = createdAt;

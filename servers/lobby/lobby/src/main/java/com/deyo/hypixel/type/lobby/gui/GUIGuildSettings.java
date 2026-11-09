@@ -68,7 +68,8 @@ public class GUIGuildSettings implements View<GUIGuildSettings.GuildSettingsStat
                 <7>Changes the Guild's list of games
                 <7>used in the Guild Finder.
 
-                <e>Click to pick games!"""), (click, viewCtx) -> viewCtx.player().sendMessage("<c>Guild games selector is not available yet."));
+                <e>Click to pick games!"""), (click, viewCtx) ->
+                viewCtx.push(new GUIGuildGames(), new GUIGuildGames.State(guild.getGames())));
 
         String description = guild.getDescription() != null && !guild.getDescription().isEmpty()
             ? guild.getDescription() : "Not set";
