@@ -25,6 +25,8 @@ public final class RavengardHud {
     private static final Map<UUID, RavengardHudState> STATES = new ConcurrentHashMap<>();
     private static final Map<UUID, Sidebar> SIDEBARS = new ConcurrentHashMap<>();
     private static final Map<UUID, Map<RavengardHudLayer, Component>> LAST_SENT = new ConcurrentHashMap<>();
+    private static final Map<UUID, java.util.Set<UUID>> HIDDEN_TAB_ENTRIES = new ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> LAST_TAB_MAP = new ConcurrentHashMap<>();
 
     private RavengardHud() {
     }
@@ -63,12 +65,23 @@ public final class RavengardHud {
         }
         STATES.remove(player.getUuid());
         LAST_SENT.remove(player.getUuid());
+        HIDDEN_TAB_ENTRIES.remove(player.getUuid());
+        LAST_TAB_MAP.remove(player.getUuid());
+        LAST_TAB_HEADER.remove(player.getUuid());
     }
 
     private static final AtomicInteger TITLE_FRAME = new AtomicInteger();
+    private static int tabSweep;
 
     private static void tick() {
         TITLE_FRAME.incrementAndGet();
+        boolean dungeon = HypixelConst.getTypeLoader().getType() == ServerType.RAVENGARD_DUNGEON;
+        int playerCount = MinecraftServer.getConnectionManager().getOnlinePlayers().size();
+        String clock = LocalTime.now().format(CLOCK_FORMAT);
+        String date = LocalDate.now().format(DATE_FORMAT);
+        boolean sweepTabList = ++tabSweep >= 20;
+        if (sweepTabList) tabSweep = 0;
+
         for (HypixelPlayer player : HypixelGenericLoader.getLoadedPlayers()) {
             Sidebar sidebar = SIDEBARS.get(player.getUuid());
             Map<RavengardHudLayer, Component> previous = LAST_SENT.get(player.getUuid());
@@ -77,11 +90,13 @@ public final class RavengardHud {
             }
 
             RavengardHudState state = state(player);
-            refresh(player, state);
+            refresh(player, state, dungeon, playerCount, clock, date);
             sidebar.setTitle(RavengardSidebarTitle.frame(TITLE_FRAME.get()));
 
             sendTabMap(player, state);
-            hideTabList(player);
+            if (sweepTabList) {
+                hideTabList(player);
+            }
 
             Map<RavengardHudLayer, Component> composed = RavengardHudComposer.compose(state);
             for (Map.Entry<RavengardHudLayer, Component> entry : composed.entrySet()) {
@@ -98,6 +113,10 @@ public final class RavengardHud {
         STATES.keySet().removeIf(uuid ->
                 MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid) == null);
         LAST_SENT.keySet().removeIf(uuid ->
+                MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid) == null);
+        HIDDEN_TAB_ENTRIES.keySet().removeIf(uuid ->
+                MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid) == null);
+        LAST_TAB_MAP.keySet().removeIf(uuid ->
                 MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid) == null);
         LAST_TAB_HEADER.keySet().removeIf(uuid ->
                 MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid) == null);
@@ -133,24 +152,34 @@ public final class RavengardHud {
         }
         int rotation = ((int) Math.round(yaw / YAW_PER_STEP)) & 0x3F;
         int tint = (iconX << 15) | (iconY << 6) | rotation;
+        int mapKey = (tint << 1) | (state.isDungeon() ? 1 : 0);
+        Integer previousKey = LAST_TAB_MAP.put(player.getUuid(), mapKey);
+        if (previousKey == null || previousKey != mapKey) {
+            Component header = Component.empty()
+                    .append(Component.text(state.isDungeon() ? DUNGEON_TILES : FULLSCREEN_TILES)
+                            .font(com.deyo.hypixel.type.ravengardgeneric.gui.RavengardFont.RAVENGARD)
+                            .color(net.kyori.adventure.text.format.NamedTextColor.WHITE)
+                            .shadowColor(net.kyori.adventure.text.format.ShadowColor.shadowColor(0)))
+                    .append(Component.newline())
+                    .append(Component.text(PLAYER_MARKER)
+                            .font(com.deyo.hypixel.type.ravengardgeneric.gui.RavengardFont.RAVENGARD)
+                            .color(net.kyori.adventure.text.format.TextColor.color(tint))
+                            .shadowColor(net.kyori.adventure.text.format.ShadowColor.shadowColor(0)))
+                    .append(Component.newline());
 
-        Component header = Component.empty()
-                .append(Component.text(state.isDungeon() ? DUNGEON_TILES : FULLSCREEN_TILES)
-                        .font(com.deyo.hypixel.type.ravengardgeneric.gui.RavengardFont.RAVENGARD)
-                        .color(net.kyori.adventure.text.format.NamedTextColor.WHITE)
-                        .shadowColor(net.kyori.adventure.text.format.ShadowColor.shadowColor(0)))
-                .append(Component.newline())
-                .append(Component.text(PLAYER_MARKER)
-                        .font(com.deyo.hypixel.type.ravengardgeneric.gui.RavengardFont.RAVENGARD)
-                        .color(net.kyori.adventure.text.format.TextColor.color(tint))
-                        .shadowColor(net.kyori.adventure.text.format.ShadowColor.shadowColor(0)))
-                .append(Component.newline());
-
-        player.sendPlayerListHeaderAndFooter(header, Component.empty());
+            player.sendPlayerListHeaderAndFooter(header, Component.empty());
+        }
     }
 
     private static void hideTabList(HypixelPlayer player) {
+        java.util.Set<UUID> hidden = HIDDEN_TAB_ENTRIES.computeIfAbsent(
+                player.getUuid(), ignored -> ConcurrentHashMap.newKeySet());
+        java.util.Set<UUID> onlineIds = new java.util.HashSet<>();
         for (var online : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
+            onlineIds.add(online.getUuid());
+            if (!hidden.add(online.getUuid())) {
+                continue;
+            }
             player.sendPacket(new net.minestom.server.network.packet.server.play.PlayerInfoUpdatePacket(
                     net.minestom.server.network.packet.server.play.PlayerInfoUpdatePacket.Action.UPDATE_LISTED,
                     new net.minestom.server.network.packet.server.play.PlayerInfoUpdatePacket.Entry(
@@ -158,14 +187,15 @@ public final class RavengardHud {
                             false, 0, net.minestom.server.entity.GameMode.SURVIVAL,
                             Component.empty(), null, 0, false)));
         }
+        hidden.retainAll(onlineIds);
     }
 
     private static int clamp9(int value) {
         return Math.clamp(value, 0, 0x1FF);
     }
 
-    private static void refresh(HypixelPlayer player, RavengardHudState state) {
-        boolean dungeon = HypixelConst.getTypeLoader().getType() == ServerType.RAVENGARD_DUNGEON;
+    private static void refresh(HypixelPlayer player, RavengardHudState state,
+                                boolean dungeon, int playerCount, String clock, String date) {
         state.setDungeon(dungeon);
         float fraction = player.getAttributeValue(Attribute.MAX_HEALTH) <= 0
                 ? 1f
@@ -213,10 +243,10 @@ public final class RavengardHud {
         state.setWorldZ(player.getPosition().z());
         state.setYaw(player.getPosition().yaw());
         if (!dungeon) {
-            state.setClock(LocalTime.now().format(CLOCK_FORMAT));
-            state.setPlayerCount(MinecraftServer.getConnectionManager().getOnlinePlayers().size());
+            state.setClock(clock);
+            state.setPlayerCount(playerCount);
         }
-        state.setDate(LocalDate.now().format(DATE_FORMAT));
+        state.setDate(date);
         if (state.getServerId().isEmpty()) {
             state.setServerId(HypixelConst.getShortenedServerName());
         }

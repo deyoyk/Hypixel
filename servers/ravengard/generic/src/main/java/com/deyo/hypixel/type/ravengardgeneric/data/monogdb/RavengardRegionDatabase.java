@@ -5,6 +5,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 import net.minestom.server.coordinate.Pos;
 import com.deyo.hypixel.commons.ServerType;
@@ -72,22 +73,15 @@ public record RavengardRegionDatabase(String id) implements MongoDB {
 
     @Override
     public boolean remove(String id) {
-        Document query = new Document("_id", id);
-        if (collection.find(query).first() == null) {
-            return false;
-        }
-        collection.deleteOne(query);
-        return true;
+        return collection.deleteOne(new Document("_id", id)).getDeletedCount() > 0;
     }
 
     public void insertOrUpdate(String key, Object value) {
-        if (exists()) {
-            Document found = collection.find(new Document("_id", id)).first();
-            assert found != null;
-            collection.updateOne(found, Updates.set(key, value));
-            return;
-        }
-        collection.insertOne(new Document("_id", id).append(key, value));
+        collection.updateOne(
+                new Document("_id", id),
+                Updates.set(key, value),
+                new UpdateOptions().upsert(true)
+        );
     }
 
     public boolean exists() {

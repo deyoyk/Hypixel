@@ -16,11 +16,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Getter
 @Setter
 public class RavengardRegion {
-    private static final Map<String, RavengardRegion> REGION_CACHE = new HashMap<>();
+    private static final Map<String, RavengardRegion> REGION_CACHE = new ConcurrentHashMap<>();
+    private static volatile List<RavengardRegion> regionList = List.of();
 
     private final String name;
     private final RavengardRegionDatabase regionDatabase;
@@ -60,11 +62,23 @@ public class RavengardRegion {
     /** Registers the region for lookups without writing it to the database. */
     public void cache() {
         REGION_CACHE.put(name, this);
+        regionList = List.copyOf(REGION_CACHE.values());
     }
 
     public void delete() {
         REGION_CACHE.remove(name);
         regionDatabase.remove(name);
+        regionList = List.copyOf(REGION_CACHE.values());
+    }
+
+    public void setFirstLocation(Pos firstLocation) {
+        this.firstLocation = firstLocation;
+        this.cachedVolume = -1;
+    }
+
+    public void setSecondLocation(Pos secondLocation) {
+        this.secondLocation = secondLocation;
+        this.cachedVolume = -1;
     }
 
     public Pos getRandomPosition() {
@@ -106,10 +120,15 @@ public class RavengardRegion {
 
     public long getVolume() {
         if (cachedVolume == -1) {
-            List<Integer> bounds = getBounds();
-            long x = (long) bounds.get(1) - bounds.get(0) + 1;
-            long y = (long) bounds.get(3) - bounds.get(2) + 1;
-            long z = (long) bounds.get(5) - bounds.get(4) + 1;
+            int sx = Math.min(firstLocation.blockX(), secondLocation.blockX());
+            int ex = Math.max(firstLocation.blockX(), secondLocation.blockX());
+            int sy = Math.min(firstLocation.blockY(), secondLocation.blockY());
+            int ey = Math.max(firstLocation.blockY(), secondLocation.blockY());
+            int sz = Math.min(firstLocation.blockZ(), secondLocation.blockZ());
+            int ez = Math.max(firstLocation.blockZ(), secondLocation.blockZ());
+            long x = (long) ex - sx + 1;
+            long y = (long) ey - sy + 1;
+            long z = (long) ez - sz + 1;
             cachedVolume = x * y * z;
         }
         return cachedVolume;
@@ -123,13 +142,18 @@ public class RavengardRegion {
         if (firstLocation == null) {
             return false;
         }
-        List<Integer> bounds = getBounds();
+        int sx = Math.min(firstLocation.blockX(), secondLocation.blockX());
+        int ex = Math.max(firstLocation.blockX(), secondLocation.blockX());
+        int sy = Math.min(firstLocation.blockY(), secondLocation.blockY());
+        int ey = Math.max(firstLocation.blockY(), secondLocation.blockY());
+        int sz = Math.min(firstLocation.blockZ(), secondLocation.blockZ());
+        int ez = Math.max(firstLocation.blockZ(), secondLocation.blockZ());
         double x = location.x();
         double y = location.y();
         double z = location.z();
-        return x >= (double) bounds.get(0) && x <= (double) bounds.get(1)
-                && y >= (double) bounds.get(2) && y <= (double) bounds.get(3)
-                && z >= (double) bounds.get(4) && z <= (double) bounds.get(5);
+        return x >= sx && x <= ex
+                && y >= sy && y <= ey
+                && z >= sz && z <= ez;
     }
 
     public List<Integer> getBounds() {
@@ -143,7 +167,7 @@ public class RavengardRegion {
     }
 
     public static List<RavengardRegion> getRegions() {
-        return new ArrayList<>(REGION_CACHE.values());
+        return regionList;
     }
 
     public static RavengardRegion getFromID(String id) {
@@ -163,7 +187,7 @@ public class RavengardRegion {
         RavengardRegion smallest = null;
         long smallestVolume = Long.MAX_VALUE;
 
-        for (RavengardRegion region : getRegions()) {
+        for (RavengardRegion region : regionList) {
             if (!region.insideRegion(position)) {
                 continue;
             }
@@ -178,16 +202,18 @@ public class RavengardRegion {
     }
 
     public static RavengardRegion getRandomRegionOfType(RavengardRegionType type) {
-        List<RavengardRegion> regions = new ArrayList<>();
-        for (RavengardRegion region : getRegions()) {
-            if (region.getType() == type) {
-                regions.add(region);
+        RavengardRegion selected = null;
+        int matching = 0;
+        for (RavengardRegion region : regionList) {
+            if (region.getType() != type) {
+                continue;
+            }
+            matching++;
+            if (Math.random() * matching < 1) {
+                selected = region;
             }
         }
-        if (regions.isEmpty()) {
-            return null;
-        }
-        return regions.get((int) (Math.random() * regions.size()));
+        return selected;
     }
 
     public static void cacheRegions() {
@@ -199,5 +225,6 @@ public class RavengardRegion {
             REGION_CACHE.put(region.getName(), region);
         }
         RavengardRegions.registerDefaults();
+        regionList = List.copyOf(REGION_CACHE.values());
     }
 }
