@@ -2,9 +2,11 @@ package com.deyo.hypixel.type.skyblockgeneric.item.handlers.anvilcombine;
 
 import com.deyo.hypixel.commons.skyblock.item.PotatoType;
 import com.deyo.hypixel.commons.skyblock.item.attribute.attributes.ItemAttributeHotPotatoBookData;
+import com.deyo.hypixel.type.skyblockgeneric.enchantment.EnchantmentType;
 import com.deyo.hypixel.type.skyblockgeneric.enchantment.SkyBlockEnchantment;
 import com.deyo.hypixel.type.skyblockgeneric.item.SkyBlockItem;
 import com.deyo.hypixel.type.skyblockgeneric.item.components.EnchantableComponent;
+import com.deyo.hypixel.type.skyblockgeneric.item.components.FishingRodComponent;
 import com.deyo.hypixel.type.skyblockgeneric.item.components.HotPotatoableComponent;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 import com.deyo.hypixel.type.skyblockgeneric.utility.groups.EnchantItemGroups;
@@ -76,6 +78,27 @@ public class AnvilCombineRegistry {
                             .mapToInt(enchant -> enchant.type().getApplyCost(enchant.level(), player))
                             .sum();
                 }
+        ));
+        register("GOLD_BOTTLE_CAP", new AnvilCombineHandler(
+                (upgradeItem, sacrificeItem) -> {
+                    SkyBlockEnchantment current = upgradeItem.getAttributeHandler()
+                            .getEnchantment(EnchantmentType.LUCK_OF_THE_SEA);
+                    if (current == null) {
+                        return;
+                    }
+                    upgradeItem.getAttributeHandler().removeEnchantment(EnchantmentType.LUCK_OF_THE_SEA);
+                    upgradeItem.getAttributeHandler().addEnchantment(new SkyBlockEnchantment(
+                            EnchantmentType.LUCK_OF_THE_SEA, current.level() + 1));
+                },
+                (player, upgradeItem, sacrificeItem) -> {
+                    if (!upgradeItem.hasComponent(FishingRodComponent.class)) {
+                        return false;
+                    }
+                    SkyBlockEnchantment current = upgradeItem.getAttributeHandler()
+                            .getEnchantment(EnchantmentType.LUCK_OF_THE_SEA);
+                    return current != null && current.level() == 6;
+                },
+                (upgradeItem, sacrificeItem, player) -> 0
         ));
         register("DARK_PURPLE_DYE", new AnvilCombineHandler(
                 (upgradeItem, sacrificeItem) -> {

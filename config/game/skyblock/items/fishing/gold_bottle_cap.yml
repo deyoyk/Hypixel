@@ -1,0 +1,21 @@
+items:
+  - id: GOLD_BOTTLE_CAP
+    material: PLAYER_HEAD
+    name: "Gold Bottle Cap"
+    rarity: LEGENDARY
+    lore:
+      - "%%gray%%When applied to a fishing rod,"
+      - "%%gray%%increases its %%light_purple%%Luck of the Sea%%%%gray%% level"
+      - "%%gray%%by %%green%%1%%%%gray%%!"
+      - "%%dark_gray%%Can be applied once."
+      - "%%dark_gray%%Requires Luck of the Sea VI!"
+      - ""
+      - "%%dark_gray%%%%italic%%One man's trash is, indeed, another"
+      - "%%dark_gray%%%%italic%%man's treasure."
+    components:
+      - id: CUSTOM_DISPLAY_NAME
+        display_name: Gold Bottle Cap
+      - id: SKULL_HEAD
+        texture: 269698fd92fb14827af97e54a3f28f5e2685d7e94bd128c0c27f259df996717c
+      - id: ANVIL_COMBINABLE
+        handler_id: GOLD_BOTTLE_CAP

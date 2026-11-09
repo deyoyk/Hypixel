@@ -399,7 +399,20 @@ public class GUIJunkerJoel extends StatelessView {
                     <5>Old Leather Boot <8>x8
 
                     <e>Click to trade!"""
-        ));
+        ), (_, c) -> {
+            SkyBlockPlayer player = (SkyBlockPlayer) c.player();
+            if (player.getAmountInInventory(ItemType.RUSTY_COIN) < 512
+                    || player.getAmountInInventory(ItemType.BUSTED_BELT_BUCKLE) < 64
+                    || player.getAmountInInventory(ItemType.OLD_LEATHER_BOOT) < 8) {
+                player.sendMessage("<c>You need 512 Rusty Coins, 64 Busted Belt Buckles, and 8 Old Leather Boots!");
+                return;
+            }
+            player.takeItem(ItemType.RUSTY_COIN, 512);
+            player.takeItem(ItemType.BUSTED_BELT_BUCKLE, 64);
+            player.takeItem(ItemType.OLD_LEATHER_BOOT, 8);
+            player.addAndUpdateItem(ItemType.GOLD_BOTTLE_CAP);
+            player.playSuccessSound();
+        });
         layout.slot(33, ItemStacks.head(
             "9809753cbab0380c7a1c18925faf9b51e44caadd1e5748542b0f23835f4ef64e",
             """

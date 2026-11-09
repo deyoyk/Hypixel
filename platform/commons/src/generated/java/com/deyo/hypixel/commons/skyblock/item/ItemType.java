@@ -1802,6 +1802,8 @@ public enum ItemType {
 
   GOLD_BLOCK(Material.GOLD_BLOCK, Rarity.COMMON),
 
+  GOLD_BOTTLE_CAP(Material.PLAYER_HEAD, Rarity.LEGENDARY),
+
   GOLD_FLYFISH(Material.PLAYER_HEAD, Rarity.COMMON),
 
   GOLD_GIFT_TALISMAN(Material.PLAYER_HEAD, Rarity.LEGENDARY),
