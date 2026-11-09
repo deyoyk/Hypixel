@@ -20,7 +20,11 @@ import java.util.concurrent.atomic.AtomicReference;
         permission = Rank.STAFF,
         allowsConsole = false)
 public class NBTCommand extends HypixelCommand {
-    private static Map<UUID, String> itemNBTCache = new HashMap<>();
+    static final Map<UUID, String> itemNBTCache = new HashMap<>();
+
+    public static void clearCache(UUID playerId) {
+        itemNBTCache.remove(playerId);
+    }
 
     @Override
     public void registerUsage(MinestomCommand command) {

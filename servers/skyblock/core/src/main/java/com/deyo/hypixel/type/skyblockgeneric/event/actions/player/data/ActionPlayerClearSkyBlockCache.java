@@ -10,6 +10,7 @@ import com.deyo.hypixel.type.skyblockgeneric.event.actions.custom.ActionCharming
 import com.deyo.hypixel.type.skyblockgeneric.event.actions.player.ActionPlayerStrayTooFar;
 import com.deyo.hypixel.type.skyblockgeneric.event.actions.player.mobdamage.PlayerActionDamageMob;
 import com.deyo.hypixel.type.skyblockgeneric.entity.DroppedItemEntityImpl;
+import com.deyo.hypixel.type.skyblockgeneric.commands.NBTCommand;
 import com.deyo.hypixel.type.skyblockgeneric.item.updater.PlayerItemOrigin;
 import com.deyo.hypixel.type.skyblockgeneric.museum.MuseumDisplays;
 import com.deyo.hypixel.type.skyblockgeneric.server.eventcaller.CustomEventCaller;
@@ -34,5 +35,6 @@ public class ActionPlayerClearSkyBlockCache implements HypixelEventClass {
         DroppedItemEntityImpl.clearDroppedItems(player);
         MuseumDisplays.clearDisplay(player.getUuid());
         PlayerStatistics.clearBossBar(player);
+        NBTCommand.clearCache(player.getUuid());
         CustomEventCaller.clearCache(player);    }
 }
