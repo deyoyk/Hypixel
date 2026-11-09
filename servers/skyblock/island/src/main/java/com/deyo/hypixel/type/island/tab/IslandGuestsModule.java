@@ -39,7 +39,7 @@ public class IslandGuestsModule extends TablistModule {
         return entries;
     }
 
-    static List<SkyBlockPlayer> guests(SkyBlockPlayer viewer) {
+    public static List<SkyBlockPlayer> guests(SkyBlockPlayer viewer) {
         SkyBlockIsland island = viewer.getSkyBlockIsland();
         if (island == null || island.getIslandInstance() == null) {
             return List.of();

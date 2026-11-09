@@ -108,7 +108,7 @@ public class GUIGuests extends HypixelInventoryGUI {
         set(new GUIClickableItem(16) {
             @Override
             public void run(InventoryPreClickEvent e, HypixelPlayer p) {
-                SkyBlockPlayer player = (SkyBlockPlayer) p;
+                new GUIGuestManagement().open(p);
             }
 
             @Override
