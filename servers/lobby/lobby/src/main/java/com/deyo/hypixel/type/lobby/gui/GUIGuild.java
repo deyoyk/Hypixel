@@ -164,7 +164,7 @@ public class GUIGuild implements View<GUIGuild.GuildState> {
                 <7>Rank: <6>{}
                 <7>Daily Exp: <6>{:,}
                 <7>Members: <6>{}<b>/<6>{}""",
-            guild.getName(), rankName, 0, guild.getMembers().size(), GuildData.MAX_MEMBERS));
+            guild.getName(), rankName, guild.getDailyGexp(), guild.getMembers().size(), GuildData.MAX_MEMBERS));
 
         layout.slot(20, ItemStacks.item(Material.COMPARATOR, """
                 <a>Guild Settings
@@ -208,7 +208,7 @@ public class GUIGuild implements View<GUIGuild.GuildState> {
 
                 <e>Click to view leveling rewards!""",
             guild.getLevel(), createProgressBar(levelProgress, 40), guild.getLevel() + 1,
-            expRemaining, progressPercent, 0),
+            expRemaining, progressPercent, guild.getDailyGexp()),
             (click, viewCtx) -> viewCtx.push(new GUIGuildLevelingRewards(), GUIGuildLevelingRewards.createState(guild)));
 
         layout.slot(23, ItemStacks.item(Material.DIAMOND, """

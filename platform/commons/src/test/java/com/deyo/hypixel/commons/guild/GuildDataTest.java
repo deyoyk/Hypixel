@@ -2,6 +2,7 @@ package com.deyo.hypixel.commons.guild;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,5 +54,19 @@ class GuildDataTest {
 
         assertEquals(500, data.getAuditLog().size());
         assertEquals("entry-509", data.getAuditLog().getFirst());
+    }
+
+    @Test
+    void dailyProgressResetsWhenTheDateChanges() {
+        GuildData data = new GuildData(UUID.randomUUID(), "Test", UUID.randomUUID());
+        data.setDailyGexp(500);
+        data.setDailyWins(3);
+        data.setDailyProgressDate("2000-01-01");
+
+        data.resetDailyProgressIfNeeded();
+
+        assertEquals(0, data.getDailyGexp());
+        assertEquals(0, data.getDailyWins());
+        assertEquals(LocalDate.now().toString(), data.getDailyProgressDate());
     }
 }
