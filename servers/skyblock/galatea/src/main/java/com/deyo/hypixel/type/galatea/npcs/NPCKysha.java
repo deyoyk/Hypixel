@@ -5,6 +5,7 @@ import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
 import com.deyo.hypixel.type.generic.entity.npc.configuration.HumanConfiguration;
 import com.deyo.hypixel.type.generic.event.custom.NPCInteractEvent;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.skyblockgeneric.gui.inventories.hunting.GUIAttributeFusion;
 
 public class NPCKysha extends HypixelNPC {
 
@@ -39,6 +40,10 @@ public class NPCKysha extends HypixelNPC {
 
     @Override
     public void onClick(NPCInteractEvent event) {
-        event.player().notImplemented();
+        event.player().openView(fusionGui());
+    }
+
+    static GUIAttributeFusion fusionGui() {
+        return new GUIAttributeFusion();
     }
 }
