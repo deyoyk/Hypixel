@@ -13,7 +13,8 @@ public enum BedwarsLeaderboardMode {
 	DOUBLES("doubles", "Doubles"),
 	THREE_THREE("3v3v3v3", "3v3v3v3"),
 	FOUR_FOUR_FOUR("4v4v4v4", "4v4v4v4"),
-	FOUR_FOUR("4v4", "4v4");
+	FOUR_FOUR("4v4", "4v4"),
+	DREAM("dream", "Dream Modes");
 
 	private final String key;
 	private final String displayName;
@@ -39,6 +40,7 @@ public enum BedwarsLeaderboardMode {
             case THREE_THREE -> gameType == BedWarsGameType.FOUR_THREE;
             case FOUR_FOUR_FOUR -> gameType == BedWarsGameType.FOUR_FOUR;
             case FOUR_FOUR -> gameType == BedWarsGameType.TWO_FOUR;
+			case DREAM -> gameType.isDream();
 		};
 	}
 
@@ -64,13 +66,16 @@ public enum BedwarsLeaderboardMode {
 	}
 
 	public static BedwarsLeaderboardMode fromGameType(BedWarsGameType gameType) {
+		if (gameType == null) return null;
+		if (gameType.isDream()) return DREAM;
+
 		return switch (gameType) {
             case ONE_EIGHT -> SOLO;
-            case TWO_EIGHT, ULTIMATE_DOUBLES -> DOUBLES;
+            case TWO_EIGHT -> DOUBLES;
             case FOUR_THREE -> THREE_THREE;
-            case FOUR_FOUR, ULTIMATE_FOURS -> FOUR_FOUR_FOUR;
+            case FOUR_FOUR -> FOUR_FOUR_FOUR;
             case TWO_FOUR -> FOUR_FOUR;
-			case null, default -> null;
+			default -> null;
 		};
 	}
 }

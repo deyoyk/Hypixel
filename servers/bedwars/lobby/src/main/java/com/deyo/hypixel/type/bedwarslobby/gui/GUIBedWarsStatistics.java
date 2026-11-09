@@ -67,15 +67,7 @@ public class GUIBedWarsStatistics extends HypixelInventoryGUI {
 		set(createModeStatisticsItem(uuid, modeStats, BedwarsLeaderboardMode.FOUR_FOUR, 4, 31));
 
 		// Dream Statistics (Slot 53)
-		set(new GUIItem(53) {
-			@Override
-			public ItemStack.Builder getItem(HypixelPlayer player) {
-				return ItemStacks.item(Material.ENDER_EYE, """
-						<a>Dream Statistics
-
-						<e>View your statistics for Dream modes!""");
-			}
-		});
+		set(createModeStatisticsItem(uuid, modeStats, BedwarsLeaderboardMode.DREAM, 1, 53));
 
 		// Close button (Slot 49)
 		set(GUIClickableItem.getCloseItem(49));
