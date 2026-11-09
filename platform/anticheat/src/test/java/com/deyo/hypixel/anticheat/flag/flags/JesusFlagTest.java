@@ -1,6 +1,6 @@
 package com.deyo.hypixel.anticheat.flag.flags;
 
-import com.deyo.hypixel.anticheat.world.Block;
+import net.minestom.server.instance.block.Block;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -10,14 +10,14 @@ class JesusFlagTest {
 
     @Test
     void waterAndLavaAreLiquids() {
-        assertTrue(JesusFlag.isLiquid(new Block(true, false, null)));
-        assertTrue(JesusFlag.isLiquid(new Block(false, true, null)));
-        assertTrue(JesusFlag.isLiquid(new Block(true, true, null)));
+        assertTrue(JesusFlag.isLiquid(Block.WATER));
+        assertTrue(JesusFlag.isLiquid(Block.LAVA));
     }
 
     @Test
     void solidAndMissingBlocksAreNotLiquids() {
-        assertFalse(JesusFlag.isLiquid(new Block(false, false, null)));
+        assertFalse(JesusFlag.isLiquid(Block.STONE));
+        assertFalse(JesusFlag.isLiquid(Block.AIR));
         assertFalse(JesusFlag.isLiquid(null));
     }
 }

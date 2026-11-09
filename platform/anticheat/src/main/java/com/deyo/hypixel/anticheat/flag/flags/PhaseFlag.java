@@ -1,89 +1,78 @@
 package com.deyo.hypixel.anticheat.flag.flags;
 
+import net.minestom.server.entity.Player;
+import net.minestom.server.instance.Instance;
+import net.minestom.server.instance.block.Block;
 import com.deyo.hypixel.anticheat.event.ListenerMethod;
 import com.deyo.hypixel.anticheat.event.events.PlayerPositionUpdateEvent;
 import com.deyo.hypixel.anticheat.flag.Flag;
 import com.deyo.hypixel.anticheat.math.Pos;
 import com.deyo.hypixel.anticheat.math.Vel;
-import com.deyo.hypixel.anticheat.world.Block;
-import com.deyo.hypixel.anticheat.world.PlayerWorld;
 
 public class PhaseFlag extends Flag {
 
     @ListenerMethod
     public void onPlayerPositionUpdate(PlayerPositionUpdateEvent event) {
-        Pos currentPos = event.getCurrentTick().getPos();
-        PlayerWorld world = event.getPlayer().getWorld();
+        Player player = onlinePlayer(event.getPlayer());
+        if (player == null || player.getInstance() == null) return;
 
-        // Check blocks at player position
-        // Player hitbox is 0.6 wide x 1.8 tall
-        checkCollision(event, world, currentPos);
+        Pos currentPos = event.getCurrentTick().getPos();
+        checkCollision(event, player.getInstance(), currentPos);
     }
 
-    private void checkCollision(PlayerPositionUpdateEvent event, PlayerWorld world, Pos pos) {
+    private void checkCollision(PlayerPositionUpdateEvent event, Instance instance, Pos pos) {
         int blockX = (int) Math.floor(pos.x());
         int blockY = (int) Math.floor(pos.y());
         int blockZ = (int) Math.floor(pos.z());
 
-        // Check blocks at player's position and above (for head)
-        Block feet = world.getBlockNow(blockX, blockY, blockZ);
-        Block head = world.getBlockNow(blockX, blockY + 1, blockZ);
+        Block feet = instance.getBlock(blockX, blockY, blockZ);
+        Block head = instance.getBlock(blockX, blockY + 1, blockZ);
 
         boolean feetSolid = isSolid(feet);
         boolean headSolid = isSolid(head);
 
         if (feetSolid || headSolid) {
-            // Player is inside a solid block
-            // This could be phase/noclip
-
-            // Check if player is moving through the block
             Vel vel = event.getCurrentTick().getVel();
             double speed = Math.sqrt(vel.x() * vel.x() + vel.z() * vel.z());
 
             if (speed > 0.05) {
-                // Moving through solid block = phasing
                 double certainty = Math.min(0.95, 0.7 + speed * 0.5);
                 event.getPlayer().flag(com.deyo.hypixel.anticheat.flag.FlagType.PHASE, certainty);
             } else {
-                // Stationary in block could be glitch, lower certainty
                 event.getPlayer().flag(com.deyo.hypixel.anticheat.flag.FlagType.PHASE, 0.5);
             }
         }
 
-        // Additional check: Moving through walls
         if (event.getPreviousTick() != null) {
             Pos prevPos = event.getPreviousTick().getPos();
-            checkWallClipping(event, world, prevPos, pos);
+            checkWallClipping(event, instance, prevPos, pos);
         }
     }
 
-    private void checkWallClipping(PlayerPositionUpdateEvent event, PlayerWorld world, Pos from, Pos to) {
-        // Simple raycast between two positions to detect wall clipping
+    private void checkWallClipping(PlayerPositionUpdateEvent event, Instance instance, Pos from, Pos to) {
         double dx = to.x() - from.x();
         double dy = to.y() - from.y();
         double dz = to.z() - from.z();
 
         double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-        if (distance < 0.1) return; // Too small to check
+        if (distance < 0.1) return;
 
-        // Check midpoint for solid blocks
         double midX = (from.x() + to.x()) / 2;
         double midY = (from.y() + to.y()) / 2;
         double midZ = (from.z() + to.z()) / 2;
 
-        Block block = world.getBlockNow(
+        Block block = instance.getBlock(
             (int) Math.floor(midX),
             (int) Math.floor(midY),
             (int) Math.floor(midZ)
         );
         if (isSolid(block)) {
-            // Moved through a solid block
             event.getPlayer().flag(com.deyo.hypixel.anticheat.flag.FlagType.PHASE, 0.8);
         }
     }
 
     static boolean isSolid(Block block) {
-        return block != null && !block.isWater() && !block.isLava();
+        return block != null && block.solid();
     }
 }

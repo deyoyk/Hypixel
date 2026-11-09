@@ -31,7 +31,6 @@ public class DeyoEngine {
             for (UUID uuid : stalePlayers(onlinePlayers)) {
                 DeyoPlayer player = DeyoPlayer.players.remove(uuid);
                 if (player == null) continue;
-                player.getWorld().shutdown();
                 // Clean up player data when they disconnect
                 AnticheatAPI.clearPlayerData(uuid);
                 AnticheatAPI.clearBypasses(uuid);

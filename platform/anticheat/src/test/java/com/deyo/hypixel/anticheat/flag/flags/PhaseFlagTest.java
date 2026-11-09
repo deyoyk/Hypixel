@@ -1,6 +1,6 @@
 package com.deyo.hypixel.anticheat.flag.flags;
 
-import com.deyo.hypixel.anticheat.world.Block;
+import net.minestom.server.instance.block.Block;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -9,15 +9,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PhaseFlagTest {
 
     @Test
-    void liquidsAndMissingBlocksAreNotSolid() {
+    void liquidsAirAndMissingBlocksAreNotSolid() {
         assertFalse(PhaseFlag.isSolid(null));
-        assertFalse(PhaseFlag.isSolid(new Block(true, false, null)));
-        assertFalse(PhaseFlag.isSolid(new Block(false, true, null)));
-        assertFalse(PhaseFlag.isSolid(new Block(true, true, null)));
+        assertFalse(PhaseFlag.isSolid(Block.AIR));
+        assertFalse(PhaseFlag.isSolid(Block.WATER));
+        assertFalse(PhaseFlag.isSolid(Block.LAVA));
+        assertFalse(PhaseFlag.isSolid(Block.TORCH));
     }
 
     @Test
-    void nonLiquidBlocksAreSolid() {
-        assertTrue(PhaseFlag.isSolid(new Block(false, false, null)));
+    void solidBlocksAreSolid() {
+        assertTrue(PhaseFlag.isSolid(Block.STONE));
     }
 }

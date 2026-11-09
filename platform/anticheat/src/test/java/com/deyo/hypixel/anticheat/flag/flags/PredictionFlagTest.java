@@ -88,7 +88,6 @@ class PredictionFlagTest {
             assertEquals(4, player.getTicksSinceKnockback());
             assertEquals(0.0, PredictionFlag.expectedKnockback(player).length());
         } finally {
-            player.getWorld().shutdown();
             DeyoPlayer.players.remove(player.getUuid());
         }
     }

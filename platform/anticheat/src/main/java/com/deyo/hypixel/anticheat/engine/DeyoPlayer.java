@@ -11,7 +11,6 @@ import com.deyo.hypixel.anticheat.flag.FlagType;
 import com.deyo.hypixel.anticheat.loader.DeyoAnticheat;
 import com.deyo.hypixel.anticheat.math.Pos;
 import com.deyo.hypixel.anticheat.math.Vel;
-import com.deyo.hypixel.anticheat.world.PlayerWorld;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -25,7 +24,6 @@ public class DeyoPlayer {
 
     private List<PlayerTickInformation> lastTicks = new ArrayList<>();
     private PlayerTickInformation currentTick = new PlayerTickInformation(new Pos(0, 0, 0), new Vel(0, 0, 0), false);
-    private final PlayerWorld world = new PlayerWorld();
 
     private final LinkedBlockingDeque<PingRequest> pingRequests = new LinkedBlockingDeque<>();
     private long ping;

@@ -13,7 +13,6 @@ import com.deyo.hypixel.anticheat.prediction.PredictionEngine;
 import com.deyo.hypixel.anticheat.prediction.PredictionEngine.PredictedMovement;
 import com.deyo.hypixel.anticheat.prediction.compensation.LagCompensator;
 import com.deyo.hypixel.anticheat.prediction.modifier.impl.*;
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.entity.EntityPose;
 import net.minestom.server.entity.EquipmentSlot;
@@ -243,10 +242,6 @@ public class PredictionFlag extends Flag {
 
     private long getTransactionPing(DeyoPlayer player) {
         return Math.max(0, player.getPing());
-    }
-
-    private static Player onlinePlayer(DeyoPlayer player) {
-        return MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(player.getUuid());
     }
 
     private Vel getExpectedKnockback(DeyoPlayer player) {

@@ -13,9 +13,6 @@ class DeyoEngineTest {
 
     @AfterEach
     void cleanUp() {
-        for (DeyoPlayer player : DeyoPlayer.players.values()) {
-            player.getWorld().shutdown();
-        }
         DeyoPlayer.players.clear();
     }
 
