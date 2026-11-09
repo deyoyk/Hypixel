@@ -75,7 +75,7 @@ public class NPCMelancholicViking extends HypixelNPC {
 			setDialogue(player, "holding-fishing-rod");
 			return;
 		}
-		// TODO: finish this monstrosity
+		setDialogue(player, "intro");
 	}
 
 	@Override
