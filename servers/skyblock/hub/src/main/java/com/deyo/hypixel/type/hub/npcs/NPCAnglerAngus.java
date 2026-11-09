@@ -4,10 +4,14 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EquipmentSlot;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
+import com.deyo.hypixel.commons.skyblock.item.ItemType;
+import com.deyo.hypixel.type.generic.data.datapoints.DatapointToggles;
 import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
 import com.deyo.hypixel.type.generic.entity.npc.configuration.HumanConfiguration;
 import com.deyo.hypixel.type.generic.event.custom.NPCInteractEvent;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.skyblockgeneric.gui.inventories.fishing.GUIBaitGuide;
+import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Map;
@@ -52,6 +56,22 @@ public class NPCAnglerAngus extends HypixelNPC {
 
     @Override
     public void onClick(NPCInteractEvent event) {
-        event.player().notImplemented();
+        SkyBlockPlayer player = (SkyBlockPlayer) event.player();
+        if (claimFirstBait(player.getToggles())) {
+            player.addAndUpdateItem(ItemType.FISH_BAIT, 16);
+            player.sendMessage("<a>Angler Angus gave you <6>16 Fish Bait<a>!");
+        }
+        player.openView(baitGuide());
+    }
+
+    static boolean claimFirstBait(DatapointToggles.Toggles toggles) {
+        DatapointToggles.Toggles.ToggleType type = DatapointToggles.Toggles.ToggleType.HAS_CLAIMED_ANGLER_ANGUS_BAIT;
+        if (toggles.get(type)) return false;
+        toggles.set(type, true);
+        return true;
+    }
+
+    static GUIBaitGuide baitGuide() {
+        return new GUIBaitGuide();
     }
 }
