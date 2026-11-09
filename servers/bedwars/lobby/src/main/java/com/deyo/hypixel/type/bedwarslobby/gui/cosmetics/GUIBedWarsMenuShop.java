@@ -39,6 +39,6 @@ public class GUIBedWarsMenuShop extends StatelessView {
                 <a>Game Settings
                 <7>Adjust game settings for Bed Wars.
 
-                <e>Click to open!"""), (_, c) -> c.player().notImplemented());
+                <e>Click to open!"""), (_, c) -> c.push(new GUIBedWarsGameSettings()));
     }
 }
