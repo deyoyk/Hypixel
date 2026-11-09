@@ -5,9 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Stream;
 
 @RequiredArgsConstructor
@@ -37,7 +35,7 @@ public class GeneratorService {
                     DungeonsData.RoomData roomData = data.getDataForOrNull(room);
                     if (roomData == null) continue;
                     if (!room.isAutomaticallyPlace()) continue;
-                    amounts.put(room, (int) (Math.random() * (roomData.maximumAmount() - roomData.minimumAmount())) + roomData.minimumAmount());
+                    amounts.put(room, randomRoomAmount(roomData, ThreadLocalRandom.current()));
                 }
                 return amounts;
             });
@@ -66,13 +64,8 @@ public class GeneratorService {
                 dungeon.setRoom(width, height, CatacombsDungeon.DungeonRoom.ofBase());
             });
 
-            final int[] fairyPositions = {0, 0};
-            // Not async, we need this done before generating the critical path
-            fairyPosition.thenAccept(fairyPos -> {
-                fairyPositions[0] = fairyPos[0];
-                fairyPositions[1] = fairyPos[1];
-                dungeon.setRoom(fairyPositions[0], fairyPositions[1], new CatacombsDungeon.DungeonRoom(DungeonRoomType.FAIRY));
-            });
+            int[] fairyPositions = fairyPosition.join();
+            dungeon.setRoom(fairyPositions[0], fairyPositions[1], new CatacombsDungeon.DungeonRoom(DungeonRoomType.FAIRY));
 
             // We can use the entranceAndExits future to get the entrance and exit points
             entranceAndExits.thenAcceptAsync(entranceAndExit -> {
@@ -112,15 +105,14 @@ public class GeneratorService {
                                 fairyPositions[0], fairyPositions[1], exitX, data.getHeight() - 1, data.getWidth(), data.getHeight())
                         .stream().map(cell -> new int[]{cell[0], cell[1], 3}).toList());
 
-                for (int[] cell : path) {
+                for (int i = 0; i < path.size(); i++) {
+                    int[] cell = path.get(i);
                     dungeon.getRoom(cell[0], cell[1]).setCritical(true);
                     dungeon.getRoom(cell[0], cell[1]).setStage(cell[2]);
 
-                    if (path.indexOf(cell) != path.size() - 1) {
-                        int[] nextCell = path.get(path.indexOf(cell) + 1);
-                        if (nextCell != null) {
-                            dungeon.connectRooms(cell[0], cell[1], nextCell[0], nextCell[1]);
-                        }
+                    if (i < path.size() - 1) {
+                        int[] nextCell = path.get(i + 1);
+                        dungeon.connectRooms(cell[0], cell[1], nextCell[0], nextCell[1]);
                     }
                 }
 
@@ -165,7 +157,7 @@ public class GeneratorService {
                 currentStage = GenerationStage.ROOM_ASSIGNMENT;
                 // We want to find rooms with only one door, and then assign a room to them
                 // until we have the amount needed for each room type
-                assignRoomsAsync(roomAmounts.join(), dungeon);
+                assignRooms(roomAmounts.join(), dungeon);
 
                 // Move to corridor assignment stage
                 currentStage = GenerationStage.CORRIDOR_ASSIGNMENT;
@@ -201,55 +193,38 @@ public class GeneratorService {
         return future;
     }
 
-    public void assignRoomsAsync(Map<DungeonRoomType, Integer> roomAmounts, CatacombsDungeon dungeon) {
-        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-
-        List<CompletableFuture<Void>> futures = new ArrayList<>();
-
-        roomAmounts.forEach((type, amount) -> {
-            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                AtomicInteger roomsAssigned = new AtomicInteger(0);
-                while (roomsAssigned.get() < amount) {
-                    for (int y = 0; y < data.getHeight(); y++) {
-                        for (int x = 0; x < data.getWidth(); x++) {
-                            CatacombsDungeon.DungeonRoom room = dungeon.getRoom(x, y);
-                            if (room.getRoomType() != DungeonRoomType.BASE) continue; // Skip if room already has a type
-                            if (room.isCritical()) continue; // Skip if room is critical
-
-                            // Random chance to skip this room, note the modification to ensure thread safety
-                            if (Math.random() > 0.2) continue;
-
-                            // Convert to async call
-                            int finalX = x;
-                            int finalY = y;
-                            CompletableFuture<List<int[]>> doorsFuture = CompletableFuture.supplyAsync(() ->
-                                    dungeon.getDoors(finalX, finalY), executor);
-                            int finalX1 = x;
-                            int finalY1 = y;
-                            doorsFuture.thenAccept(doors -> {
-                                if (doors.size() == 1) {
-                                    room.setRoomType(type);
-
-                                    dungeon.setRoom(finalX1, finalY1, room);
-                                    if (roomsAssigned.incrementAndGet() >= amount) {
-                                        return; // Exit if enough rooms have been assigned
-                                    }
-                                }
-                            }).join(); // This join is to ensure that the task completes before moving on
-                        }
-                        if (roomsAssigned.get() >= amount) {
-                            break; // Break outer loop if enough rooms have been assigned
-                        }
-                    }
+    public void assignRooms(Map<DungeonRoomType, Integer> roomAmounts, CatacombsDungeon dungeon) {
+        List<int[]> eligibleRooms = new ArrayList<>();
+        for (int y = 0; y < data.getHeight(); y++) {
+            for (int x = 0; x < data.getWidth(); x++) {
+                CatacombsDungeon.DungeonRoom room = dungeon.getRoom(x, y);
+                if (room == null || room.getRoomType() != DungeonRoomType.BASE || room.isCritical()) {
+                    continue;
                 }
-            }, executor);
-            futures.add(future);
-        });
+                if (dungeon.getDoors(x, y).size() != 1) {
+                    continue;
+                }
+                eligibleRooms.add(new int[]{x, y});
+            }
+        }
 
-        // Wait for all futures to complete
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        Collections.shuffle(eligibleRooms);
+        int nextRoom = 0;
 
-        executor.shutdown(); // Don't forget to shut down the executor
+        for (Map.Entry<DungeonRoomType, Integer> entry : roomAmounts.entrySet()) {
+            int remaining = entry.getValue();
+            while (remaining > 0 && nextRoom < eligibleRooms.size()) {
+                int[] position = eligibleRooms.get(nextRoom++);
+                CatacombsDungeon.DungeonRoom room = dungeon.getRoom(position[0], position[1]);
+                room.setRoomType(entry.getKey());
+                dungeon.setRoom(position[0], position[1], room);
+                remaining--;
+            }
+        }
+    }
+
+    static int randomRoomAmount(DungeonsData.RoomData roomData, Random random) {
+        return random.nextInt(roomData.minimumAmount(), roomData.maximumAmount() + 1);
     }
 
     public void assignCorridors(CatacombsDungeon dungeon) {

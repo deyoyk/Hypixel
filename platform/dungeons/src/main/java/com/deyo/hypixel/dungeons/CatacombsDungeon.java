@@ -5,9 +5,10 @@ import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
+import java.util.Set;
 
 public class CatacombsDungeon extends GameDungeon {
     @Override
@@ -16,7 +17,7 @@ public class CatacombsDungeon extends GameDungeon {
     }
 
     private Map<Map.Entry<Integer, Integer>, DungeonRoom> rooms = new HashMap<>();
-    private List<DungeonDoor> doors = new ArrayList<>();
+    private Set<DungeonDoor> doors = new LinkedHashSet<>();
 
     public CatacombsDungeon setRoom(int x, int y, DungeonRoom room) {
         rooms.put(Map.entry(x, y), room);
@@ -36,67 +37,24 @@ public class CatacombsDungeon extends GameDungeon {
     }
 
     public boolean isConnected(int x1, int y1, int x2, int y2) {
-        return doors.stream().anyMatch(door -> (door.x1() == x1 && door.y1() == y1 && door.x2() == x2 && door.y2() == y2) || (door.x1() == x2 && door.y1() == y2 && door.x2() == x1 && door.y2() == y1));
+        return doors.contains(normalizedDoor(x1, y1, x2, y2));
     }
 
     public List<int[]> getDoors(int x, int y) {
-        final List<int[]> doors = new ArrayList<>();
-        final CountDownLatch latch = new CountDownLatch(4); // To wait for 4 threads
-
-        Thread.startVirtualThread(() -> {
-            try {
-                if (isConnected(x, y, x - 1, y)) {
-                    synchronized (doors) {
-                        doors.add(new int[]{x - 1, y});
-                    }
-                }
-            } finally {
-                latch.countDown();
-            }
-        });
-        Thread.startVirtualThread(() -> {
-            try {
-                if (isConnected(x, y, x + 1, y)) {
-                    synchronized (doors) {
-                        doors.add(new int[]{x + 1, y});
-                    }
-                }
-            } finally {
-                latch.countDown();
-            }
-        });
-        Thread.startVirtualThread(() -> {
-            try {
-                if (isConnected(x, y, x, y - 1)) {
-                    synchronized (doors) {
-                        doors.add(new int[]{x, y - 1});
-                    }
-                }
-            } finally {
-                latch.countDown();
-            }
-        });
-        Thread.startVirtualThread(() -> {
-            try {
-                if (isConnected(x, y, x, y + 1)) {
-                    synchronized (doors) {
-                        doors.add(new int[]{x, y + 1});
-                    }
-                }
-            } finally {
-                latch.countDown();
-            }
-        });
-
-        // Wait for all threads to finish
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            // Handle interruption, perhaps logging it or throwing an exception
+        final List<int[]> neighbours = new ArrayList<>(4);
+        if (isConnected(x, y, x - 1, y)) {
+            neighbours.add(new int[]{x - 1, y});
         }
-
-        return doors;
+        if (isConnected(x, y, x + 1, y)) {
+            neighbours.add(new int[]{x + 1, y});
+        }
+        if (isConnected(x, y, x, y - 1)) {
+            neighbours.add(new int[]{x, y - 1});
+        }
+        if (isConnected(x, y, x, y + 1)) {
+            neighbours.add(new int[]{x, y + 1});
+        }
+        return neighbours;
     }
 
     public void connectRooms(int x1, int y1, int x2, int y2) {
@@ -106,7 +64,14 @@ public class CatacombsDungeon extends GameDungeon {
             throw new IllegalArgumentException("Room at " + x1 + ", " + y1 + " or " + x2 + ", " + y2 + " does not exist");
         }
 
-        doors.add(new DungeonDoor(x1, y1, x2, y2));
+        doors.add(normalizedDoor(x1, y1, x2, y2));
+    }
+
+    private static DungeonDoor normalizedDoor(int x1, int y1, int x2, int y2) {
+        if (x1 < x2 || (x1 == x2 && y1 <= y2)) {
+            return new DungeonDoor(x1, y1, x2, y2);
+        }
+        return new DungeonDoor(x2, y2, x1, y1);
     }
 
     @Override

@@ -10,8 +10,8 @@ import java.util.stream.Stream;
 public final class DungeonUtilities {
 
     public static Stream<Map.Entry<Integer, Integer>> loopOverDungeonRooms(DungeonsData data) {
-        return Stream.iterate(0, i -> i < data.getWidth() * data.getHeight(), i -> i + 1)
-                .map(i -> Map.entry(i % data.getWidth(), i / data.getHeight()));
+        return java.util.stream.IntStream.range(0, data.getWidth() * data.getHeight())
+                .mapToObj(i -> Map.entry(i % data.getWidth(), i / data.getWidth()));
     }
 
     public static List<int[]> getFreeNeighbours(int x, int y, CatacombsDungeon dungeon, DungeonsData data) {
@@ -39,10 +39,8 @@ public final class DungeonUtilities {
     }
 
     public static void asyncPrintPerformance(long startTime, String identifier) {
-        Thread.startVirtualThread(() -> {
-            long time = System.currentTimeMillis() - startTime;
-            System.out.println("Dungeon Performance: " + identifier + " took " + time + "ms");
-        });
+        long time = System.currentTimeMillis() - startTime;
+        System.out.println("Dungeon Performance: " + identifier + " took " + time + "ms");
     }
 
     public static List<int[]> aStar(List<int[]> alreadyVisited,
@@ -54,7 +52,13 @@ public final class DungeonUtilities {
         costSoFar.put(startX + "," + startY, 0);
 
         // Ensure start position is not considered already visited
-        alreadyVisited.removeIf(cell -> cell[0] == startX && cell[1] == startY);
+        Set<String> visited = new HashSet<>();
+        for (int[] cell : alreadyVisited) {
+            if (cell[0] == startX && cell[1] == startY) {
+                continue;
+            }
+            visited.add(cell[0] + "," + cell[1]);
+        }
 
         while (!openSet.isEmpty()) {
             int[] current = openSet.poll();
@@ -66,7 +70,7 @@ public final class DungeonUtilities {
             for (int[] neighbor : getNeighbors(current[0], current[1], width, height)) {
                 // Convert neighbor to a String key to check if visited
                 String neighborKey = neighbor[0] + "," + neighbor[1];
-                if (alreadyVisited.stream().anyMatch(cell -> cell[0] == neighbor[0] && cell[1] == neighbor[1])) continue; // Skip already visited
+                if (visited.contains(neighborKey)) continue; // Skip already visited
 
                 int newCost = costSoFar.getOrDefault(current[0] + "," + current[1], Integer.MAX_VALUE) + 1;
                 if (!costSoFar.containsKey(neighborKey) || newCost < costSoFar.get(neighborKey)) {
@@ -98,7 +102,7 @@ public final class DungeonUtilities {
     private static List<int[]> reconstructPath(Map<String, int[]> cameFrom, int startX, int startY, int[] current) {
         List<int[]> path = new ArrayList<>();
         while (cameFrom.containsKey(current[0] + "," + current[1])) {
-            path.addFirst(current); // Add to the beginning of the list
+            path.addFirst(new int[]{current[0], current[1]}); // Add to the beginning of the list
             current = cameFrom.get(current[0] + "," + current[1]);
         }
         path.addFirst(new int[]{startX, startY}); // Ensure start position is included
@@ -106,9 +110,7 @@ public final class DungeonUtilities {
     }
 
     public static void asyncPrintDungeon(CatacombsDungeon dungeon) {
-        Thread.startVirtualThread(() -> {
-            System.out.println(dungeon);
-        });
+        System.out.println(dungeon);
     }
 
     public static String center(String s, int size, char pad) {
