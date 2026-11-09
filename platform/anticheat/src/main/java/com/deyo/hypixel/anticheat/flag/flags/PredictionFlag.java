@@ -12,6 +12,14 @@ import com.deyo.hypixel.anticheat.prediction.PredictionEngine;
 import com.deyo.hypixel.anticheat.prediction.PredictionEngine.PredictedMovement;
 import com.deyo.hypixel.anticheat.prediction.compensation.LagCompensator;
 import com.deyo.hypixel.anticheat.prediction.modifier.impl.*;
+import net.minestom.server.MinecraftServer;
+import net.minestom.server.component.DataComponents;
+import net.minestom.server.entity.EntityPose;
+import net.minestom.server.entity.EquipmentSlot;
+import net.minestom.server.entity.Player;
+import net.minestom.server.instance.block.Block;
+import net.minestom.server.item.component.EnchantmentList;
+import net.minestom.server.item.enchant.Enchantment;
 
 import java.util.HashMap;
 import java.util.List;
@@ -61,8 +69,7 @@ public class PredictionFlag extends Flag {
 
     @ListenerMethod
     public void onPlayerPositionUpdate(PlayerPositionUpdateEvent event) {
-        // Disabled: prediction-based detection has too many false positives
-        // Needs proper implementation of block checking, effects, enchantments, etc.
+        // Disabled: effect and knockback state are not exposed by the current Minestom API.
     }
 
     /**
@@ -137,33 +144,69 @@ public class PredictionFlag extends Flag {
             .build();
     }
 
-    // Helper methods to get data (can be stubbed with defaults if not implemented)
     private boolean isBlockType(DeyoPlayer player, int x, int y, int z, String... types) {
-        return false; // Stub - implement actual block checking via player.getWorld()
+        Player online = onlinePlayer(player);
+        if (online == null || online.getInstance() == null) return false;
+        return matchesBlockType(online.getInstance().getBlock(x, y, z), types);
+    }
+
+    static boolean matchesBlockType(Block block, String... types) {
+        if (block == null || block.air()) return false;
+        String name = block.key().value();
+        for (String type : types) {
+            if (name.equalsIgnoreCase(type)) return true;
+        }
+        return false;
     }
 
     private int getEffectLevel(DeyoPlayer player, String effect) {
-        return 0; // Stub - implement actual effect checking
+        return 0;
     }
 
     private boolean hasEffect(DeyoPlayer player, String effect) {
-        return false; // Stub - implement actual effect checking
+        return false;
     }
 
     private int getEnchantmentLevel(DeyoPlayer player, String enchantment) {
-        return 0; // Stub - implement actual enchantment checking
+        Player online = onlinePlayer(player);
+        if (online == null) return 0;
+        return enchantmentLevel(online.getEquipment(EquipmentSlot.BOOTS).get(DataComponents.ENCHANTMENTS), enchantment);
+    }
+
+    static int enchantmentLevel(EnchantmentList enchantments, String enchantment) {
+        if (enchantments == null) return 0;
+        return switch (enchantment) {
+            case "DEPTH_STRIDER" -> enchantments.level(Enchantment.DEPTH_STRIDER);
+            case "SOUL_SPEED" -> enchantments.level(Enchantment.SOUL_SPEED);
+            case "FROST_WALKER" -> enchantments.level(Enchantment.FROST_WALKER);
+            default -> 0;
+        };
     }
 
     private boolean hasEnchantment(DeyoPlayer player, String enchantment) {
-        return false; // Stub - implement actual enchantment checking
+        return getEnchantmentLevel(player, enchantment) > 0;
     }
 
     private boolean getPlayerState(DeyoPlayer player, String state) {
-        return false; // Stub - implement actual player state checking
+        Player online = onlinePlayer(player);
+        if (online == null) return false;
+        return switch (state) {
+            case "sprinting" -> online.isSprinting();
+            case "sneaking" -> online.isSneaking();
+            case "swimming" -> online.getPose() == EntityPose.SWIMMING;
+            case "gliding" -> online.getPose() == EntityPose.FALL_FLYING;
+            case "flying" -> online.isFlying();
+            case "usingItem" -> online.getCurrentItemUseTime() > 0;
+            default -> false;
+        };
     }
 
     private long getTransactionPing(DeyoPlayer player) {
-        return 0; // Stub - implement transaction ping calculation
+        return Math.max(0, player.getPing());
+    }
+
+    private static Player onlinePlayer(DeyoPlayer player) {
+        return MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(player.getUuid());
     }
 
     private Vel getExpectedKnockback(DeyoPlayer player) {
