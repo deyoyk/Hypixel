@@ -37,6 +37,9 @@ public class DeyoPlayer {
     private boolean allowFlight = false;
     private boolean creativeMode = false;
 
+    private Vel expectedKnockback = new Vel(0, 0, 0);
+    private int ticksSinceKnockback = 999;
+
     public DeyoPlayer(UUID uuid) {
         this.uuid = uuid;
         this.flagManager = new FlagManager(uuid, new HashMap<>());
@@ -52,6 +55,8 @@ public class DeyoPlayer {
 
     public void moveTickOn() {
         if (currentTick == null) return;
+
+        ticksSinceKnockback = Math.min(999, ticksSinceKnockback + 1);
 
         Pos currentPos = currentTick.getPos();
         Pos lastPos = !lastTicks.isEmpty() ? lastTicks.getLast().getPos() : currentPos;
@@ -160,6 +165,11 @@ public class DeyoPlayer {
         this.flying = flying;
         this.allowFlight = allowFlight;
         this.creativeMode = creativeMode;
+    }
+
+    public void handleKnockback(Vel velocity) {
+        this.expectedKnockback = velocity;
+        this.ticksSinceKnockback = 0;
     }
 
     public boolean shouldBypassMovementChecks() {

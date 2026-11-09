@@ -67,6 +67,8 @@ public class MinestomLoader extends Loader {
                 new MinestomHandlerAnimationPacket());
         registerPacketHandler(SteerVehiclePacket.class,
                 new MinestomHandlerSteerVehiclePacket());
+        registerPacketHandler(KnockbackPacket.class,
+                new MinestomHandlerKnockbackPacket());
 
         globalEventHandler.addListener(PlayerPacketOutEvent.class, (event) -> {
             ServerPacket packet = event.getPacket();

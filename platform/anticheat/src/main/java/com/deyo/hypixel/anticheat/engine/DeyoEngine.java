@@ -77,6 +77,7 @@ public class DeyoEngine {
     public static void registerEvents() {
         DeyoEventHandler.registerEventMethods(new MovementEvents());
         DeyoEventHandler.registerEventMethods(new PingEvents());
+        DeyoEventHandler.registerEventMethods(new KnockbackEvents());
 
         Arrays.stream(FlagType.values()).forEach(flagType -> {
             DeyoEventHandler.registerEventMethods(flagType.getFlagSupplier().get());

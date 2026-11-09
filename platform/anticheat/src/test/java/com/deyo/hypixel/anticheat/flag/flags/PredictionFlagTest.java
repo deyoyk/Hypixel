@@ -7,10 +7,15 @@ import net.minestom.server.item.enchant.Enchantment;
 import net.minestom.server.potion.PotionEffect;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import com.deyo.hypixel.anticheat.engine.DeyoPlayer;
+import com.deyo.hypixel.anticheat.math.Vel;
+
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PredictionFlagTest {
@@ -46,5 +51,26 @@ class PredictionFlagTest {
         assertEquals(PotionEffect.SLOW_FALLING, PredictionFlag.effectFor("SLOW_FALLING"));
         assertEquals(PotionEffect.DOLPHINS_GRACE, PredictionFlag.effectFor("DOLPHINS_GRACE"));
         assertNull(PredictionFlag.effectFor("UNKNOWN"));
+    }
+
+    @Test
+    void knockbackIsReportedOnlyWhileFresh() {
+        DeyoPlayer player = new DeyoPlayer(UUID.randomUUID());
+        try {
+            Vel knockback = new Vel(0.4, 0.36, 0.1);
+            player.handleKnockback(knockback);
+
+            assertSame(knockback, PredictionFlag.expectedKnockback(player));
+
+            for (int tick = 0; tick < 4; tick++) {
+                player.moveTickOn();
+            }
+
+            assertEquals(4, player.getTicksSinceKnockback());
+            assertEquals(0.0, PredictionFlag.expectedKnockback(player).length());
+        } finally {
+            player.getWorld().shutdown();
+            DeyoPlayer.players.remove(player.getUuid());
+        }
     }
 }

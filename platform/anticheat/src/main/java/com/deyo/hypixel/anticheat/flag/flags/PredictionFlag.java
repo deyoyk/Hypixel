@@ -3,6 +3,7 @@ package com.deyo.hypixel.anticheat.flag.flags;
 import com.deyo.hypixel.anticheat.engine.PlayerTickInformation;
 import com.deyo.hypixel.anticheat.engine.DeyoPlayer;
 import com.deyo.hypixel.anticheat.event.ListenerMethod;
+import com.deyo.hypixel.anticheat.event.events.PlayerKnockbackEvent;
 import com.deyo.hypixel.anticheat.event.events.PlayerPositionUpdateEvent;
 import com.deyo.hypixel.anticheat.flag.Flag;
 import com.deyo.hypixel.anticheat.math.Pos;
@@ -69,8 +70,13 @@ public class PredictionFlag extends Flag {
     }
 
     @ListenerMethod
+    public void onPlayerKnockback(PlayerKnockbackEvent event) {
+        event.getPlayer().handleKnockback(event.getKnockbackVelocity());
+    }
+
+    @ListenerMethod
     public void onPlayerPositionUpdate(PlayerPositionUpdateEvent event) {
-        // Disabled: knockback state is not exposed by the current Minestom API.
+        // Disabled until the prediction thresholds are validated against live movement.
     }
 
     /**
@@ -226,11 +232,17 @@ public class PredictionFlag extends Flag {
     }
 
     private Vel getExpectedKnockback(DeyoPlayer player) {
-        return new Vel(0, 0, 0); // Stub - implement knockback tracking
+        return expectedKnockback(player);
+    }
+
+    static Vel expectedKnockback(DeyoPlayer player) {
+        return player.getTicksSinceKnockback() <= 3
+                ? player.getExpectedKnockback()
+                : new Vel(0, 0, 0);
     }
 
     private int getTicksSinceKnockback(DeyoPlayer player) {
-        return 999; // Stub - implement knockback tracking
+        return player.getTicksSinceKnockback();
     }
 
     /**
