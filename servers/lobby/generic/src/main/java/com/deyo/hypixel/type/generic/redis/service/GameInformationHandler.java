@@ -15,6 +15,10 @@ public class GameInformationHandler implements RedisMessageHandler<Request, Resp
 
     public static Map<UUID, String> game = new HashMap<>();
 
+    public static void clear(UUID playerId) {
+        game.remove(playerId);
+    }
+
     private static final GameInformationPushProtocol PROTOCOL = new GameInformationPushProtocol();
 
     @Override

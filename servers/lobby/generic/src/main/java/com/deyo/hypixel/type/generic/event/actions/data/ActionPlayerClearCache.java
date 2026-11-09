@@ -5,6 +5,7 @@ import net.minestom.server.event.player.PlayerDisconnectEvent;
 
 import com.deyo.hypixel.type.generic.entity.hologram.PlayerHolograms;
 import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
+import com.deyo.hypixel.type.generic.entity.npc.NPCOption;
 import com.deyo.hypixel.type.generic.event.EventNodes;
 import com.deyo.hypixel.type.generic.event.HypixelEventClass;
 import com.deyo.hypixel.type.generic.event.phase.EventPhase;
@@ -12,6 +13,7 @@ import com.deyo.hypixel.type.generic.event.phase.PhasedEvent;
 import com.deyo.hypixel.type.generic.gui.HypixelAnvilGUI;
 import com.deyo.hypixel.type.generic.gui.HypixelSignGUI;
 import com.deyo.hypixel.type.generic.gui.inventory.HypixelInventoryGUI;
+import com.deyo.hypixel.type.generic.redis.service.GameInformationHandler;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 import com.deyo.hypixel.type.generic.user.categories.CustomGroups;
 
@@ -41,6 +43,8 @@ public class ActionPlayerClearCache implements HypixelEventClass {
         }
         HypixelNPC.removeDialogueCache(player);
         PlayerHolograms.remove(player);
+        GameInformationHandler.clear(player.getUuid());
+        NPCOption.options.remove(player);
 
         // Remove external player holograms associated with the player
         PlayerHolograms.externalPlayerHolograms.entrySet().removeIf(entry -> {
