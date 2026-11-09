@@ -20,6 +20,7 @@ import com.deyo.hypixel.type.generic.gui.v2.context.ViewContext;
 import com.deyo.hypixel.type.generic.guild.GuildManager;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 import com.deyo.hypixel.type.generic.user.categories.Rank;
+import com.deyo.hypixel.type.generic.utility.WebLinks;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -107,7 +108,7 @@ public class GUIGuild implements View<GUIGuild.GuildState> {
                 <a>Search Guilds
                 <7>Click here to search guilds you can
                 <7>join on the Hypixel Network website!"""),
-            (_, context) -> context.player().sendMessage("<click:url:'https://github.com/deyo/Hypixel-v2'><c>This Feature is not there yet. <a>Open a Pull request HERE to get it added quickly!"));
+            (_, context) -> WebLinks.sendGuildsLink(context.player()));
     }
 
     private void layoutWithGuild(ViewLayout<GuildState> layout, GuildState state, GuildData guild, ViewContext ctx) {

@@ -6,6 +6,7 @@ import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 public final class WebLinks {
     public static final String STORE = "https://store.hypixel.net";
     public static final String FORUMS = "https://hypixel.net/forums/";
+    public static final String GUILDS = "https://hypixel.net/guilds/";
     public static final String DAILY_REWARDS = "https://rewards.hypixel.net/claim-reward/";
     public static final String SOCIAL_MEDIA_REWARDS = "https://hypixel.net/social-media-rewards/";
 
@@ -18,6 +19,10 @@ public final class WebLinks {
 
     public static Text forumsLink() {
         return link(FORUMS, "<e>Click here to visit the Hypixel Forums!");
+    }
+
+    public static Text guildsLink() {
+        return link(GUILDS, "<e>Click here to browse Hypixel guilds!");
     }
 
     public static Text dailyRewardLink() {
@@ -40,6 +45,11 @@ public final class WebLinks {
     public static void sendForumsLink(HypixelPlayer player) {
         player.sendMessage("<6><l>HYPIXEL FORUMS</l>");
         player.sendMessage(forumsLink());
+    }
+
+    public static void sendGuildsLink(HypixelPlayer player) {
+        player.sendMessage("<6><l>GUILD FINDER</l>");
+        player.sendMessage(guildsLink());
     }
 
     public static void sendDailyRewardLink(HypixelPlayer player) {

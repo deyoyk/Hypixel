@@ -17,6 +17,11 @@ class WebLinksTest {
     }
 
     @Test
+    void guildsLinkIsClickable() {
+        assertLink(WebLinks.guildsLink(), WebLinks.GUILDS);
+    }
+
+    @Test
     void dailyRewardLinkIsClickable() {
         assertLink(WebLinks.dailyRewardLink(), WebLinks.DAILY_REWARDS);
     }
