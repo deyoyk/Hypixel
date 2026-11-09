@@ -60,9 +60,7 @@ public class PartyBroadcastHandler implements RedisMessageHandler<Request, Respo
     }
 
     private static HypixelPlayer findPlayer(UUID uuid) {
-        return HypixelGenericLoader.getLoadedPlayers().stream()
-                .filter(p -> p.getUuid().equals(uuid))
-                .findFirst().orElse(null);
+        return HypixelGenericLoader.getFromUUID(uuid);
     }
 
     private static DispatchResult render(HypixelPlayer player, PartyBroadcast broadcast) {

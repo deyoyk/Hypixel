@@ -32,6 +32,13 @@ class HypixelGenericLoaderTest {
         assertNull(HypixelGenericLoader.find(List.of(), uuid));
     }
 
+    @Test
+    void onlyLoadedOnlinePlayersAreResolved() {
+        assertNull(HypixelGenericLoader.getFromUUID(UUID.randomUUID()));
+        assertNull(HypixelGenericLoader.loadedPlayer(null));
+        assertNull(HypixelGenericLoader.loadedPlayer(player(UUID.randomUUID(), "Test")));
+    }
+
     private static HypixelPlayer player(UUID uuid, String name) {
         PlayerConnection connection = new PlayerConnection() {
             @Override

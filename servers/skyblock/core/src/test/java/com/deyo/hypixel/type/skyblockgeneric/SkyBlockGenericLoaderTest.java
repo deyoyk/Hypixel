@@ -32,6 +32,13 @@ class SkyBlockGenericLoaderTest {
         assertNull(SkyBlockGenericLoader.find(List.of(), uuid));
     }
 
+    @Test
+    void onlyLoadedOnlinePlayersAreResolved() {
+        assertNull(SkyBlockGenericLoader.getFromUUID(UUID.randomUUID()));
+        assertNull(SkyBlockGenericLoader.loadedPlayer(null));
+        assertNull(SkyBlockGenericLoader.loadedPlayer(player(UUID.randomUUID(), "Test")));
+    }
+
     private static SkyBlockPlayer player(UUID uuid, String name) {
         PlayerConnection connection = new PlayerConnection() {
             @Override

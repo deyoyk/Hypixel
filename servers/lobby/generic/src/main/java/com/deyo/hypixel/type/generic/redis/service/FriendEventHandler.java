@@ -59,10 +59,7 @@ public class FriendEventHandler implements RedisMessageHandler<Request, Response
         List<UUID> playersHandled = new ArrayList<>();
 
         for (UUID participantUUID : participants) {
-            HypixelPlayer player = HypixelGenericLoader.getLoadedPlayers().stream()
-                    .filter(p -> p.getUuid().equals(participantUUID))
-                    .findFirst()
-                    .orElse(null);
+            HypixelPlayer player = HypixelGenericLoader.getFromUUID(participantUUID);
 
             if (player != null) {
                 try {

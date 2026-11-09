@@ -349,23 +349,23 @@ public record HypixelGenericLoader(HypixelTypeLoader loader) {
 
     public static List<HypixelPlayer> getLoadedPlayers() {
         List<HypixelPlayer> players = new ArrayList<>();
-        MinecraftServer.getConnectionManager().getOnlinePlayers()
-                .stream()
-                .filter(player -> {
-                    try {
-                        HypixelDataHandler.getUser(player);
-                    } catch (Exception e) {
-                        return false;
-                    }
-                    return true;
-                })
-                .filter(player -> player.getInstance() != null)
-                .forEach(player -> players.add((HypixelPlayer) player));
+        for (Player player : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
+            if (loadedPlayer(player) != null) {
+                players.add((HypixelPlayer) player);
+            }
+        }
         return players;
     }
 
     public static @Nullable HypixelPlayer getFromUUID(UUID uuid) {
-        return find(getLoadedPlayers(), uuid);
+        return loadedPlayer(MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid));
+    }
+
+    static @Nullable HypixelPlayer loadedPlayer(Player player) {
+        if (!(player instanceof HypixelPlayer hypixelPlayer)) return null;
+        if (player.getInstance() == null) return null;
+        if (HypixelDataHandler.getUser(hypixelPlayer) == null) return null;
+        return hypixelPlayer;
     }
 
     static @Nullable HypixelPlayer find(Iterable<? extends HypixelPlayer> players, UUID uuid) {

@@ -318,10 +318,7 @@ public class GUIGuild implements View<GUIGuild.GuildState> {
         Text displayName = HypixelPlayer.getDisplayName(uuid);
         String memberSince = formatDuration(System.currentTimeMillis() - member.getJoinedAt());
 
-        HypixelPlayer loadedPlayer = HypixelGenericLoader.getLoadedPlayers().stream()
-            .filter(p -> p.getUuid().equals(uuid))
-            .findFirst()
-            .orElse(null);
+        HypixelPlayer loadedPlayer = HypixelGenericLoader.getFromUUID(uuid);
 
         List<Text> lore;
         PlayerSkin skin;

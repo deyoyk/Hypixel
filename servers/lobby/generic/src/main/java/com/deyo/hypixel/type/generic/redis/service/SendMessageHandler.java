@@ -22,10 +22,7 @@ public class SendMessageHandler implements RedisMessageHandler<Request, Response
     @Override
     public Response handle(Request message, RedisMessageContext context) {
         try {
-            HypixelPlayer player = HypixelGenericLoader.getLoadedPlayers().stream()
-                    .filter(p -> p.getUuid().equals(message.playerUUID()))
-                    .findFirst()
-                    .orElse(null);
+            HypixelPlayer player = HypixelGenericLoader.getFromUUID(message.playerUUID());
 
             if (player != null) {
                 String raw = message.message();

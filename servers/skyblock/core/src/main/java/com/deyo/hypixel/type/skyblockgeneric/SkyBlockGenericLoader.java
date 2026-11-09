@@ -10,6 +10,7 @@ import net.kyori.adventure.key.Key;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.CoordConversion;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.entity.Player;
 import net.minestom.server.event.server.ServerTickMonitorEvent;
 import net.minestom.server.instance.Chunk;
 import net.minestom.server.monitoring.TickMonitor;
@@ -580,23 +581,23 @@ public record SkyBlockGenericLoader(HypixelTypeLoader typeLoader) {
 
     public static List<SkyBlockPlayer> getLoadedPlayers() {
         List<SkyBlockPlayer> players = new ArrayList<>();
-        MinecraftServer.getConnectionManager().getOnlinePlayers()
-            .stream()
-            .filter(player -> {
-                try {
-                    SkyBlockDataHandler.getUser(player.getUuid());
-                } catch (Exception e) {
-                    return false;
-                }
-                return true;
-            })
-            .filter(player -> player.getInstance() != null)
-            .forEach(player -> players.add((SkyBlockPlayer) player));
+        for (Player player : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
+            if (loadedPlayer(player) != null) {
+                players.add((SkyBlockPlayer) player);
+            }
+        }
         return players;
     }
 
     public static @Nullable SkyBlockPlayer getFromUUID(UUID uuid) {
-        return find(getLoadedPlayers(), uuid);
+        return loadedPlayer(MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid));
+    }
+
+    static @Nullable SkyBlockPlayer loadedPlayer(Player player) {
+        if (!(player instanceof SkyBlockPlayer skyBlockPlayer)) return null;
+        if (player.getInstance() == null) return null;
+        if (SkyBlockDataHandler.getUser(skyBlockPlayer) == null) return null;
+        return skyBlockPlayer;
     }
 
     static @Nullable SkyBlockPlayer find(Iterable<? extends SkyBlockPlayer> players, UUID uuid) {

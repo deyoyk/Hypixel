@@ -132,9 +132,7 @@ public class GUICoopInviteTarget extends HypixelInventoryGUI {
     }
 
     private static void notifyOriginator(UUID originator, Text message) {
-        SkyBlockPlayer target = SkyBlockGenericLoader.getLoadedPlayers().stream()
-                .filter(loaded -> loaded.getUuid().equals(originator))
-                .findFirst().orElse(null);
+        SkyBlockPlayer target = SkyBlockGenericLoader.getFromUUID(originator);
         if (target != null) target.sendMessage(message);
     }
 
