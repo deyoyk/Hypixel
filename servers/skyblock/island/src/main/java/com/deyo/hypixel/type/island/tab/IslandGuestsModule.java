@@ -5,6 +5,7 @@ import com.deyo.hypixel.type.generic.tab.TablistModule;
 import com.deyo.hypixel.type.generic.tab.TablistSkinRegistry;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
+import com.deyo.hypixel.type.skyblockgeneric.user.island.IslandMembers;
 import com.deyo.hypixel.type.skyblockgeneric.user.island.SkyBlockIsland;
 
 import java.util.ArrayList;
@@ -49,7 +50,7 @@ public class IslandGuestsModule extends TablistModule {
                 .filter(SkyBlockPlayer.class::isInstance)
                 .map(SkyBlockPlayer.class::cast)
                 .collect(Collectors.toMap(SkyBlockPlayer::getUuid, Function.identity()));
-        Set<UUID> members = island.getCoop().getOnlineMembers().stream()
+        Set<UUID> members = IslandMembers.onlineMembers(island.getIslandID(), island.getCoop()).stream()
                 .map(SkyBlockPlayer::getUuid)
                 .collect(Collectors.toSet());
 

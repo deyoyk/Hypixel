@@ -36,8 +36,10 @@ public class GUIGuestManagement extends HypixelInventoryGUI {
         set(GUIClickableItem.getCloseItem(49));
 
         SkyBlockPlayer player = (SkyBlockPlayer) e.player();
-        CoopDatabase.Coop coop = player.getSkyBlockIsland().getCoop();
-        if (!canManage(player.getUuid(), coop)) {
+        var island = player.getSkyBlockIsland();
+        boolean allowed = island != null && canManage(player.getUuid(),
+                player.getProfiles().getCurrentlySelected(), island.getCoop(), island.getIslandID());
+        if (!allowed) {
             set(new GUIItem(22) {
                 @Override
                 public ItemStack.Builder getItem(HypixelPlayer viewer) {
@@ -82,8 +84,11 @@ public class GUIGuestManagement extends HypixelInventoryGUI {
         updateItemStacks(getInventory(), getPlayer());
     }
 
-    static boolean canManage(UUID playerId, CoopDatabase.Coop coop) {
-        return coop != null && (coop.isOriginator(playerId) || coop.members().contains(playerId));
+    static boolean canManage(UUID playerId, UUID profileId, CoopDatabase.Coop coop, UUID islandId) {
+        if (coop != null) {
+            return coop.isOriginator(playerId) || coop.members().contains(playerId);
+        }
+        return islandId != null && islandId.equals(profileId);
     }
 
     @Override
