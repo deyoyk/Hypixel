@@ -332,7 +332,12 @@ public class GUIMyProfile extends HypixelInventoryGUI {
                         <e>Click to change your language!""", available.toString());
             }
         });
-        set(new GUIItem(49) {
+        set(new GUIClickableItem(49) {
+            @Override
+            public void run(InventoryPreClickEvent e, HypixelPlayer player) {
+                WebLinks.sendStoreLink(player);
+            }
+
             @Override
             public ItemStack.Builder getItem(HypixelPlayer player) {
                 return ItemStacks.item(Material.GOLD_INGOT, """

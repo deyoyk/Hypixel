@@ -45,6 +45,9 @@ public class GUIBiblio extends HypixelInventoryGUI {
 		set(new GUIClickableItem(13) {
 			@Override
 			public void run(InventoryPreClickEvent e, HypixelPlayer p) {
+				SkyBlockPlayer player = (SkyBlockPlayer) p;
+				player.closeInventory();
+				Wiki.wiki(player);
 			}
 
 			@Override
