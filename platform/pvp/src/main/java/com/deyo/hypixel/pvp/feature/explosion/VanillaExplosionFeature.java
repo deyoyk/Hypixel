@@ -43,7 +43,7 @@ public class VanillaExplosionFeature implements ExplosionFeature {
 	}
 
 	@Override
-	public void primeExplosive(Instance instance, Point blockPosition, @NotNull IgnitionCause cause, int fuse) {
+	public boolean primeExplosive(Instance instance, Point blockPosition, @NotNull IgnitionCause cause, int fuse) {
 		ExplosivePrimeEvent event = new ExplosivePrimeEvent(instance, blockPosition, cause, fuse);
 		EventDispatcher.callCancellable(event, () -> {
 			TntEntity entity = new TntEntity(cause.causingEntity());
@@ -54,5 +54,6 @@ public class VanillaExplosionFeature implements ExplosionFeature {
 					1.0f, 1.0f
 			), entity);
 		});
+		return !event.isCancelled();
 	}
 }

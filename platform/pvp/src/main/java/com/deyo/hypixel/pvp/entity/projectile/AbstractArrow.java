@@ -14,6 +14,7 @@ import net.minestom.server.entity.damage.DamageType;
 import net.minestom.server.entity.metadata.projectile.AbstractArrowMeta;
 import net.minestom.server.event.EventDispatcher;
 import net.minestom.server.instance.EntityTracker;
+import net.minestom.server.instance.block.Block;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.network.packet.server.play.ChangeGameStatePacket;
 import net.minestom.server.network.packet.server.play.CollectItemPacket;
@@ -109,9 +110,19 @@ public abstract class AbstractArrow extends CustomEntityProjectile {
                     });
         }
 
-		//TODO water (also for other projectiles?)
+		if (instance != null && instance.getBlock(position).compare(Block.WATER)) {
+			velocity = applyWaterDrag(velocity);
+			if (fireTicksLeft > 0) {
+				fireTicksLeft = 0;
+				entityMeta.setOnFire(false);
+			}
+		}
 
 		tickRemoval();
+	}
+
+	static Vec applyWaterDrag(Vec velocity) {
+		return velocity.mul(0.6);
 	}
 
 	public void setFireTicksLeft(int fireTicksLeft) {

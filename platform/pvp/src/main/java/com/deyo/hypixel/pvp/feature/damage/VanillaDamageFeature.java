@@ -34,12 +34,15 @@ import com.deyo.hypixel.pvp.utils.CombatVersion;
 import com.deyo.hypixel.pvp.utils.EntityUtil;
 
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Vanilla implementation of {@link DamageFeature}.
  * Supports blocking, knockback, totems, armor, etc.
  */
 public class VanillaDamageFeature implements DamageFeature, RegistrableFeature {
+	private static final float MIN_HURT_PITCH = 0.8f;
+	private static final float MAX_HURT_PITCH = 1.2f;
 	public static final DefinedFeature<VanillaDamageFeature> DEFINED = new DefinedFeature<>(
 			FeatureType.DAMAGE, VanillaDamageFeature::new,
 			FeatureType.DIFFICULTY, FeatureType.BLOCK, FeatureType.ARMOR, FeatureType.TOTEM,
@@ -279,8 +282,7 @@ public class VanillaDamageFeature implements DamageFeature, RegistrableFeature {
 			if (sound != null) entity.sendPacketToViewersAndSelf(new SoundEffectPacket(
 					sound, entity instanceof Player ? Sound.Source.PLAYER : Sound.Source.HOSTILE,
 					entity.getPosition(),
-					//TODO seed randomizing?
-					1.0f, 1.0f, 0
+					1.0f, randomHurtPitch(ThreadLocalRandom.current()), 0
 			));
 		}
 
@@ -304,6 +306,10 @@ public class VanillaDamageFeature implements DamageFeature, RegistrableFeature {
 			event.setCancelled(true);
 			damageManually(entity, amount);
 		}
+	}
+
+	static float randomHurtPitch(ThreadLocalRandom random) {
+		return MIN_HURT_PITCH + random.nextFloat() * (MAX_HURT_PITCH - MIN_HURT_PITCH);
 	}
 
 	protected float scaleWithDifficulty(Player player, float amount) {

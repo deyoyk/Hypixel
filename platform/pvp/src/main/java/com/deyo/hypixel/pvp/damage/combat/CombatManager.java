@@ -18,6 +18,7 @@ import net.minestom.server.network.packet.server.play.EnterCombatEventPacket;
 import com.deyo.hypixel.pvp.damage.DamageTypeInfo;
 import com.deyo.hypixel.pvp.feature.fall.FallFeature;
 import com.deyo.hypixel.pvp.feature.state.PlayerStateFeature;
+import com.deyo.hypixel.pvp.utils.FluidUtil;
 import com.deyo.hypixel.pvp.utils.EntityUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -49,9 +50,12 @@ public class CombatManager {
 
 	public @Nullable String getFallLocation(PlayerStateFeature playerStateFeature) {
 		Block lastClimbedBlock = playerStateFeature.getLastClimbedBlock(player);
+		return resolveFallLocation(lastClimbedBlock, FluidUtil.isTouchingWater(player));
+	}
+
+	static @Nullable String resolveFallLocation(@Nullable Block lastClimbedBlock, boolean touchingWater) {
 		if (lastClimbedBlock == null) {
-			//TODO check for water at feet
-			return null;
+			return touchingWater ? "water" : null;
 		}
 
 		if (lastClimbedBlock.compare(Block.LADDER) || lastClimbedBlock.compare(Block.ACACIA_TRAPDOOR)

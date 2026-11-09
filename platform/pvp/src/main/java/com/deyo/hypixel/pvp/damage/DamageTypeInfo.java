@@ -13,7 +13,6 @@ public record DamageTypeInfo(boolean damagesHelmet, boolean bypassesArmor, boole
 							 boolean unblockable, boolean fire, ScaleWithDifficulty scaleWithDifficulty,
 							 boolean magic, boolean explosive, boolean fall, boolean thorns, boolean projectile,
 							 boolean freeze) {
-	//TODO check source and add missing
 	public static final Map<RegistryKey<DamageType>, DamageTypeInfo> INFO_MAP = new HashMap<>() {
 		{
 			put(DamageType.IN_FIRE, new DamageTypeInfo().bypassesArmor(true).fire(true));
@@ -49,12 +48,24 @@ public record DamageTypeInfo(boolean damagesHelmet, boolean bypassesArmor, boole
 			put(DamageType.THROWN, new DamageTypeInfo().projectile(true).scale(ScaleWithDifficulty.WHEN_CAUSED_BY_LIVING_NON_PLAYER));
 			put(DamageType.STING, new DamageTypeInfo().scale(ScaleWithDifficulty.WHEN_CAUSED_BY_LIVING_NON_PLAYER));
 			put(DamageType.MOB_ATTACK, new DamageTypeInfo().scale(ScaleWithDifficulty.WHEN_CAUSED_BY_LIVING_NON_PLAYER));
+			put(DamageType.MOB_ATTACK_NO_AGGRO, new DamageTypeInfo().scale(ScaleWithDifficulty.WHEN_CAUSED_BY_LIVING_NON_PLAYER));
 			put(DamageType.MOB_PROJECTILE, new DamageTypeInfo().scale(ScaleWithDifficulty.WHEN_CAUSED_BY_LIVING_NON_PLAYER));
 			put(DamageType.PLAYER_ATTACK, new DamageTypeInfo().scale(ScaleWithDifficulty.WHEN_CAUSED_BY_LIVING_NON_PLAYER));
 			put(DamageType.TRIDENT, new DamageTypeInfo().scale(ScaleWithDifficulty.WHEN_CAUSED_BY_LIVING_NON_PLAYER));
 			put(DamageType.FIREWORKS, new DamageTypeInfo().scale(ScaleWithDifficulty.WHEN_CAUSED_BY_LIVING_NON_PLAYER));
 			put(DamageType.SONIC_BOOM, new DamageTypeInfo().bypassesArmor(true).scale(ScaleWithDifficulty.WHEN_CAUSED_BY_LIVING_NON_PLAYER));
 			put(DamageType.OUTSIDE_BORDER, new DamageTypeInfo().bypassesArmor(true));
+			put(DamageType.CACTUS, new DamageTypeInfo());
+			put(DamageType.CAMPFIRE, new DamageTypeInfo().fire(true));
+			put(DamageType.DRY_OUT, new DamageTypeInfo().bypassesArmor(true));
+			put(DamageType.ENDER_PEARL, new DamageTypeInfo());
+			put(DamageType.LIGHTNING_BOLT, new DamageTypeInfo());
+			put(DamageType.MACE_SMASH, new DamageTypeInfo().scale(ScaleWithDifficulty.WHEN_CAUSED_BY_LIVING_NON_PLAYER));
+			put(DamageType.SPEAR, new DamageTypeInfo().scale(ScaleWithDifficulty.WHEN_CAUSED_BY_LIVING_NON_PLAYER));
+			put(DamageType.SPIT, new DamageTypeInfo().projectile(true).scale(ScaleWithDifficulty.WHEN_CAUSED_BY_LIVING_NON_PLAYER));
+			put(DamageType.SULFUR_CUBE_HOT, new DamageTypeInfo().fire(true));
+			put(DamageType.SWEET_BERRY_BUSH, new DamageTypeInfo());
+			put(DamageType.WIND_CHARGE, new DamageTypeInfo().projectile(true).scale(ScaleWithDifficulty.WHEN_CAUSED_BY_LIVING_NON_PLAYER));
 		}
 	};
 	private static final DamageTypeInfo DEFAULT = new DamageTypeInfo();

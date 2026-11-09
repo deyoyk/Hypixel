@@ -38,10 +38,12 @@ import com.deyo.hypixel.pvp.utils.PotionFlags;
 import com.deyo.hypixel.pvp.utils.ViewUtil;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Predicate;
 
 /**
  * Vanilla implementation of {@link FoodFeature}
@@ -63,8 +65,7 @@ public class VanillaFoodFeature implements FoodFeature, RegistrableFeature {
 		this.configuration = configuration;
 	}
 
-	public static void applyConsumeEffect(Entity entity, ConsumeEffect effect, Random random, SoundProvider soundProvider) {
-		switch (effect) {
+	public static void applyConsumeEffect(Entity entity, ConsumeEffect effect, Random random, SoundProvider soundProvider) {		switch (effect) {
 			case ApplyEffects(List<CustomPotionEffect> effects, float probability) -> {
 				if (random.nextFloat() >= probability) return;
 				for (CustomPotionEffect potionEffect : effects) {
@@ -79,11 +80,8 @@ public class VanillaFoodFeature implements FoodFeature, RegistrableFeature {
 					));
 				}
 			}
-			case RemoveEffects(RegistryTag<PotionEffect> potionEffects) -> entity.getActiveEffects().stream()
-					.map(TimedPotion::potion)
-					.map(Potion::effect)
-					.filter(potionEffects::contains)
-					.forEach(entity::removeEffect);
+			case RemoveEffects(RegistryTag<PotionEffect> potionEffects) ->
+					effectsToRemove(entity.getActiveEffects(), potionEffects::contains).forEach(entity::removeEffect);
 			case ClearAllEffects ignored -> entity.clearEffects();
 			case TeleportRandomly(float diameter) -> ChorusFruitUtil.tryChorusTeleport(entity, diameter);
 			case PlaySound(SoundEvent sound) -> soundProvider.playSound(
@@ -96,6 +94,15 @@ public class VanillaFoodFeature implements FoodFeature, RegistrableFeature {
             );
 			default -> throw new IllegalArgumentException("Unexpected value: " + effect);
 		}
+	}
+
+	static List<PotionEffect> effectsToRemove(Collection<TimedPotion> activeEffects,
+	                                          Predicate<PotionEffect> shouldRemove) {
+		return activeEffects.stream()
+			.map(TimedPotion::potion)
+			.map(Potion::effect)
+			.filter(shouldRemove)
+			.toList();
 	}
 
 	@Override

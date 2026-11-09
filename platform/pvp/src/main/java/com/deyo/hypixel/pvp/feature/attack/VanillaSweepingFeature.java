@@ -11,7 +11,6 @@ import net.minestom.server.entity.damage.Damage;
 import net.minestom.server.entity.damage.DamageType;
 import net.minestom.server.network.packet.server.play.ParticlePacket;
 import net.minestom.server.particle.Particle;
-import com.deyo.hypixel.pvp.enchantment.EntityGroup;
 import com.deyo.hypixel.pvp.enums.Tool;
 import com.deyo.hypixel.pvp.feature.FeatureType;
 import com.deyo.hypixel.pvp.feature.config.DefinedFeature;
@@ -87,15 +86,12 @@ public class VanillaSweepingFeature implements SweepingFeature {
             // Apply sweeping knockback and damage to the entity
             if (attacker.getPosition().distanceSquared(nearbyEntity.getPosition()) < 9.0) {
                 affectedEntities.add(living);
-                knockbackFeature.applySweepingKnockback(attacker, target);
-
-                float currentDamage = sweepingDamage + enchantmentFeature.getAttackDamage(
-                    attacker.getItemInMainHand(), EntityGroup.ofEntity(target));
+                knockbackFeature.applySweepingKnockback(attacker, living);
 
                 living.damage(new Damage(
                     attacker instanceof Player ? DamageType.PLAYER_ATTACK : DamageType.MOB_ATTACK,
                     attacker, attacker,
-                    null, currentDamage
+                    null, sweepingDamage
                 ));
             }
         }

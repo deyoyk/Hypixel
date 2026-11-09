@@ -16,6 +16,7 @@ import net.minestom.server.entity.LivingEntity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.metadata.projectile.ProjectileMeta;
 import net.minestom.server.event.EventDispatcher;
+import net.minestom.server.event.entity.EntityShootEvent;
 import net.minestom.server.event.entity.projectile.ProjectileCollideWithBlockEvent;
 import net.minestom.server.event.entity.projectile.ProjectileCollideWithEntityEvent;
 import net.minestom.server.event.entity.projectile.ProjectileUncollideEvent;
@@ -121,15 +122,15 @@ public class CustomEntityProjectile extends Entity {
 	}
 
 	private void shoot(double dx, double dy, double dz, double power, double spread) {
-		//TODO custom shoot event
-//		EntityShootEvent shootEvent = new EntityShootEvent(shooter == null ? this : shooter, this, from, power, spread);
-//		EventDispatcher.call(shootEvent);
-//		if (shootEvent.isCancelled()) {
-//			remove();
-//			return;
-//		}
-//		power = shootEvent.getPower();
-//		spread = shootEvent.getSpread();
+		EntityShootEvent shootEvent = new EntityShootEvent(
+				shooter == null ? this : shooter, this, getPosition(), power, spread);
+		EventDispatcher.call(shootEvent);
+		if (shootEvent.isCancelled()) {
+			remove();
+			return;
+		}
+		power = shootEvent.getPower();
+		spread = shootEvent.getSpread();
 
 		double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
 		dx /= length;

@@ -24,12 +24,14 @@ public interface ExplosionFeature extends CombatFeature {
 		}
 		
 		@Override
-		public void primeExplosive(Instance instance, Point blockPosition, @NotNull IgnitionCause cause, int fuse) {}
+		public boolean primeExplosive(Instance instance, Point blockPosition, @NotNull IgnitionCause cause, int fuse) {
+			return false;
+		}
 	};
 	
 	@Nullable ExplosionSupplier getExplosionSupplier();
 	
-	void primeExplosive(Instance instance, Point blockPosition, @NotNull IgnitionCause cause, int fuse);
+	boolean primeExplosive(Instance instance, Point blockPosition, @NotNull IgnitionCause cause, int fuse);
 	
 	sealed interface IgnitionCause {
 		@Nullable Entity causingEntity();

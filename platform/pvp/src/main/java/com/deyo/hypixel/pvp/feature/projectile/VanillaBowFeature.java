@@ -45,6 +45,8 @@ public class VanillaBowFeature implements BowFeature, RegistrableFeature {
 			FeatureType.ITEM_DAMAGE, FeatureType.EFFECT, FeatureType.ENCHANTMENT, FeatureType.PROJECTILE_ITEM
 	);
 
+	static final int FLAME_FIRE_TICKS = 100;
+
 	private final FeatureConfiguration configuration;
 
 	private ItemDamageFeature itemDamageFeature;
@@ -116,7 +118,7 @@ public class VanillaBowFeature implements BowFeature, RegistrableFeature {
 			if (punchEnchantment > 0) arrow.setKnockback(punchEnchantment);
 
 			if (enchantmentList.level(Enchantment.FLAME) > 0)
-				arrow.setFireTicksLeft(100 * ServerFlag.SERVER_TICKS_PER_SECOND); // 100 seconds
+				arrow.setFireTicksLeft(FLAME_FIRE_TICKS);
 
 			itemDamageFeature.damageEquipment(player, event.getHand() == PlayerHand.MAIN ?
 					EquipmentSlot.MAIN_HAND : EquipmentSlot.OFF_HAND, 1);

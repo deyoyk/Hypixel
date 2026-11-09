@@ -111,8 +111,7 @@ public class CombatPlayerImpl extends Player implements CombatPlayer {
 		if (!ChunkUtils.isLoaded(finalChunk)) return;
 		
 		velocity = physicsResult.newVelocity().mul(tps);
-		//onGround = physicsResult.isOnGround();
-		
+
 		// Levitation effect
 		TimedPotion levitation = getEffect(PotionEffect.LEVITATION);
 		if (levitation != null) {
@@ -122,11 +121,7 @@ public class CombatPlayerImpl extends Player implements CombatPlayer {
 							- (velocity.y() / tps)) * 0.2) * tps
 			);
 		}
-		
-		//TODO
-		//if (!PlayerUtils.isSocketClient(this)) {
-		//	refreshPosition(physicsResult.newPosition(), true, true);
-		//}
+
 		sendImmediateVelocityUpdate();
 	}
 }

@@ -66,7 +66,10 @@ public class VanillaExplosiveFeature implements ExplosiveFeature, RegistrableFea
 			Block block = instance.getBlock(position);
 			if (!block.compare(Block.TNT)) return;
 
-			explosionFeature.primeExplosive(instance, position, new ExplosionFeature.IgnitionCause.ByPlayer(player), 80);
+			if (!explosionFeature.primeExplosive(instance, position,
+					new ExplosionFeature.IgnitionCause.ByPlayer(player), 80)) {
+				return;
+			}
 			instance.setBlock(position, Block.AIR);
 
 			if (player.getGameMode() != GameMode.CREATIVE) {
@@ -118,7 +121,7 @@ public class VanillaExplosiveFeature implements ExplosiveFeature, RegistrableFea
 				return;
 
 			ItemStack stack = player.getItemInHand(event.getHand());
-			int charges = Integer.parseInt(block.getProperty("charges"));
+			int charges = anchorCharges(block);
 			if (stack.material() == Material.GLOWSTONE && charges < 4) {
 				var anchorChargeEvent = new AnchorChargeEvent(player, event.getBlockPosition());
 				EventDispatcher.call(anchorChargeEvent);
@@ -165,5 +168,20 @@ public class VanillaExplosiveFeature implements ExplosiveFeature, RegistrableFea
 
 			event.setBlockingItemUse(true);
 		});
+	}
+
+	static int anchorCharges(Block block) {
+		String charges;
+		try {
+			charges = block.getProperty("charges");
+		} catch (IllegalArgumentException exception) {
+			return 0;
+		}
+		if (charges == null) return 0;
+		try {
+			return Integer.parseInt(charges);
+		} catch (NumberFormatException exception) {
+			return 0;
+		}
 	}
 }

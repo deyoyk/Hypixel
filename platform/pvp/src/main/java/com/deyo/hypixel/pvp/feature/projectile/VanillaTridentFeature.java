@@ -17,6 +17,7 @@ import net.minestom.server.event.item.PlayerCancelItemUseEvent;
 import net.minestom.server.event.player.PlayerTickEvent;
 import net.minestom.server.event.trait.EntityInstanceEvent;
 import net.minestom.server.instance.EntityTracker;
+import net.minestom.server.instance.Instance;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.item.enchant.Enchantment;
@@ -99,8 +100,15 @@ public class VanillaTridentFeature implements TridentFeature, RegistrableFeature
 		node.addListener(PlayerTickEvent.class, event -> {
 			if (event.getPlayer().getPlayerMeta().isInRiptideSpinAttack()) {
 				Player player = event.getPlayer();
-				long ticks = player.getAliveTicks() - player.getTag(RIPTIDE_START);
+				long ticks = riptideTicks(player.getAliveTicks(), player.getTag(RIPTIDE_START));
 				AtomicBoolean stopRiptide = new AtomicBoolean(ticks >= 20);
+
+				if (!stopRiptide.get() && isTouchingWall(player.getInstance(), player.getPosition(),
+						player.getVelocity(), player.getEyeHeight())) {
+					stopRiptide.set(true);
+					if (player instanceof CombatPlayer combatPlayer)
+						combatPlayer.setVelocityNoUpdate(velocity -> velocity.mul(-0.2));
+				}
 
 				assert player.getInstance() != null;
 				player.getInstance().getEntityTracker().nearbyEntities(player.getPosition(), 5,
@@ -116,12 +124,33 @@ public class VanillaTridentFeature implements TridentFeature, RegistrableFeature
 							}
 						});
 
-				//TODO detect player bouncing against wall
-
 				if (stopRiptide.get())
 					event.getPlayer().refreshActiveHand(false, false, false);
 			}
 		});
+	}
+
+	static long riptideTicks(long aliveTicks, Long start) {
+		return start == null ? 0 : Math.max(0, aliveTicks - start);
+	}
+
+	static boolean isTouchingWall(Instance instance, Pos position, Vec velocity, double eyeHeight) {
+		if (instance == null) return false;
+
+		double horizontal = Math.sqrt(velocity.x() * velocity.x() + velocity.z() * velocity.z());
+		if (horizontal < 1.0e-4) return false;
+
+		double dx = velocity.x() / horizontal;
+		double dz = velocity.z() / horizontal;
+		double distance = 0.35;
+		double middle = Math.max(0.1, eyeHeight * 0.5);
+		double top = Math.max(0.1, eyeHeight);
+
+		for (double height : new double[]{0.1, middle, top}) {
+			Pos probe = position.add(dx * distance, height, dz * distance);
+			if (instance.getBlock(probe).solid()) return true;
+		}
+		return false;
 	}
 
 	@Override

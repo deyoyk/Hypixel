@@ -16,7 +16,6 @@ import net.minestom.server.event.trait.EntityInstanceEvent;
 import net.minestom.server.item.Material;
 import net.minestom.server.sound.SoundEvent;
 import net.minestom.server.tag.Tag;
-import net.minestom.server.utils.MathUtils;
 import com.deyo.hypixel.pvp.entity.projectile.FishingBobber;
 import com.deyo.hypixel.pvp.events.FishingBobberRetrieveEvent;
 import com.deyo.hypixel.pvp.feature.FeatureType;
@@ -111,32 +110,14 @@ public class VanillaFishingRodFeature implements FishingRodFeature, RegistrableF
 				Vec velocity;
 
 				if (version.modern()) {
-					velocity = new Vec(
-							-xDir,
-							MathUtils.clamp(-(
-									(float) Math.sin(Math.toRadians(-playerPitch)) /
-											(float) -Math.cos(Math.toRadians(-playerPitch))
-							), -5.0F, 5.0F),
-							-zDir
-					);
-					double length = velocity.length();
-					velocity = velocity.mul(
-							0.6D / length + 0.5D + random.nextGaussian() * spread,
-							0.6D / length + 0.5D + random.nextGaussian() * spread,
-							0.6D / length + 0.5D + random.nextGaussian() * spread
+					velocity = calculateThrowVelocity(playerPos, true).add(
+							random.nextGaussian() * spread,
+							random.nextGaussian() * spread,
+							random.nextGaussian() * spread
 					);
 				} else {
-					double maxVelocity = 0.4F;
-					velocity = new Vec(
-							-Math.sin(playerYaw / 180.0F * (float) Math.PI)
-									* Math.cos(playerPitch / 180.0F * (float) Math.PI) * maxVelocity,
-							-Math.sin(playerPitch / 180.0F * (float) Math.PI) * maxVelocity,
-							Math.cos(playerYaw / 180.0F * (float) Math.PI)
-									* Math.cos(playerPitch / 180.0F * (float) Math.PI) * maxVelocity
-					);
-					double length = velocity.length();
-					velocity = velocity
-							.div(length)
+					velocity = calculateThrowVelocity(playerPos, false)
+							.normalize()
 							.add(
 									random.nextGaussian() * spread,
 									random.nextGaussian() * spread,
@@ -145,9 +126,13 @@ public class VanillaFishingRodFeature implements FishingRodFeature, RegistrableF
 							.mul(1.5);
 				}
 
-				//TODO fix velocity code
 				bobber.setVelocity(velocity.mul(ServerFlag.SERVER_TICKS_PER_SECOND * 0.75));
 			}
 		});
+	}
+
+	static Vec calculateThrowVelocity(Pos playerPos, boolean modern) {
+		double speed = modern ? 0.6D : 1.5D;
+		return playerPos.direction().normalize().mul(speed);
 	}
 }

@@ -79,60 +79,66 @@ public class VanillaEffectFeature implements EffectFeature, RegistrableFeature {
 		node.addListener(EntityDeathEvent.class, event ->
 				event.getEntity().clearEffects());
 
-		node.addListener(EntityTickEvent.class, event -> {
-			if (!(event.getEntity() instanceof LivingEntity entity)) return;
-			Map<PotionEffect, Integer> potionMap = getDurationLeftMap(entity);
+		node.addListener(EntityTickEvent.class, this::onEntityTick);
+		node.addListener(EntityPotionAddEvent.class, this::onPotionAdd);
+		node.addListener(EntityPotionRemoveEvent.class, this::onPotionRemove);
+	}
 
-			for (TimedPotion potion : entity.getActiveEffects()) {
-				potionMap.putIfAbsent(potion.potion().effect(), potion.potion().duration() - 1);
-				int durationLeft = potionMap.get(potion.potion().effect());
+	void onEntityTick(EntityTickEvent event) {
+		if (!(event.getEntity() instanceof LivingEntity entity)) return;
+		Map<PotionEffect, Integer> potionMap = getDurationLeftMap(entity);
 
-				if (durationLeft > 0) {
-					CombatPotionEffect combatPotionEffect = CombatPotionEffects.get(potion.potion().effect());
-					int amplifier = potion.potion().amplifier();
+		for (TimedPotion potion : entity.getActiveEffects()) {
+			PotionEffect effect = potion.potion().effect();
+			int durationLeft = potionMap.computeIfAbsent(effect, ignored -> potion.potion().duration() - 1);
 
-					if (combatPotionEffect.canApplyUpdateEffect(durationLeft, amplifier)) {
-						combatPotionEffect.applyUpdateEffect(entity, amplifier, exhaustionFeature, foodFeature);
-					}
+			if (durationLeft > 0) {
+				CombatPotionEffect combatPotionEffect = CombatPotionEffects.get(effect);
+				int amplifier = potion.potion().amplifier();
 
-					potionMap.put(potion.potion().effect(), durationLeft - 1);
+				if (combatPotionEffect.canApplyUpdateEffect(durationLeft, amplifier)) {
+					combatPotionEffect.applyUpdateEffect(entity, amplifier, exhaustionFeature, foodFeature);
 				}
+
+				potionMap.put(effect, durationLeft - 1);
 			}
+		}
 
-			if (entity instanceof Player player && player.hasEffect(PotionEffect.ABSORPTION) && player.getAdditionalHearts() <= 0) {
-				player.removeEffect(PotionEffect.ABSORPTION);
-			}
+		if (entity instanceof Player player && player.hasEffect(PotionEffect.ABSORPTION) && player.getAdditionalHearts() <= 0) {
+			player.removeEffect(PotionEffect.ABSORPTION);
+		}
 
-			//TODO keep track of underlying potions with longer duration
-			if (potionMap.size() != entity.getActiveEffects().size()) {
-				potionMap.keySet().removeIf(effect -> !entity.hasEffect(effect));
-			}
-		});
+		potionMap.keySet().removeIf(effect -> !entity.hasEffect(effect));
+	}
 
-		node.addListener(EntityPotionAddEvent.class, event -> {
-			if (!(event.getEntity() instanceof LivingEntity entity)) return;
-			Map<PotionEffect, Integer> potionMap = getDurationLeftMap(entity);
-			boolean infinite = event.getPotion().duration() == Potion.INFINITE_DURATION;
-			potionMap.put(event.getPotion().effect(), infinite ? Integer.MAX_VALUE : event.getPotion().duration());
+	void onPotionAdd(EntityPotionAddEvent event) {
+		if (!(event.getEntity() instanceof LivingEntity entity)) return;
+		Map<PotionEffect, Integer> potionMap = getDurationLeftMap(entity);
+		boolean infinite = event.getPotion().duration() == Potion.INFINITE_DURATION;
+		int duration = infinite ? Integer.MAX_VALUE : event.getPotion().duration();
 
-			CombatPotionEffect combatPotionEffect = CombatPotionEffects.get(event.getPotion().effect());
-			combatPotionEffect.onApplied(entity, event.getPotion().amplifier(), version);
+		// A shorter potion applied over a longer one must not shorten the tracked duration.
+		potionMap.merge(event.getPotion().effect(), duration, Math::max);
 
-			updatePotionVisibility(entity);
-		});
+		CombatPotionEffect combatPotionEffect = CombatPotionEffects.get(event.getPotion().effect());
+		combatPotionEffect.onApplied(entity, event.getPotion().amplifier(), version);
 
-		node.addListener(EntityPotionRemoveEvent.class, event -> {
-			if (!(event.getEntity() instanceof LivingEntity entity)) return;
+		updatePotionVisibility(entity);
+	}
 
-			CombatPotionEffect combatPotionEffect = CombatPotionEffects.get(event.getPotion().effect());
-			combatPotionEffect.onRemoved(entity, event.getPotion().amplifier(), version);
+	void onPotionRemove(EntityPotionRemoveEvent event) {
+		if (!(event.getEntity() instanceof LivingEntity entity)) return;
 
-			//Delay update 1 tick because we need to have the removing effect removed
-			MinecraftServer.getSchedulerManager()
-					.buildTask(() -> updatePotionVisibility(entity))
-					.delay(1, TimeUnit.SERVER_TICK)
-					.schedule();
-		});
+		getDurationLeftMap(entity).remove(event.getPotion().effect());
+
+		CombatPotionEffect combatPotionEffect = CombatPotionEffects.get(event.getPotion().effect());
+		combatPotionEffect.onRemoved(entity, event.getPotion().amplifier(), version);
+
+		//Delay update 1 tick because we need to have the removing effect removed
+		MinecraftServer.getSchedulerManager()
+				.buildTask(() -> updatePotionVisibility(entity))
+				.delay(1, TimeUnit.SERVER_TICK)
+				.schedule();
 	}
 
 	private Map<PotionEffect, Integer> getDurationLeftMap(Entity entity) {
