@@ -16,10 +16,16 @@ import com.deyo.hypixel.type.skyblockgeneric.data.SkyBlockDataHandler;
 import com.deyo.hypixel.type.skyblockgeneric.data.datapoints.DatapointHOTM;
 import com.deyo.hypixel.type.skyblockgeneric.data.datapoints.DatapointSkills;
 import com.deyo.hypixel.type.skyblockgeneric.data.datapoints.DatapointSlayer;
+import com.deyo.hypixel.type.skyblockgeneric.hunting.AttributeDefinition;
+import com.deyo.hypixel.type.skyblockgeneric.hunting.AttributeId;
+import com.deyo.hypixel.type.skyblockgeneric.hunting.AttributeRegistry;
 import com.deyo.hypixel.type.skyblockgeneric.item.SkyBlockItem;
 import com.deyo.hypixel.type.skyblockgeneric.skill.SkillCategories;
 import com.deyo.hypixel.type.skyblockgeneric.slayer.SlayerType;
 import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
+
+import java.util.Collection;
+import java.util.function.BiConsumer;
 
 public final class GUICentauriToyBox implements View<GUICentauriToyBox.State> {
     @Override
@@ -45,7 +51,7 @@ public final class GUICentauriToyBox implements View<GUICentauriToyBox.State> {
         unavailable(layout, 23, Material.GLASS_BOTTLE, "<a>Clear RNG Meter Progress", "<7>Clear every RNG Meter.");
         unavailable(layout, 24, Material.OAK_LOG, "<a>Fill Agatha's Rewards", "<7>Grant 25 contest rewards.");
         action(layout, 25, Material.SEA_LANTERN, "<a>Big ol' chunk o' Whispers!", "<8>To turn your tears to roses.", "<7>Get 1,000,000 Forest Whispers.", p -> p.getSkyblockDataHandler().get(SkyBlockDataHandler.Data.FOREST_WHISPERS, DatapointLong.class).setValue(1_000_000L));
-        unavailable(layout, 28, Material.PRISMARINE_SHARD, "<a>Shards!", "<7>Get 10 of each available Shard.");
+        action(layout, 28, Material.PRISMARINE_SHARD, "<a>Shards!", "<8>Gotta collect 'em all.", "<7>Get 10 of each available Shard.", p -> grantShards(AttributeRegistry.values(), 10, p.getHuntingData()::addShards));
         unavailable(layout, 29, Material.GREEN_DYE, "<2>Pile of Sowdust", "<7>Give yourself <2>1,000,000,000 Sowdust<7>.");
         unavailable(layout, 30, Material.BRICKS, "<c>Vault of Copper", "<7>Give yourself <c>1,000,000 Copper<7>.");
         unavailable(layout, 31, Material.SUNFLOWER, "<a>\"Organically Grown\" Garden Levels!", "<7>Increase Garden Experience by a custom amount.");
@@ -88,6 +94,15 @@ public final class GUICentauriToyBox implements View<GUICentauriToyBox.State> {
 
     private DatapointHOTM.PlayerHOTMData hotm(SkyBlockPlayer player) {
         return player.getSkyblockDataHandler().get(SkyBlockDataHandler.Data.HOTM, DatapointHOTM.class).getValue();
+    }
+
+    static int grantShards(Collection<AttributeDefinition> definitions, int amount, BiConsumer<AttributeId, Integer> granter) {
+        int granted = 0;
+        for (AttributeDefinition definition : definitions) {
+            granter.accept(definition.id(), amount);
+            granted++;
+        }
+        return granted;
     }
 
     private void give(SkyBlockPlayer player, ItemType type) { player.addAndUpdateItem(type); }
