@@ -337,15 +337,7 @@ public class Hypixel {
         if ("0".equals(index)) {
             Logger.info("Registering test flow with proxy: " + testFlowName);
 
-            List<Map<String, Object>> configList = new ArrayList<>();
-            String[] configs = serverConfigs.split(",");
-            for (String config : configs) {
-                String[] parts = config.trim().split(":");
-                String type = parts[0];
-                int count = parts.length > 1 ? Integer.parseInt(parts[1]) : 1;
-                configList.add(Map.of("type", type, "count", count));
-            }
-
+            List<Map<String, Object>> configList = TestFlowOptions.parseServerConfigs(serverConfigs);
             RedisClient.requestProxy(new RegisterTestFlowProtocol(),
                     new RegisterTestFlowProtocol.Request(testFlowName, handler, playerList, configList))
                     .thenAccept(response -> {
