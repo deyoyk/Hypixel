@@ -237,7 +237,9 @@ public class PlayerStatistics {
         total = ItemStatistics.add(total, equipmentStatistics(causer, enemy));
         total = ItemStatistics.add(total, mainHandStatistics(causer, enemy));
         total = ItemStatistics.add(total, spareStatistics());
-        total = ItemStatistics.add(total, getTemporaryStatistics());
+        if (hasTemporaryStatistics()) {
+            total = ItemStatistics.add(total, getTemporaryStatistics());
+        }
         total = ItemStatistics.add(total, petStatistics());
         total = ItemStatistics.add(total, accessoryStatistics);
         total = ItemStatistics.add(total, AttributeEffectService.statistics(player));
@@ -394,6 +396,7 @@ public class PlayerStatistics {
     }
 
     private void addTemporaryModifiers(List<StatisticModifier> modifiers) {
+        if (!hasTemporaryStatistics()) return;
         synchronized (temporaryStatistics) {
             temporaryStatistics.removeIf(stat -> stat.getExpiration() < System.currentTimeMillis());
             for (TemporaryStatistic temporary : temporaryStatistics) {
@@ -530,6 +533,10 @@ public class PlayerStatistics {
             }
         }
         return statistics;
+    }
+
+    boolean hasTemporaryStatistics() {
+        return !temporaryStatistics.isEmpty() || !temporaryConditionalStatistics.isEmpty();
     }
 
     private ItemStatistics getTemporaryStatistics() {
