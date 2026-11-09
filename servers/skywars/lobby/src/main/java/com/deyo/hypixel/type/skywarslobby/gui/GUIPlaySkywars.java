@@ -13,7 +13,7 @@ import com.deyo.hypixel.type.generic.gui.inventory.item.GUIClickableItem;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 import com.deyo.hypixel.type.generic.utility.GameCountCache;
 import com.deyo.hypixel.type.lobby.GameQueueValidator;
-import com.deyo.hypixel.type.lobby.LobbyOrchestratorConnector;
+import com.deyo.hypixel.type.generic.game.LobbyOrchestratorConnector;
 
 import java.util.ArrayList;
 import java.util.List;

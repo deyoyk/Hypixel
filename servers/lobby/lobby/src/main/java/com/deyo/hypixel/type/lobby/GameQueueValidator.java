@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import com.deyo.hypixel.commons.party.FullParty;
 import com.deyo.hypixel.commons.text.Text;
+import com.deyo.hypixel.type.generic.game.LobbyOrchestratorConnector;
 import com.deyo.hypixel.type.generic.party.PartyManager;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 import org.jetbrains.annotations.Nullable;

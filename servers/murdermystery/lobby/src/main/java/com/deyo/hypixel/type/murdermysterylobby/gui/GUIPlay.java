@@ -7,7 +7,7 @@ import net.minestom.server.item.Material;
 import com.deyo.hypixel.commons.murdermystery.MurderMysteryGameType;
 import com.deyo.hypixel.commons.ServerType;
 import com.deyo.hypixel.type.generic.gui.inventory.HypixelInventoryGUI;
-import com.deyo.hypixel.type.lobby.LobbyOrchestratorConnector;
+import com.deyo.hypixel.type.generic.game.LobbyOrchestratorConnector;
 import com.deyo.hypixel.type.generic.gui.inventory.ItemStacks;
 import com.deyo.hypixel.type.generic.gui.inventory.item.GUIClickableItem;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;

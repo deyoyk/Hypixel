@@ -13,7 +13,7 @@ import com.deyo.hypixel.type.generic.gui.inventory.item.GUIClickableItem;
 import com.deyo.hypixel.type.generic.party.PartyManager;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
 import com.deyo.hypixel.type.generic.utility.GameCountCache;
-import com.deyo.hypixel.type.lobby.LobbyOrchestratorConnector;
+import com.deyo.hypixel.type.generic.game.LobbyOrchestratorConnector;
 
 public class GUIPlayMurderMystery extends HypixelInventoryGUI {
 

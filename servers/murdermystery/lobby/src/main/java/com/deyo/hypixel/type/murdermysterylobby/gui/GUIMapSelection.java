@@ -10,7 +10,7 @@ import com.deyo.hypixel.commons.ServiceType;
 import com.deyo.hypixel.commons.protocol.objects.orchestrator.GetMapsProtocol;
 import com.deyo.hypixel.commons.text.Text;
 import com.deyo.hypixel.proxyapi.ProxyService;
-import com.deyo.hypixel.type.lobby.LobbyOrchestratorConnector;
+import com.deyo.hypixel.type.generic.game.LobbyOrchestratorConnector;
 import com.deyo.hypixel.type.generic.gui.inventory.HypixelInventoryGUI;
 import com.deyo.hypixel.type.generic.gui.inventory.ItemStacks;
 import com.deyo.hypixel.type.generic.gui.inventory.item.GUIClickableItem;

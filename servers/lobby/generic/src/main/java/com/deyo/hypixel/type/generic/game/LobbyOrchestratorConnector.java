@@ -1,4 +1,4 @@
-package com.deyo.hypixel.type.lobby;
+package com.deyo.hypixel.type.generic.game;
 
 import com.deyo.hypixel.commons.ServerType;
 import com.deyo.hypixel.commons.ServiceType;

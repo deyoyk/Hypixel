@@ -14,7 +14,7 @@ import com.deyo.hypixel.type.generic.gui.v2.ViewConfiguration;
 import com.deyo.hypixel.type.generic.gui.v2.ViewLayout;
 import com.deyo.hypixel.type.generic.gui.v2.context.ViewContext;
 import com.deyo.hypixel.type.lobby.GameQueueValidator;
-import com.deyo.hypixel.type.lobby.LobbyOrchestratorConnector;
+import com.deyo.hypixel.type.generic.game.LobbyOrchestratorConnector;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
