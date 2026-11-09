@@ -55,9 +55,9 @@ public final class SkyBlockCalendar {
         });
     }
 
-    public static Integer getHoursUntilNextInterest() {
-        // Interest happens every 31 hours
-        return (int) (INTEREST_INTERVAL - (getElapsed() % DAY) / 1000);
+    public static int getHoursUntilNextInterest(long lastClaimedInterest) {
+        long difference = Math.max(0, getDifferenceInHours(lastClaimedInterest));
+        return (int) Math.max(0, INTEREST_INTERVAL - difference);
     }
 
     public static Long getDifferenceInHours(long time) {

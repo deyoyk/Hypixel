@@ -59,4 +59,22 @@ class SkyBlockCalendarTest {
         assertTrue(SkyBlockCalendar.getDisplay(20_000L).serialize().contains("8:00pm"));
         assertTrue(SkyBlockCalendar.getDisplay(20_000L).serialize().contains("☽"));
     }
+
+    @Test
+    void interestCountdownUsesThePlayersLastClaim() {
+        SkyBlockCalendar.setElapsed(0L);
+        assertEquals(31, SkyBlockCalendar.getHoursUntilNextInterest(0L));
+
+        SkyBlockCalendar.setElapsed(1_000L);
+        assertEquals(30, SkyBlockCalendar.getHoursUntilNextInterest(0L));
+
+        SkyBlockCalendar.setElapsed(5_000L);
+        assertEquals(29, SkyBlockCalendar.getHoursUntilNextInterest(3_000L));
+
+        SkyBlockCalendar.setElapsed(31_000L);
+        assertEquals(0, SkyBlockCalendar.getHoursUntilNextInterest(0L));
+
+        SkyBlockCalendar.setElapsed(5_000L);
+        assertEquals(31, SkyBlockCalendar.getHoursUntilNextInterest(6_000L));
+    }
 }

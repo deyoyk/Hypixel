@@ -57,7 +57,7 @@ public class GUIBanker extends HypixelInventoryGUI implements RefreshingGUI {
                     Text.key("gui_banker.main.information"),
                     Text.keyLines("gui_banker.main.information.lore",
                         StringUtility.commaify(bankData.getBalanceLimit()),
-                        SkyBlockCalendar.getHoursUntilNextInterest()));
+                        SkyBlockCalendar.getHoursUntilNextInterest(bankData.getLastClaimedInterest())));
             }
         });
 
@@ -74,7 +74,7 @@ public class GUIBanker extends HypixelInventoryGUI implements RefreshingGUI {
                     Text.key("gui_banker.main.deposit"),
                     Text.keyLines("gui_banker.main.deposit.lore",
                         StringUtility.decimalify(bankData.getAmount(), 1),
-                        SkyBlockCalendar.getHoursUntilNextInterest()));
+                        SkyBlockCalendar.getHoursUntilNextInterest(bankData.getLastClaimedInterest())));
             }
         });
 
