@@ -7,6 +7,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.ReplaceOptions;
 import com.deyo.hypixel.commons.TrackedItem;
 import org.bson.Document;
 
@@ -16,6 +17,15 @@ public record TrackedItemsDatabase(UUID itemUUID) {
     public static MongoClient client;
     public static MongoDatabase database;
     public static MongoCollection<Document> collection;
+
+    private static final int LOCK_STRIPES = 64;
+    private static final Object[] ITEM_LOCKS = new Object[LOCK_STRIPES];
+
+    static {
+        for (int index = 0; index < ITEM_LOCKS.length; index++) {
+            ITEM_LOCKS[index] = new Object();
+        }
+    }
 
     public static void connect(String connectionString) {
         ConnectionString cs = new ConnectionString(connectionString);
@@ -40,11 +50,21 @@ public record TrackedItemsDatabase(UUID itemUUID) {
     }
 
     public void insertOrUpdate(TrackedItem trackedItem) {
-        if (!exists()) {
-            collection.insertOne(trackedItem.toDocument().append("_id", trackedItem.getItemUUID().toString()));
-            return;
+        collection.replaceOne(
+                Filters.eq("_id", trackedItem.getItemUUID().toString()),
+                trackedItem.toDocument(),
+                new ReplaceOptions().upsert(true)
+        );
+    }
+
+    static Object lockFor(UUID itemUUID) {
+        return ITEM_LOCKS[Math.floorMod(itemUUID.hashCode(), ITEM_LOCKS.length)];
+    }
+
+    public static <T> T withItemLock(UUID itemUUID, java.util.function.Supplier<T> action) {
+        synchronized (lockFor(itemUUID)) {
+            return action.get();
         }
-        collection.replaceOne(Filters.eq("_id", trackedItem.getItemUUID().toString()), trackedItem.toDocument());
     }
 }
 

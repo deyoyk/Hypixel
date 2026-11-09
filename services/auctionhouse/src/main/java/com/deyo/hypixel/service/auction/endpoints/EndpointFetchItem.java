@@ -23,18 +23,14 @@ public class EndpointFetchItem implements RedisMessageHandler<
     public AuctionFetchItemProtocol.AuctionFetchItemResponse handle(AuctionFetchItemProtocol.AuctionFetchItemMessage messageObject, RedisMessageContext context) {
         UUID uuidToFetch = messageObject.uuid();
 
-        AuctionItem toReturn = new AuctionItem();
-
         Document item = AuctionActiveDatabase.collection.find(new Document("_id", uuidToFetch.toString())).first();
-        if (item != null) {
-            toReturn = AuctionItem.fromDocument(item);
+        if (item == null) {
+            item = AuctionInactiveDatabase.collection.find(new Document("_id", uuidToFetch.toString())).first();
+        }
+        if (item == null) {
+            return new AuctionFetchItemProtocol.AuctionFetchItemResponse(null, false, "Auction not found");
         }
 
-        Document inactiveItem = AuctionInactiveDatabase.collection.find(new Document("_id", uuidToFetch.toString())).first();
-        if (inactiveItem != null) {
-            toReturn = AuctionItem.fromDocument(inactiveItem);
-        }
-
-        return new AuctionFetchItemProtocol.AuctionFetchItemResponse(toReturn, true, null);
+        return new AuctionFetchItemProtocol.AuctionFetchItemResponse(AuctionItem.fromDocument(item), true, null);
     }
 }

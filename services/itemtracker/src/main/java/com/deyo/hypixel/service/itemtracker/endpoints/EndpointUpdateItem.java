@@ -24,22 +24,23 @@ public class EndpointUpdateItem implements RedisMessageHandler<
         UUID attachedPlayerProfile = messageObject.attachedPlayerProfile();
         String itemType = messageObject.itemType();
 
-        Thread.startVirtualThread(() -> {
-            if (!new TrackedItemsDatabase(itemUUID).exists()) {
-                TrackedItem item = TrackedItem.newTrackedItem(
+        Thread.startVirtualThread(() -> TrackedItemsDatabase.withItemLock(itemUUID, () -> {
+            TrackedItemsDatabase database = new TrackedItemsDatabase(itemUUID);
+            TrackedItem item = database.get();
+            if (item == null) {
+                item = TrackedItem.newTrackedItem(
                         itemUUID,
                         attachedPlayerUUID,
                         attachedPlayerProfile,
                         itemType,
                         TrackedItemsDatabase.getNumberMade(itemType)
                 );
-                new TrackedItemsDatabase(itemUUID).insertOrUpdate(item);
             } else {
-                TrackedItem item = new TrackedItemsDatabase(itemUUID).get();
                 item.addOrUpdateAttachedPlayer(attachedPlayerUUID, attachedPlayerProfile);
-                new TrackedItemsDatabase(itemUUID).insertOrUpdate(item);
             }
-        });
+            database.insertOrUpdate(item);
+            return null;
+        }));
 
         return new TrackedItemUpdateProtocol.TrackedItemUpdateResponse();
     }

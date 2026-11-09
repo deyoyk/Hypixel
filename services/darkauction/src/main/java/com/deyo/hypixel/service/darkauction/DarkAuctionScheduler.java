@@ -13,6 +13,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Manages Dark Auction phases and timing.
@@ -27,6 +28,7 @@ public class DarkAuctionScheduler {
 
     private static ScheduledExecutorService executor;
     private static ScheduledFuture<?> roundTimerFuture;
+    private static final AtomicLong roundGeneration = new AtomicLong();
 
     public static void start() {
         executor = Executors.newScheduledThreadPool(2, r -> {
@@ -43,6 +45,7 @@ public class DarkAuctionScheduler {
 
         DarkAuctionState auction = new DarkAuctionState();
         auction.setPhase(DarkAuctionPhase.QUEUE);
+        roundGeneration.incrementAndGet();
         DarkAuctionService.setCurrentAuction(auction);
 
         try {
@@ -64,6 +67,7 @@ public class DarkAuctionScheduler {
 
         Logger.warn("Dark Auction failed to start, rolling it back");
         auction.setPhase(DarkAuctionPhase.COMPLETE);
+        roundGeneration.incrementAndGet();
         DarkAuctionService.setCurrentAuction(null);
         broadcastEvent(DarkAuctionEventProtocol.EventType.AUCTION_END, auction, 0);
     }
@@ -101,23 +105,29 @@ public class DarkAuctionScheduler {
         scheduleRoundEnd(auction, ROUND_TIMER_SECONDS);
     }
 
-    public static void resetRoundTimer(DarkAuctionState auction) {
-        // Cancel existing timer
+    public static synchronized void resetRoundTimer(DarkAuctionState auction) {
+        if (auction != DarkAuctionService.getCurrentAuction()
+                || auction.getPhase() != DarkAuctionPhase.BIDDING) {
+            return;
+        }
+
         if (roundTimerFuture != null && !roundTimerFuture.isDone()) {
             roundTimerFuture.cancel(false);
         }
 
-        // Reschedule for 10 more seconds
         scheduleRoundEnd(auction, ROUND_TIMER_SECONDS);
     }
 
     private static void scheduleRoundEnd(DarkAuctionState auction, int seconds) {
-        roundTimerFuture = executor.schedule(() -> endRound(auction), seconds, TimeUnit.SECONDS);
+        long generation = roundGeneration.incrementAndGet();
+        roundTimerFuture = executor.schedule(() -> endRound(auction, generation), seconds, TimeUnit.SECONDS);
     }
 
-    private static void endRound(DarkAuctionState auction) {
-        if (auction != DarkAuctionService.getCurrentAuction()) {
-            return; // Auction was cancelled
+    private static synchronized void endRound(DarkAuctionState auction, long generation) {
+        if (generation != roundGeneration.get()
+                || auction != DarkAuctionService.getCurrentAuction()
+                || auction.getPhase() != DarkAuctionPhase.BIDDING) {
+            return;
         }
 
         Logger.info("Round {} ended. Winner: {}, Bid: {}",
@@ -146,6 +156,7 @@ public class DarkAuctionScheduler {
     private static void endAuction(DarkAuctionState auction) {
         Logger.info("Dark Auction complete!");
         auction.setPhase(DarkAuctionPhase.COMPLETE);
+        roundGeneration.incrementAndGet();
 
         // Broadcast AUCTION_END
         broadcastEvent(DarkAuctionEventProtocol.EventType.AUCTION_END, auction, 0);
@@ -165,16 +176,39 @@ public class DarkAuctionScheduler {
 
     private static void broadcastEvent(DarkAuctionEventProtocol.EventType type, DarkAuctionState auction,
                                        int countdown, UUID refundPlayerId, long refundAmount) {
+        DarkAuctionEventPushProtocol.Request request = buildRequest(
+                type, auction, countdown, refundPlayerId, refundAmount);
+
+        Logger.debug("Broadcasting {} event for auction {}", type, auction.getAuctionId());
+
+        RedisClient.requestAllServersFromService(
+                new DarkAuctionEventPushProtocol(),
+                request,
+                5000
+        ).thenAccept(responses -> {
+            Logger.debug("Received {} responses for {} event", responses.size(), type);
+        }).exceptionally(throwable -> {
+            Logger.error("Error broadcasting {} event: {}", type, throwable.getMessage());
+            return null;
+        });
+    }
+
+    static DarkAuctionEventPushProtocol.Request buildRequest(DarkAuctionEventProtocol.EventType type,
+                                                             DarkAuctionState auction,
+                                                             int countdown,
+                                                             UUID refundPlayerId,
+                                                             long refundAmount) {
         List<String> roundItems = new ArrayList<>(auction.getRoundItemNames());
 
         String newBidderId = null;
         long newBidAmount = 0;
         if (type == DarkAuctionEventProtocol.EventType.BID_PLACED) {
-            newBidderId = auction.getHighestBidderId().toString();
+            UUID highestBidderId = auction.getHighestBidderId();
+            newBidderId = highestBidderId != null ? highestBidderId.toString() : null;
             newBidAmount = auction.getCurrentBid();
         }
 
-        DarkAuctionEventPushProtocol.Request request = new DarkAuctionEventPushProtocol.Request(
+        return new DarkAuctionEventPushProtocol.Request(
                 type.name(),
                 auction.getAuctionId().toString(),
                 auction.getPhase().name(),
@@ -190,19 +224,6 @@ public class DarkAuctionScheduler {
                 newBidderId,
                 newBidAmount
         );
-
-        Logger.debug("Broadcasting {} event for auction {}", type, auction.getAuctionId());
-
-        RedisClient.requestAllServersFromService(
-                new DarkAuctionEventPushProtocol(),
-                request,
-                5000
-        ).thenAccept(responses -> {
-            Logger.debug("Received {} responses for {} event", responses.size(), type);
-        }).exceptionally(throwable -> {
-            Logger.error("Error broadcasting {} event: {}", type, throwable.getMessage());
-            return null;
-        });
     }
 
 }

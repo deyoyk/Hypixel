@@ -9,6 +9,8 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
+import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 import com.deyo.hypixel.commons.guild.GuildData;
 import com.deyo.hypixel.service.generic.MongoDB;
@@ -50,21 +52,14 @@ public record GuildDatabase(String id) implements MongoDB {
         String serialized = guild.getSerializer().serialize(guild);
         String guildId = guild.getGuildId().toString();
 
-        Document query = new Document("_id", guildId);
-        Document existing = guildCollection.find(query).first();
-
-        if (existing != null) {
-            guildCollection.updateOne(query,
-                Updates.combine(
-                    Updates.set("data", serialized),
-                    Updates.set("name", guild.getName().toLowerCase())
-                ));
-        } else {
-            Document doc = new Document("_id", guildId);
-            doc.append("data", serialized);
-            doc.append("name", guild.getName().toLowerCase());
-            guildCollection.insertOne(doc);
-        }
+        Document doc = new Document("_id", guildId)
+                .append("data", serialized)
+                .append("name", guild.getName().toLowerCase());
+        guildCollection.replaceOne(
+                Filters.eq("_id", guildId),
+                doc,
+                new ReplaceOptions().upsert(true)
+        );
     }
 
     public static void deleteGuild(@NotNull UUID guildId) {
@@ -73,17 +68,11 @@ public record GuildDatabase(String id) implements MongoDB {
     }
 
     public static void mapPlayerToGuild(@NotNull UUID playerUuid, @NotNull UUID guildId) {
-        String playerId = playerUuid.toString();
-        Document query = new Document("_id", playerId);
-        Document existing = playerGuildCollection.find(query).first();
-
-        if (existing != null) {
-            playerGuildCollection.updateOne(query, Updates.set("guildId", guildId.toString()));
-        } else {
-            Document doc = new Document("_id", playerId);
-            doc.append("guildId", guildId.toString());
-            playerGuildCollection.insertOne(doc);
-        }
+        playerGuildCollection.updateOne(
+                new Document("_id", playerUuid.toString()),
+                Updates.set("guildId", guildId.toString()),
+                new UpdateOptions().upsert(true)
+        );
     }
 
     public static void removePlayerMapping(@NotNull UUID playerUuid) {
@@ -115,25 +104,16 @@ public record GuildDatabase(String id) implements MongoDB {
 
     @Override
     public void insertOrUpdate(@NonNull String key, Object value) {
-        if (exists()) {
-            Document query = new Document("_id", id);
-            Document found = guildCollection.find(query).first();
-            assert found != null;
-            guildCollection.updateOne(found, Updates.set(key, value));
-            return;
-        }
-        Document newDoc = new Document("_id", id);
-        newDoc.append(key, value);
-        guildCollection.insertOne(newDoc);
+        guildCollection.updateOne(
+                new Document("_id", id),
+                Updates.set(key, value),
+                new UpdateOptions().upsert(true)
+        );
     }
 
     @Override
     public boolean remove(@NonNull String id) {
-        Document query = new Document("_id", id);
-        Document found = guildCollection.find(query).first();
-        if (found == null) return false;
-        guildCollection.deleteOne(query);
-        return true;
+        return guildCollection.deleteOne(new Document("_id", id)).getDeletedCount() > 0;
     }
 
     @Override

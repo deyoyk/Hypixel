@@ -60,7 +60,7 @@ public class EndpointPlaceBid implements RedisMessageHandler<
 
             if (previousBidder != null && previousBid > 0) {
                 Logger.info("Queueing refund of {} to previous bidder {}", previousBid, previousBidder);
-                auction.queueRefund(previousBidder, previousBid);
+                auction.removeEscrow(previousBidder);
             }
 
             // Update state with new bid

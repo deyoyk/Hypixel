@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,7 +30,7 @@ public class PartyCache {
     private static final Map<UUID, UUID> playerToParty = new ConcurrentHashMap<>();
     private static final Map<UUID, PendingParty> pendingInvites = new ConcurrentHashMap<>();
     private static final Map<UUID, UUID> disconnectTimers = new ConcurrentHashMap<>();
-    private static final List<UUID> warpCooldown = new ArrayList<>();
+    private static final Set<UUID> warpCooldown = ConcurrentHashMap.newKeySet();
 
     public static boolean isInParty(UUID playerUUID) {
         return playerToParty.containsKey(playerUUID);
@@ -43,7 +44,7 @@ public class PartyCache {
     public static void handleInvite(PartyAction.Invite action) {
         PendingParty pending = action.party();
         pendingInvites.put(pending.invitee(), pending);
-        scheduleInviteExpiration(pending.leader(), pending.invitee());
+        scheduleInviteExpiration(pending);
         broadcast(new PartyBroadcast.Invited(pending));
     }
 
@@ -81,6 +82,10 @@ public class PartyCache {
         cancelDisconnectTimer(leaver);
 
         FullParty.Member member = getMember(party, leaver);
+        if (member == null) {
+            playerToParty.remove(leaver);
+            return;
+        }
         if (member.getRole() == FullParty.Role.LEADER) {
             disbandParty(party, leaver, "leader-left");
         } else {
@@ -99,7 +104,7 @@ public class PartyCache {
         }
 
         FullParty.Member member = getMember(party, disbander);
-        if (member.getRole() != FullParty.Role.LEADER) {
+        if (member == null || member.getRole() != FullParty.Role.LEADER) {
             sendErrorToPlayer(disbander, "<c>You are not the party leader!");
             return;
         }
@@ -120,7 +125,7 @@ public class PartyCache {
         FullParty.Member currentLeader = getMember(party, currentLeaderUUID);
         FullParty.Member newLeader = getMember(party, newLeaderUUID);
 
-        if (currentLeader.getRole() != FullParty.Role.LEADER) {
+        if (!isLeader(party, currentLeaderUUID)) {
             sendErrorToPlayer(currentLeaderUUID, "<c>You are not the party leader!");
             return;
         }
@@ -147,7 +152,7 @@ public class PartyCache {
         FullParty.Member kicker = getMember(party, kickerUUID);
         FullParty.Member target = getMember(party, targetUUID);
 
-        if (kicker.getRole() == FullParty.Role.MEMBER) {
+        if (kicker == null || kicker.getRole() == FullParty.Role.MEMBER) {
             sendErrorToPlayer(kickerUUID, "<c>Only party leaders and moderators can kick players!");
             return;
         }
@@ -176,7 +181,7 @@ public class PartyCache {
         FullParty.Member promoter = getMember(party, promoterUUID);
         FullParty.Member target = getMember(party, targetUUID);
 
-        if (promoter.getRole() != FullParty.Role.LEADER) {
+        if (promoter == null || promoter.getRole() != FullParty.Role.LEADER) {
             sendErrorToPlayer(promoterUUID, "<c>Only the party leader can promote players!");
             return;
         }
@@ -196,7 +201,7 @@ public class PartyCache {
         FullParty.Member demoter = getMember(party, demoterUUID);
         FullParty.Member target = getMember(party, targetUUID);
 
-        if (demoter.getRole() != FullParty.Role.LEADER) return;
+        if (demoter == null || demoter.getRole() != FullParty.Role.LEADER) return;
         if (target == null || target.getRole() == FullParty.Role.MEMBER) return;
 
         target.setRole(FullParty.Role.MEMBER);
@@ -256,7 +261,7 @@ public class PartyCache {
         }
 
         FullParty.Member warper = getMember(party, warperUUID);
-        if (warper.getRole() != FullParty.Role.LEADER) {
+        if (warper == null || warper.getRole() != FullParty.Role.LEADER) {
             sendErrorToPlayer(warperUUID, "<c>You are not the party leader!");
             return;
         }
@@ -264,12 +269,11 @@ public class PartyCache {
             sendErrorToPlayer(warperUUID, "<c>You need someone else in the party to warp!");
             return;
         }
-        if (warpCooldown.contains(warperUUID)) {
+        if (!warpCooldown.add(warperUUID)) {
             sendErrorToPlayer(warperUUID, "<c>You can only warp once every 5 seconds!");
             return;
         }
 
-        warpCooldown.add(warperUUID);
         CompletableFuture.delayedExecutor(WARP_COOLDOWN_MS, TimeUnit.MILLISECONDS)
                 .execute(() -> warpCooldown.remove(warperUUID));
 
@@ -389,14 +393,20 @@ public class PartyCache {
                 .findFirst().orElse(null);
     }
 
-    private static void scheduleInviteExpiration(UUID inviter, UUID invitee) {
+    static boolean isLeader(FullParty party, UUID playerUUID) {
+        FullParty.Member member = getMember(party, playerUUID);
+        return member != null && member.getRole() == FullParty.Role.LEADER;
+    }
+
+    private static void scheduleInviteExpiration(PendingParty pending) {
+        UUID inviter = pending.leader();
+        UUID invitee = pending.invitee();
         CompletableFuture.delayedExecutor(INVITE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .execute(() -> {
-                    PendingParty removed = pendingInvites.remove(invitee);
-                    if (removed == null) return;
+                    if (!pendingInvites.remove(invitee, pending)) return;
                     FullParty party = getPartyFromPlayer(invitee);
                     if (party == null || getMember(party, invitee) == null) {
-                        broadcast(new PartyBroadcast.InviteExpired(removed, inviter, invitee));
+                        broadcast(new PartyBroadcast.InviteExpired(pending, inviter, invitee));
                     }
                 });
     }

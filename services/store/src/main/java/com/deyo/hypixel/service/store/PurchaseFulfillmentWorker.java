@@ -72,10 +72,10 @@ public class PurchaseFulfillmentWorker {
                 throw new IllegalStateException(response.error() != null ? response.error() : "Proxy rejected purchase");
             }
 
-            database.markFulfilled(purchase);
+            database.markFulfilled(purchase, workerId);
             Logger.info("Fulfilled store purchase {} for {}", purchase.id(), purchase.playerUuid());
         } catch (Exception exception) {
-            database.markFailed(purchase, unwrap(exception));
+            database.markFailed(purchase, unwrap(exception), workerId);
             Logger.warn("Store purchase {} will retry: {}", purchase.id(), unwrap(exception).getMessage());
         }
     }

@@ -95,10 +95,10 @@ public record StoreDatabase(String id) implements MongoDB {
         ));
     }
 
-    public void markFulfilled(StorePurchase purchase) {
+    public boolean markFulfilled(StorePurchase purchase, String workerId) {
         Date now = new Date();
-        purchases.updateOne(
-                new Document("_id", purchase.id()),
+        var result = purchases.updateOne(
+                leaseFilter(purchase.id(), workerId),
                 new Document("$set", new Document("status", "FULFILLED")
                         .append("fulfilledAt", now)
                         .append("updatedAt", now))
@@ -106,15 +106,16 @@ public record StoreDatabase(String id) implements MongoDB {
                                 .append("fulfillmentLeaseUntil", "")
                                 .append("lastError", ""))
         );
+        return result.getModifiedCount() > 0;
     }
 
-    public void markFailed(StorePurchase purchase, Throwable throwable) {
+    public boolean markFailed(StorePurchase purchase, Throwable throwable, String workerId) {
         int attempt = Math.max(1, purchase.attempts());
         long backoffSeconds = Math.min(MAX_BACKOFF_SECONDS, 1L << Math.min(attempt, 8));
         Date nextAttemptAt = Date.from(Instant.now().plusSeconds(backoffSeconds));
 
-        purchases.updateOne(
-                new Document("_id", purchase.id()),
+        var result = purchases.updateOne(
+                leaseFilter(purchase.id(), workerId),
                 new Document("$set", new Document("status", "FAILED")
                         .append("nextAttemptAt", nextAttemptAt)
                         .append("updatedAt", new Date())
@@ -122,6 +123,13 @@ public record StoreDatabase(String id) implements MongoDB {
                         .append("$unset", new Document("fulfillmentLeaseOwner", "")
                                 .append("fulfillmentLeaseUntil", ""))
         );
+        return result.getModifiedCount() > 0;
+    }
+
+    static Document leaseFilter(String purchaseId, String workerId) {
+        return new Document("_id", purchaseId)
+                .append("status", "FULFILLING")
+                .append("fulfillmentLeaseOwner", workerId);
     }
 
     @Override

@@ -32,6 +32,10 @@ public class BazaarMarket {
 
     // Track order refund information
     private final Map<UUID, OrderRefundTracker> refundTrackers = new ConcurrentHashMap<>();
+    private final Map<UUID, OrderLocation> orderLocations = new ConcurrentHashMap<>();
+
+    private record OrderLocation(String item, LimitOrder order) {
+    }
 
     private BazaarMarket() {
         scheduler.scheduleAtFixedRate(this::expireOldOrders, 1, 1, TimeUnit.HOURS);
@@ -63,7 +67,7 @@ public class BazaarMarket {
     }
 
     // Track refunds for each buy order
-    private static class OrderRefundTracker {
+    static class OrderRefundTracker {
         public final UUID orderId;
         public final String itemName;
         public final UUID owner;
@@ -107,10 +111,11 @@ public class BazaarMarket {
         }
     }
 
-    void injectLoadedOrder(String item, LimitOrder lo) {
+    synchronized void injectLoadedOrder(String item, LimitOrder lo) {
         var book = (lo.side == LimitOrder.Side.BUY ? buyBook : sellBook)
                 .computeIfAbsent(item, k -> newBook(lo.side));
         book.add(lo);
+        orderLocations.put(lo.orderId, new OrderLocation(item, lo));
 
         // For buy orders, create/restore refund tracker
         if (lo.side == LimitOrder.Side.BUY) {
@@ -118,31 +123,53 @@ public class BazaarMarket {
         }
     }
 
-    public void submitBuy(String item, UUID buyer, UUID buyerProfile, double price, double qty) {
+    public synchronized void submitBuy(String item, UUID buyer, UUID buyerProfile, double price, double qty) {
         var order = new LimitOrder(buyer, buyerProfile, LimitOrder.Side.BUY, price, qty);
         refundTrackers.put(order.orderId, new OrderRefundTracker(order, item));
         submitOrder(item, order);
     }
 
-    public void submitSell(String item, UUID seller, UUID sellerProfile, double price, double qty) {
+    public synchronized void submitSell(String item, UUID seller, UUID sellerProfile, double price, double qty) {
         submitOrder(item, new LimitOrder(seller, sellerProfile, LimitOrder.Side.SELL, price, qty));
     }
 
-    public void submitDelete(UUID orderId, UUID player, UUID profile) {
-        // Handle refund for canceled buy order
-        OrderRefundTracker tracker = refundTrackers.remove(orderId);
-        if (tracker != null && tracker.accumulatedRefunds > 0) {
-            // Issue refund for price improvements already accumulated
-            var refundTx = new BuyOrderRefundTransaction(
-                    orderId, tracker.itemName, tracker.owner, tracker.profileUuid,
-                    tracker.accumulatedRefunds, "CANCELLED", Instant.now()
-            );
-            propagator.propagate(refundTx);
+    public synchronized void submitDelete(UUID orderId, UUID player, UUID profile) {
+        if (cancelOrder(orderId, player, profile)) {
+            OrderRepository.delete(orderId);
+        }
+    }
+
+    synchronized boolean cancelOrder(UUID orderId, UUID player, UUID profile) {
+        OrderLocation location = orderLocations.get(orderId);
+        if (location == null) {
+            return false;
         }
 
-        OrderRepository.delete(orderId);
-        buyBook.values().forEach(q -> q.removeIf(o -> o.orderId.equals(orderId)));
-        sellBook.values().forEach(q -> q.removeIf(o -> o.orderId.equals(orderId)));
+        LimitOrder order = location.order();
+        if (!order.owner.equals(player) || !order.profileUuid.equals(profile)) {
+            return false;
+        }
+
+        orderLocations.remove(orderId);
+
+        var book = (order.side == LimitOrder.Side.BUY ? buyBook : sellBook).get(location.item());
+        if (book != null) {
+            book.remove(order);
+        }
+
+        OrderRefundTracker tracker = refundTrackers.remove(orderId);
+        if (tracker != null) {
+            double totalRefund = tracker.getTotalRefundOwed();
+            if (totalRefund > 0) {
+                var refundTx = new BuyOrderRefundTransaction(
+                        orderId, tracker.itemName, tracker.owner, tracker.profileUuid,
+                        totalRefund, "CANCELLED", Instant.now()
+                );
+                propagator.propagate(refundTx);
+            }
+        }
+
+        return true;
     }
 
     private void submitOrder(String item, LimitOrder incoming) {
@@ -151,15 +178,16 @@ public class BazaarMarket {
 
         OrderRepository.saveNew(incoming, item);
         (incoming.side == LimitOrder.Side.BUY ? buys : sells).add(incoming);
+        orderLocations.put(incoming.orderId, new OrderLocation(item, incoming));
         match(item, buys, sells);
     }
 
-    public List<LimitOrder> getBuyOrders(String item) {
+    public synchronized List<LimitOrder> getBuyOrders(String item) {
         var buyBook = this.buyBook.get(item);
         return buyBook != null ? new ArrayList<>(buyBook) : new ArrayList<>();
     }
 
-    public List<LimitOrder> getSellOrders(String item) {
+    public synchronized List<LimitOrder> getSellOrders(String item) {
         var sellBook = this.sellBook.get(item);
         return sellBook != null ? new ArrayList<>(sellBook) : new ArrayList<>();
     }
@@ -234,13 +262,16 @@ public class BazaarMarket {
 
             if (b.remaining <= 0) {
                 buys.poll();
+                orderLocations.remove(b.orderId);
                 OrderRepository.delete(b.orderId);
-                if (tracker != null && tracker.accumulatedRefunds > 0) {
-                    var refundTx = new BuyOrderRefundTransaction(
-                            b.orderId, item, b.owner, b.profileUuid,
-                            tracker.accumulatedRefunds, "COMPLETED", Instant.now()
-                    );
-                    propagator.propagate(refundTx);
+                if (tracker != null) {
+                    if (tracker.accumulatedRefunds > 0) {
+                        var refundTx = new BuyOrderRefundTransaction(
+                                b.orderId, item, b.owner, b.profileUuid,
+                                tracker.accumulatedRefunds, "COMPLETED", Instant.now()
+                        );
+                        propagator.propagate(refundTx);
+                    }
                     refundTrackers.remove(b.orderId);
                 }
             } else {
@@ -248,14 +279,17 @@ public class BazaarMarket {
             }
 
             if (s.remaining <= 0) {
+                orderLocations.remove(s.orderId);
                 OrderRepository.delete(s.orderId);
             } else {
+                // The matched sell was polled out of the book; keep the unfilled remainder listed.
+                sells.add(s);
                 OrderRepository.updateRemaining(s.orderId, s.remaining);
             }
         }
     }
 
-    private void expireOldOrders() {
+    private synchronized void expireOldOrders() {
         Instant cutoff = Instant.now().minus(EXPIRE_DAYS, ChronoUnit.DAYS);
         expireSide(buyBook, cutoff);
         expireSide(sellBook, cutoff);
@@ -273,6 +307,7 @@ public class BazaarMarket {
 
             for (var o : toExpire) {
                 pq.remove(o);
+                orderLocations.remove(o.orderId);
                 OrderRepository.delete(o.orderId);
 
                 if (o.side == LimitOrder.Side.BUY) {

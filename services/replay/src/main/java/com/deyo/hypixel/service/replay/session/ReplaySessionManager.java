@@ -22,11 +22,13 @@ import java.util.concurrent.TimeUnit;
 public class ReplaySessionManager {
 	private final ReplayDatabase database;
 	private final Map<UUID, RecordingSession> activeSessions = new ConcurrentHashMap<>();
+	private final Map<UUID, RecordingSession> endingSessions = new ConcurrentHashMap<>();
 	private final ScheduledExecutorService cleanupExecutor = Executors.newSingleThreadScheduledExecutor();
 	private final ExecutorService compressionExecutor = Executors.newFixedThreadPool(4);
 
 	// Session timeout - if no data received for this long, session is considered stale
 	private static final long SESSION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+	private static final long END_GRACE_MS = 2_000;
 
 	public ReplaySessionManager(ReplayDatabase database) {
 		this.database = database;
@@ -65,6 +67,9 @@ public class ReplaySessionManager {
 	public void receiveBatch(UUID replayId, int batchIndex, int startTick, int endTick, int recordableCount, byte[] compressedData) {
 		RecordingSession session = activeSessions.get(replayId);
 		if (session == null) {
+			session = endingSessions.get(replayId);
+		}
+		if (session == null) {
 			Logger.warn("Received data for unknown session: {}", replayId);
 			return;
 		}
@@ -80,15 +85,19 @@ public class ReplaySessionManager {
 
 		session.setEndTime(endTime);
 		session.setDurationTicks(durationTicks);
+		endingSessions.put(replayId, session);
 
-		return CompletableFuture.supplyAsync(() -> {
+		CompletableFuture<EndResult> result = new CompletableFuture<>();
+		cleanupExecutor.schedule(() -> compressionExecutor.execute(() -> {
+			endingSessions.remove(replayId);
 			try {
-				return finalizeSession(session);
+				result.complete(finalizeSession(session));
 			} catch (Exception e) {
 				Logger.error(e, "Failed to finalize session {}", replayId);
-				return new EndResult(false, 0, 0);
+				result.complete(new EndResult(false, 0, 0));
 			}
-		}, compressionExecutor);
+		}), END_GRACE_MS, TimeUnit.MILLISECONDS);
+		return result;
 	}
 
 	private EndResult finalizeSession(RecordingSession session) {
@@ -185,6 +194,11 @@ public class ReplaySessionManager {
 				return false;
 			});
 		}, 1, 1, TimeUnit.MINUTES);
+	}
+
+	public void shutdown() {
+		cleanupExecutor.shutdownNow();
+		compressionExecutor.shutdownNow();
 	}
 
 	public int getActiveSessionCount() {

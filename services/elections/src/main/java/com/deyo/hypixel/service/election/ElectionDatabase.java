@@ -7,7 +7,10 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.FindOneAndReplaceOptions;
 import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.ReturnDocument;
+import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 import com.deyo.hypixel.service.generic.MongoDB;
 import org.bson.Document;
@@ -68,11 +71,7 @@ public record ElectionDatabase(String key) implements MongoDB {
 
     @Override
     public boolean remove(@NonNull String id) {
-        Document query = new Document("_id", id);
-        Document found = electionCollection.find(query).first();
-        if (found == null) return false;
-        electionCollection.deleteOne(query);
-        return true;
+        return electionCollection.deleteOne(new Document("_id", id)).getDeletedCount() > 0;
     }
 
     public static String loadElectionData() {
@@ -92,45 +91,43 @@ public record ElectionDatabase(String key) implements MongoDB {
 
     public static void castVote(String playerId, String candidateName, int electionYear) {
         String talliesDocId = "tallies_" + electionYear;
+        String voteId = voteId(playerId, electionYear);
 
-        Document existingVote = votesCollection.find(
-                Filters.and(Filters.eq("_id", playerId), Filters.eq("electionYear", electionYear))
-        ).first();
-
-        if (existingVote != null) {
-            String oldCandidate = existingVote.getString("candidate");
-            if (oldCandidate != null && !oldCandidate.equals(candidateName)) {
-                talliesCollection.updateOne(
-                        Filters.eq("_id", talliesDocId),
-                        Updates.inc(oldCandidate, -1L)
-                );
-            }
-        }
-
-        Document voteDoc = new Document("_id", playerId)
+        Document voteDoc = new Document("_id", voteId)
+                .append("playerId", playerId)
                 .append("candidate", candidateName)
                 .append("electionYear", electionYear);
-        votesCollection.replaceOne(
-                Filters.eq("_id", playerId),
+        Document previousVote = votesCollection.findOneAndReplace(
+                Filters.eq("_id", voteId),
                 voteDoc,
-                new ReplaceOptions().upsert(true)
+                new FindOneAndReplaceOptions().upsert(true).returnDocument(ReturnDocument.BEFORE)
         );
 
-        if (existingVote == null || !candidateName.equals(existingVote.getString("candidate"))) {
+        String oldCandidate = previousVote == null ? null : previousVote.getString("candidate");
+        if (oldCandidate != null && !oldCandidate.equals(candidateName)) {
+            talliesCollection.updateOne(
+                    Filters.eq("_id", talliesDocId),
+                    Updates.inc(oldCandidate, -1L)
+            );
+        }
+
+        if (oldCandidate == null || !oldCandidate.equals(candidateName)) {
             talliesCollection.updateOne(
                     Filters.eq("_id", talliesDocId),
                     Updates.inc(candidateName, 1L),
-                    new com.mongodb.client.model.UpdateOptions().upsert(true)
+                    new UpdateOptions().upsert(true)
             );
         }
     }
 
     public static String getPlayerVote(String playerId, int electionYear) {
-        Document doc = votesCollection.find(
-                Filters.and(Filters.eq("_id", playerId), Filters.eq("electionYear", electionYear))
-        ).first();
+        Document doc = votesCollection.find(Filters.eq("_id", voteId(playerId, electionYear))).first();
         if (doc == null) return null;
         return doc.getString("candidate");
+    }
+
+    static String voteId(String playerId, int electionYear) {
+        return playerId + "#" + electionYear;
     }
 
     public static Map<String, Long> getTallies(int electionYear) {

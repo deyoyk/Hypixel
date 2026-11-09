@@ -62,6 +62,12 @@ dependencies {
 
     implementation(libs.mongodb.driver.sync)
 
+    implementation(libs.tinylog.api)
+
+    implementation(libs.tinylog.impl)
+
+    testImplementation(libs.minestom)
+
 }
 
 

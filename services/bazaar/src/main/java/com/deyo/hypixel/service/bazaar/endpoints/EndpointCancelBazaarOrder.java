@@ -27,11 +27,13 @@ public class EndpointCancelBazaarOrder implements RedisMessageHandler<
                         Filters.eq("profileUuid", msg.profileUuid().toString())
                 )
         );
-        BazaarMarket.get().submitDelete(msg.orderId(), msg.playerUuid(), msg.profileUuid());
-        Logger.info("Deleted order {} for player {} and profile {}",
-                msg.orderId(), msg.playerUuid(), msg.profileUuid());
-
         boolean success = result.getDeletedCount() > 0;
+        if (success) {
+            BazaarMarket.get().submitDelete(msg.orderId(), msg.playerUuid(), msg.profileUuid());
+            Logger.info("Deleted order {} for player {} and profile {}",
+                    msg.orderId(), msg.playerUuid(), msg.profileUuid());
+        }
+
         return new CancelResponse(success, success ? null : "Cancel failed");
     }
 }

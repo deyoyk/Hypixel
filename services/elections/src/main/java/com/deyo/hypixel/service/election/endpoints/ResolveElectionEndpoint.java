@@ -187,47 +187,42 @@ public class ResolveElectionEndpoint implements RedisMessageHandler
                     ? new ArrayList<>((List<String>) candidate.get("activePerks"))
                     : new ArrayList<>();
 
-            int maxPerks = estimateMaxPerks(name);
-            if (currentPerks.size() < maxPerks) {
+            List<String> perkPool = candidate.get("perkPool") != null
+                    ? (List<String>) candidate.get("perkPool")
+                    : List.of();
+
+            List<String> availablePerks = new ArrayList<>(perkPool);
+            availablePerks.removeAll(currentPerks);
+
+            if (!availablePerks.isEmpty()) {
                 Boolean failedLast = (Boolean) failedPerkGainLastTime.get(name);
                 boolean gainPerk = Boolean.TRUE.equals(failedLast) || ThreadLocalRandom.current().nextBoolean();
 
                 if (gainPerk) {
+                    currentPerks.add(availablePerks.get(
+                            ThreadLocalRandom.current().nextInt(availablePerks.size())));
                     failedPerkGainLastTime.put(name, false);
                 } else {
                     failedPerkGainLastTime.put(name, true);
                 }
+            } else {
+                failedPerkGainLastTime.remove(name);
             }
             candidateActivePerks.put(name, currentPerks);
         }
 
         if (!SPECIAL_MAYORS.contains(winnerName)) {
-            List<String> winnerCurrentPerks = (List<String>) candidateActivePerks.getOrDefault(winnerName, new ArrayList<>());
-            if (winnerCurrentPerks.isEmpty()) {
-                List<String> winnerPerksFromCandidate = candidates.stream()
-                        .filter(c -> winnerName.equals(c.get("mayorName")))
-                        .findFirst()
-                        .map(c -> (List<String>) c.get("activePerks"))
-                        .orElse(List.of());
-                if (!winnerPerksFromCandidate.isEmpty()) {
-                    String randomPerk = winnerPerksFromCandidate.get(
-                            ThreadLocalRandom.current().nextInt(winnerPerksFromCandidate.size()));
-                    candidateActivePerks.put(winnerName, List.of(randomPerk));
-                }
-            }
+            candidates.stream()
+                    .filter(c -> winnerName.equals(c.get("mayorName")))
+                    .findFirst()
+                    .map(c -> (List<String>) c.get("activePerks"))
+                    .filter(perks -> perks != null && !perks.isEmpty())
+                    .ifPresent(perks -> candidateActivePerks.put(winnerName,
+                            List.of(perks.get(ThreadLocalRandom.current().nextInt(perks.size())))));
         }
 
         data.put("candidateActivePerks", candidateActivePerks);
         data.put("failedPerkGainLastTime", failedPerkGainLastTime);
-    }
-
-    private int estimateMaxPerks(String mayorName) {
-        return switch (mayorName) {
-            case "PAUL" -> 3;
-            case "SCORPIUS" -> 2;
-            case "JERRY" -> 3;
-            default -> 4;
-        };
     }
 
     private static TextColor colorForIndex(int index) {

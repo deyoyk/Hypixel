@@ -2,11 +2,12 @@ package com.deyo.hypixel.service.auction.endpoints;
 
 import com.deyo.hypixel.commons.skyblock.auctions.AuctionCategories;
 import com.deyo.hypixel.commons.skyblock.auctions.AuctionItem;
-import com.deyo.hypixel.commons.skyblock.item.UnderstandableSkyBlockItem;
 import com.deyo.hypixel.commons.protocol.objects.auctions.AuctionAddItemProtocol;
 import com.deyo.hypixel.service.auction.AuctionActiveDatabase;
 import com.deyo.hypixel.commons.redis.RedisMessageHandler;
+import com.mongodb.client.model.ReplaceOptions;
 import org.bson.Document;
+import org.tinylog.Logger;
 
 import java.util.UUID;
 import com.deyo.hypixel.commons.redis.RedisMessageContext;
@@ -23,24 +24,28 @@ public class EndpointAddItem implements RedisMessageHandler<
     @Override
     public AuctionAddItemProtocol.AuctionAddItemResponse handle(AuctionAddItemProtocol.AuctionAddItemMessage messageObject, RedisMessageContext context) {
         AuctionItem auctionItem = messageObject.item();
-        UnderstandableSkyBlockItem item = auctionItem.getItem();
-        item.getAttribute("item_type").setValue("HYPERION");
+        if (auctionItem == null || auctionItem.getItem() == null || auctionItem.getUuid() == null) {
+            return new AuctionAddItemProtocol.AuctionAddItemResponse(null, false, "Missing auction item");
+        }
 
-        AuctionCategories category = messageObject.category();
+        Document document = toDocument(auctionItem, messageObject.category());
+        try {
+            AuctionActiveDatabase.collection.replaceOne(
+                    new Document("_id", document.get("_id")),
+                    document,
+                    new ReplaceOptions().upsert(true)
+            );
+        } catch (RuntimeException exception) {
+            Logger.error(exception, "Failed to persist auction item {}", auctionItem.getUuid());
+            return new AuctionAddItemProtocol.AuctionAddItemResponse(auctionItem.getUuid(), false, "Failed to persist auction item");
+        }
+
+        return new AuctionAddItemProtocol.AuctionAddItemResponse(auctionItem.getUuid(), true, null);
+    }
+
+    static Document toDocument(AuctionItem auctionItem, AuctionCategories category) {
         Document document = auctionItem.toDocument();
         document.put("category", category.name());
-
-        Thread.startVirtualThread(() -> {
-            if (AuctionActiveDatabase.collection.find(new Document("_id", document.get("_id"))).first() != null) {
-                AuctionActiveDatabase.collection.replaceOne(
-                        new Document("_id", document.get("_id")),
-                        document
-                );
-            } else {
-                AuctionActiveDatabase.collection.insertOne(document);
-            }
-        });
-
-        return new AuctionAddItemProtocol.AuctionAddItemResponse(UUID.fromString((String) document.get("_id")), true, null);
+        return document;
     }
 }

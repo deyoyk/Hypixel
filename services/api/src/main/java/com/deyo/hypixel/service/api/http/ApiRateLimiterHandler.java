@@ -3,8 +3,7 @@ package com.deyo.hypixel.service.api.http;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.ReplaceOptions;
-import lombok.Getter;
+import com.mongodb.client.model.UpdateOptions;
 import com.deyo.hypixel.service.api.APIKeyDatabase;
 import com.deyo.hypixel.service.api.APIKeyDatabaseObject;
 import org.bson.Document;
@@ -14,7 +13,6 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -58,8 +56,7 @@ public class ApiRateLimiterHandler {
     /**
      * Inner class to track request counts for a given API key
      */
-    @Getter
-    private static class RequestTracker {
+    static class RequestTracker {
         private int dailyCount;
         private LocalDate date;
 
@@ -78,7 +75,7 @@ public class ApiRateLimiterHandler {
          * @param limit The maximum allowed requests per day
          * @return true if request is allowed, false if limit exceeded
          */
-        public boolean incrementAndCheck(long limit) {
+        public synchronized boolean incrementAndCheck(long limit) {
             LocalDate now = LocalDate.now(UTC);
 
             // Reset counter if it's a new day
@@ -95,6 +92,13 @@ public class ApiRateLimiterHandler {
             // Increment the counter
             dailyCount++;
             return true;
+        }
+
+        public synchronized Snapshot snapshot() {
+            return new Snapshot(dailyCount, date);
+        }
+
+        public record Snapshot(int dailyCount, LocalDate date) {
         }
     }
 
@@ -159,25 +163,23 @@ public class ApiRateLimiterHandler {
      */
     private void updateRequestCountInDatabase(String apiKey, RequestTracker tracker) {
         try {
-            String dateKey = tracker.getDate().toString();
+            RequestTracker.Snapshot snapshot = tracker.snapshot();
+            String dateKey = snapshot.date().toString();
             String docId = apiKey + "_" + dateKey;
 
-            Document document = new Document(Map.of(
-                    "_id", docId,
-                    "apiKey", apiKey,
-                    "date", dateKey,
-                    "count", tracker.getDailyCount()
-            ));
-
-            // Using upsert to handle both insert and update cases
-            collection.replaceOne(
+            collection.updateOne(
                     Filters.eq("_id", docId),
-                    document,
-                    new ReplaceOptions().upsert(true)
+                    countUpdate(apiKey, dateKey, snapshot.dailyCount()),
+                    new UpdateOptions().upsert(true)
             );
         } catch (Exception e) {
             Logger.error(e, "Failed to update API request count for key: {}", apiKey);
         }
+    }
+
+    static Document countUpdate(String apiKey, String dateKey, int count) {
+        return new Document("$max", new Document("count", count))
+                .append("$set", new Document("apiKey", apiKey).append("date", dateKey));
     }
 
     /**
@@ -202,11 +204,12 @@ public class ApiRateLimiterHandler {
 
         // Reset if it's a new day
         LocalDate today = LocalDate.now(UTC);
-        if (!tracker.getDate().equals(today)) {
+        RequestTracker.Snapshot snapshot = tracker.snapshot();
+        if (!snapshot.date().equals(today)) {
             return dailyLimit;
         }
 
-        return Math.max(0, dailyLimit - tracker.getDailyCount());
+        return Math.max(0, dailyLimit - snapshot.dailyCount());
     }
 
     /**

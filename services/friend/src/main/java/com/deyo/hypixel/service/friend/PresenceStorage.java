@@ -35,7 +35,7 @@ public class PresenceStorage {
 
         String serverType = incoming.getServerType() != null ? incoming.getServerType() : previous.getServerType();
         String serverId = incoming.getServerId() != null ? incoming.getServerId() : previous.getServerId();
-        long lastSeen = incoming.getLastSeen() > 0 ? incoming.getLastSeen() : previous.getLastSeen();
+        long lastSeen = Math.max(incoming.getLastSeen(), previous.getLastSeen());
 
         PresenceInfo merged = new PresenceInfo(
                 incoming.getUuid(),

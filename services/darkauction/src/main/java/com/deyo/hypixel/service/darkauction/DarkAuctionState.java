@@ -11,10 +11,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 @Getter
 @Setter
@@ -23,20 +21,17 @@ public class DarkAuctionState {
 
     private final UUID auctionId = UUID.randomUUID();
     private final List<ItemType> roundItems;
-    private int currentRound = 0;
-    private long currentBid = STARTING_BID;
-    private UUID highestBidderId = null;
-    private String highestBidderName = null;
-    private DarkAuctionPhase phase = DarkAuctionPhase.QUEUE;
+    private volatile int currentRound = 0;
+    private volatile long currentBid = STARTING_BID;
+    private volatile UUID highestBidderId = null;
+    private volatile String highestBidderName = null;
+    private volatile DarkAuctionPhase phase = DarkAuctionPhase.QUEUE;
 
     // Escrow tracking - coins held from bidders
     private final Map<UUID, Long> escrowedCoins = new ConcurrentHashMap<>();
-    // Pending refunds to broadcast
-    private final Queue<RefundEntry> pendingRefunds = new ConcurrentLinkedQueue<>();
     // Bid history for reconciliation - ordered from most recent to oldest
     private final List<BidEntry> bidHistory = Collections.synchronizedList(new ArrayList<>());
 
-    public record RefundEntry(UUID playerId, long amount) {}
     public record BidEntry(UUID playerId, String playerName, long bidAmount) {}
 
     public DarkAuctionState() {
@@ -64,24 +59,13 @@ public class DarkAuctionState {
         escrowedCoins.put(playerId, amount);
     }
 
-    public void queueRefund(UUID playerId, long amount) {
-        pendingRefunds.add(new RefundEntry(playerId, amount));
+    public void removeEscrow(UUID playerId) {
         escrowedCoins.remove(playerId);
-    }
-
-    public List<RefundEntry> drainPendingRefunds() {
-        List<RefundEntry> refunds = new ArrayList<>();
-        RefundEntry entry;
-        while ((entry = pendingRefunds.poll()) != null) {
-            refunds.add(entry);
-        }
-        return refunds;
     }
 
     public void clearEscrowForRound() {
         // Called when round ends - winner's escrow is "finalized"
         escrowedCoins.clear();
-        pendingRefunds.clear();
     }
 
     public void resetForNextRound() {

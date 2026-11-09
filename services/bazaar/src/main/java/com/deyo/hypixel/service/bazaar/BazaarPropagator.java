@@ -3,6 +3,7 @@ package com.deyo.hypixel.service.bazaar;
 import com.deyo.hypixel.commons.protocol.objects.bazaar.BazaarTransactionPushProtocol;
 import com.deyo.hypixel.commons.protocol.objects.bazaar.BazaarTransactionPushProtocol.Response;
 import com.deyo.hypixel.commons.skyblock.bazaar.BazaarTransaction;
+import com.deyo.hypixel.commons.skyblock.bazaar.BuyOrderRefundTransaction;
 import com.deyo.hypixel.commons.skyblock.bazaar.SuccessfulBazaarTransaction;
 import com.deyo.hypixel.commons.skyblock.bazaar.OrderExpiredBazaarTransaction;
 import com.deyo.hypixel.commons.redis.RedisClient;
@@ -34,7 +35,10 @@ public class BazaarPropagator {
     private void handleServerResponses(BazaarTransaction tx, Map<UUID, Response> responses) {
         switch (tx) {
             case SuccessfulBazaarTransaction success -> handleSuccessfulTransactionResponses(success, responses);
-            case OrderExpiredBazaarTransaction expired -> handleExpiredTransactionResponses(expired, responses);
+            case OrderExpiredBazaarTransaction expired -> handleOwnerTransactionResponses(
+                    expired.owner(), expired.ownerProfile(), expired, responses);
+            case BuyOrderRefundTransaction refund -> handleOwnerTransactionResponses(
+                    refund.owner(), refund.ownerProfile(), refund, responses);
             default -> Logger.warn("Unknown transaction type for response handling: {}", tx.getClass().getSimpleName());
         }
     }
@@ -63,7 +67,8 @@ public class BazaarPropagator {
         Logger.debug("Transaction handled — buyer={}, seller={}", buyerHandled, sellerHandled);
     }
 
-    private void handleExpiredTransactionResponses(OrderExpiredBazaarTransaction tx, Map<UUID, Response> responses) {
+    private void handleOwnerTransactionResponses(UUID owner, UUID ownerProfile,
+                                                 BazaarTransaction tx, Map<UUID, Response> responses) {
         boolean ownerHandled = false;
 
         for (Response response : responses.values()) {
@@ -73,10 +78,10 @@ public class BazaarPropagator {
         }
 
         if (!ownerHandled) {
-            Logger.info("Owner {} not handled by any server — storing as pending", tx.owner());
-            PendingTransactionsDatabase.storePendingTransaction(tx.owner(), tx.ownerProfile(), tx);
+            Logger.info("Owner {} not handled by any server — storing as pending", owner);
+            PendingTransactionsDatabase.storePendingTransaction(owner, ownerProfile, tx);
         }
 
-        Logger.debug("Expired order handled — owner={}", ownerHandled);
+        Logger.debug("Owner transaction handled — owner={}", ownerHandled);
     }
 }

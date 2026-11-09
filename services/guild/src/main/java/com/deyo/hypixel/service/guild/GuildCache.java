@@ -128,8 +128,8 @@ public class GuildCache {
         UUID accepter = event.getAccepter();
         UUID inviter = event.getInviter();
 
-        PendingGuildInvite invite = pendingInvites.get(accepter);
-        if (invite == null || !invite.inviter().equals(inviter)) {
+        PendingGuildInvite invite = claimInvite(pendingInvites, accepter, inviter);
+        if (invite == null) {
             sendErrorToPlayer(accepter, "<c>You don't have a pending invite from that player, or it has expired!");
             return;
         }
@@ -142,26 +142,30 @@ public class GuildCache {
         GuildData guild = getGuild(invite.guildId());
         if (guild == null) {
             sendErrorToPlayer(accepter, "<c>The guild no longer exists!");
-            pendingInvites.remove(accepter);
             return;
         }
 
         if (guild.isFull()) {
             sendErrorToPlayer(accepter, "<c>The guild is now full!");
-            pendingInvites.remove(accepter);
             return;
         }
 
         GuildMember newMember = new GuildMember(accepter, "Member", System.currentTimeMillis());
         guild.getMembers().add(newMember);
         log(guild, "<a>{}<7> joined", accepter);
-        pendingInvites.remove(accepter);
 
         persistGuild(guild);
         GuildDatabase.mapPlayerToGuild(accepter, guild.getGuildId());
 
         GuildMemberJoinedResponseEvent response = new GuildMemberJoinedResponseEvent(guild, accepter);
         sendEvent(response);
+    }
+
+    static PendingGuildInvite claimInvite(Map<UUID, PendingGuildInvite> invites,
+                                           UUID accepter, UUID inviter) {
+        PendingGuildInvite invite = invites.get(accepter);
+        if (invite == null || !invite.inviter().equals(inviter)) return null;
+        return invites.remove(accepter, invite) ? invite : null;
     }
 
     public static void handleLeaveRequest(GuildLeaveRequestEvent event) {
@@ -557,7 +561,7 @@ public class GuildCache {
 
     public static void handleMuteRequest(GuildMuteRequestEvent event) {
         UUID muter = event.getMuter();
-        String target = event.getTarget();
+        UUID target = event.getTarget();
         long duration = event.getDuration();
 
         GuildData guild = getGuildFromPlayer(muter);
@@ -572,29 +576,31 @@ public class GuildCache {
             return;
         }
 
-        if (target.equalsIgnoreCase("everyone")) {
+        String targetLabel;
+        if (target == null) {
             guild.setEveryoneMuted(true);
             guild.setEveryoneMutedExpiry(System.currentTimeMillis() + duration);
+            targetLabel = "everyone";
         } else {
-            UUID targetUUID = UUID.fromString(target);
-            GuildMember member = guild.getMember(targetUUID);
+            GuildMember member = guild.getMember(target);
             if (member == null) {
                 sendErrorToPlayer(muter, "<c>That player is not in your guild!");
                 return;
             }
             member.setMutedUntil(System.currentTimeMillis() + duration);
+            targetLabel = target.toString();
         }
 
-        log(guild, "<a>{}<7> muted <e>{} <7>for <e>{}ms", muter, target, duration);
+        log(guild, "<a>{}<7> muted <e>{} <7>for <e>{}ms", muter, targetLabel, duration);
         persistGuild(guild);
 
-        GuildMuteChangedResponseEvent response = new GuildMuteChangedResponseEvent(guild, muter, target, duration, false);
+        GuildMuteChangedResponseEvent response = new GuildMuteChangedResponseEvent(guild, muter, targetLabel, duration, false);
         sendEvent(response);
     }
 
     public static void handleUnmuteRequest(GuildUnmuteRequestEvent event) {
         UUID actor = event.getActor();
-        String target = event.getTarget();
+        UUID target = event.getTarget();
 
         GuildData guild = getGuildFromPlayer(actor);
         if (guild == null) {
@@ -608,23 +614,25 @@ public class GuildCache {
             return;
         }
 
-        if (target.equalsIgnoreCase("everyone")) {
+        String targetLabel;
+        if (target == null) {
             guild.setEveryoneMuted(false);
             guild.setEveryoneMutedExpiry(0);
+            targetLabel = "everyone";
         } else {
-            UUID targetUUID = UUID.fromString(target);
-            GuildMember member = guild.getMember(targetUUID);
+            GuildMember member = guild.getMember(target);
             if (member == null) {
                 sendErrorToPlayer(actor, "<c>That player is not in your guild!");
                 return;
             }
             member.setMutedUntil(0);
+            targetLabel = target.toString();
         }
 
-        log(guild, "<a>{}<7> unmuted <e>{}", actor, target);
+        log(guild, "<a>{}<7> unmuted <e>{}", actor, targetLabel);
         persistGuild(guild);
 
-        GuildMuteChangedResponseEvent response = new GuildMuteChangedResponseEvent(guild, actor, target, 0, true);
+        GuildMuteChangedResponseEvent response = new GuildMuteChangedResponseEvent(guild, actor, targetLabel, 0, true);
         sendEvent(response);
     }
 

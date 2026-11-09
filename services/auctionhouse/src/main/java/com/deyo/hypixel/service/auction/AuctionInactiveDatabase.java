@@ -8,6 +8,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 import com.deyo.hypixel.service.generic.MongoDB;
 import org.bson.Document;
@@ -62,29 +63,15 @@ public record AuctionInactiveDatabase(String auctionId) implements MongoDB {
 
     @Override
     public boolean remove(@NonNull String id) {
-        Document query = new Document("_id", id);
-        Document found = collection.find(query).first();
-
-        if (found == null) {
-            return false;
-        }
-
-        collection.deleteOne(query);
-        return true;
+        return collection.deleteOne(new Document("_id", id)).getDeletedCount() > 0;
     }
 
     public void insertOrUpdate(@NonNull String key, Object value) {
-        if (exists()) {
-            Document query = new Document("_id", auctionId);
-            Document found = collection.find(query).first();
-
-            assert found != null;
-            collection.updateOne(found, Updates.set(key, value));
-            return;
-        }
-        Document New = new Document("_id", auctionId);
-        New.append(key, value);
-        collection.insertOne(New);
+        collection.updateOne(
+                new Document("_id", auctionId),
+                Updates.set(key, value),
+                new UpdateOptions().upsert(true)
+        );
     }
 
     public boolean exists() {

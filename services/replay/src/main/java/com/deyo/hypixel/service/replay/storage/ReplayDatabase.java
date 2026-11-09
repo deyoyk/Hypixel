@@ -140,6 +140,7 @@ public class ReplayDatabase {
     public long getTotalDataSize() {
         // Approximate total size from replay_data collection
         Document result = database.runCommand(new Document("collStats", "replay_data"));
-        return result.getInteger("size", 0);
+        Number size = result.get("size", Number.class);
+        return size != null ? size.longValue() : 0;
     }
 }

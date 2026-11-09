@@ -7,6 +7,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 import com.deyo.hypixel.service.generic.MongoDB;
 import org.bson.Document;
@@ -51,26 +52,15 @@ public record PunishmentDatabase(String playerId) implements MongoDB {
 
     @Override
     public void insertOrUpdate(@NonNull String key, Object value) {
-        if (exists()) {
-            Document query = new Document("_id", playerId);
-            Document found = punishmentCollection.find(query).first();
-            assert found != null;
-            punishmentCollection.updateOne(found, Updates.set(key, value));
-            return;
-        }
-        Document newDoc = new Document("_id", playerId);
-        newDoc.append(key, value);
-        punishmentCollection.insertOne(newDoc);
+        punishmentCollection.updateOne(
+                Filters.eq("_id", playerId),
+                Updates.set(key, value),
+                new UpdateOptions().upsert(true)
+        );
     }
 
     @Override
     public boolean remove(@NonNull String id) {
-        Document query = new Document("_id", id);
-        Document found = punishmentCollection.find(query).first();
-        if (found == null) {
-            return false;
-        }
-        punishmentCollection.deleteOne(query);
-        return true;
+        return punishmentCollection.deleteOne(Filters.eq("_id", id)).getDeletedCount() > 0;
     }
 }

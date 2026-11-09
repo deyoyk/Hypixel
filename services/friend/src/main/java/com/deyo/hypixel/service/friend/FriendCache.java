@@ -25,9 +25,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 public class FriendCache {
     private static final Map<UUID, FriendData> cachedFriendData = new ConcurrentHashMap<>();
+    private static final Pattern SERVER_UUID_PATTERN = Pattern.compile(
+            "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
     private static final int FRIENDS_PER_PAGE = 10;
     private static final long REQUEST_EXPIRATION_MS = 5 * 60 * 1000; // 5 minutes
     private static ScheduledExecutorService expirationScheduler;
@@ -70,19 +73,15 @@ public class FriendCache {
     }
 
     public static FriendData getFriendData(UUID playerUuid) {
-        FriendData cached = cachedFriendData.get(playerUuid);
-        if (cached != null) {
-            return cached;
-        }
-
-        FriendDatabase db = new FriendDatabase(playerUuid.toString());
-        FriendData data = db.getFriendData(playerUuid);
-        if (data == null) {
-            data = FriendData.createEmpty(playerUuid);
-            db.saveFriendData(data);
-        }
-        cachedFriendData.put(playerUuid, data);
-        return data;
+        return cachedFriendData.computeIfAbsent(playerUuid, uuid -> {
+            FriendDatabase db = new FriendDatabase(uuid.toString());
+            FriendData data = db.getFriendData(uuid);
+            if (data == null) {
+                data = FriendData.createEmpty(uuid);
+                db.saveFriendData(data);
+            }
+            return data;
+        });
     }
 
     public static boolean areFriends(UUID player1, UUID player2) {
@@ -381,13 +380,9 @@ public class FriendCache {
             PresenceInfo friendPresence = PresenceStorage.get(friend.getUuid());
             if (friendPresence == null || !friendPresence.isOnline()) continue;
 
-            FriendData friendData = cachedFriendData.get(friend.getUuid());
-            if (friendData == null) {
-                friendData = getFriendData(friend.getUuid());
-                cachedFriendData.put(friend.getUuid(), friendData);
-            }
+            FriendData friendData = getFriendData(friend.getUuid());
 
-            if (friendData != null && friendData.getSettings().isJoinLeaveNotifications()) {
+            if (friendData.getSettings().isJoinLeaveNotifications()) {
                 sendEvent(new FriendJoinNotificationEvent(friend.getUuid(), playerUuid, playerName));
             }
         }
@@ -409,13 +404,9 @@ public class FriendCache {
             com.deyo.hypixel.commons.presence.PresenceInfo friendPresence = PresenceStorage.get(friend.getUuid());
             if (friendPresence == null || !friendPresence.isOnline()) continue;
 
-            FriendData friendData = cachedFriendData.get(friend.getUuid());
-            if (friendData == null) {
-                friendData = getFriendData(friend.getUuid());
-                cachedFriendData.put(friend.getUuid(), friendData);
-            }
+            FriendData friendData = getFriendData(friend.getUuid());
 
-            if (friendData != null && friendData.getSettings().isJoinLeaveNotifications()) {
+            if (friendData.getSettings().isJoinLeaveNotifications()) {
                 sendEvent(new FriendLeaveNotificationEvent(friend.getUuid(), playerUuid, playerName));
             }
         }
@@ -482,7 +473,7 @@ public class FriendCache {
         String type = info.getServerType();
         String id = info.getServerId();
         if (type == null && id == null) return null;
-        if (id != null && id.matches("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")) {
+        if (id != null && SERVER_UUID_PATTERN.matcher(id).matches()) {
             return type; // hide raw UUIDs; show type only
         }
         if (type != null && id != null) return type + " - " + id;

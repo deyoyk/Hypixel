@@ -3,6 +3,7 @@ package com.deyo.hypixel.service.bazaar;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
 import com.deyo.hypixel.commons.skyblock.bazaar.BazaarTransaction;
+import com.deyo.hypixel.commons.skyblock.bazaar.BuyOrderRefundTransaction;
 import com.deyo.hypixel.commons.skyblock.bazaar.OrderExpiredBazaarTransaction;
 import com.deyo.hypixel.commons.skyblock.bazaar.SuccessfulBazaarTransaction;
 import org.bson.Document;
@@ -93,7 +94,7 @@ public class PendingTransactionsDatabase {
     /**
      * Parse a BazaarTransaction from a MongoDB document
      */
-    private static BazaarTransaction parseTransactionFromDocument(String type, Document data) {
+    static BazaarTransaction parseTransactionFromDocument(String type, Document data) {
         try {
             // Convert Document to JSONObject
             org.json.JSONObject jsonData = new org.json.JSONObject(data.toJson());
@@ -104,6 +105,9 @@ public class PendingTransactionsDatabase {
                 ).fromJSON(jsonData);
                 case "OrderExpiredBazaarTransaction" -> new OrderExpiredBazaarTransaction(
                         null, null, null, null, null, 0, 0, null
+                ).fromJSON(jsonData);
+                case "BuyOrderRefundTransaction" -> new BuyOrderRefundTransaction(
+                        null, null, null, null, 0, null, null
                 ).fromJSON(jsonData);
                 default -> {
                     Logger.warn("Unknown pending transaction type: {}", type);

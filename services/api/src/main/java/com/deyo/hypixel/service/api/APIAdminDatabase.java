@@ -3,6 +3,7 @@ package com.deyo.hypixel.service.api;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.*;
+import com.mongodb.client.model.ReplaceOptions;
 import org.bson.Document;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,12 +22,11 @@ public record APIAdminDatabase() {
     }
 
     public static void replaceOrInsert(APIAdminDatabaseObject object) {
-        Document document = object.toDocument();
-        if (collection.find(new Document("_id", object.sessionId)).first() != null) {
-            collection.replaceOne(new Document("_id", object.sessionId), document);
-        } else {
-            collection.insertOne(document);
-        }
+        collection.replaceOne(
+                new Document("_id", object.sessionId),
+                object.toDocument(),
+                new ReplaceOptions().upsert(true)
+        );
     }
 
     public static @Nullable APIAdminDatabaseObject getFromCode(String authCode) {

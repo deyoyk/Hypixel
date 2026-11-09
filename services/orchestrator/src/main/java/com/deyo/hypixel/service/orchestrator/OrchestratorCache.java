@@ -24,6 +24,8 @@ public class OrchestratorCache {
     private static final Map<UUID, List<SlotReservation>> reservationsByGameId = new ConcurrentHashMap<>();
     private static final long HEARTBEAT_TTL_MS = 10000; // 10s
     private static final long RESERVATION_TTL_MS = 8000; // 8s
+    private static final long CLEANUP_INTERVAL_MS = 1_000;
+    private static volatile long lastCleanupAt = 0L;
 
     public static void handleHeartbeat(UUID uuid,
                                        String shortName,
@@ -324,7 +326,24 @@ public class OrchestratorCache {
     }
 
     public static void cleanup() {
-        long now = Instant.now().toEpochMilli();
+        cleanup(System.currentTimeMillis());
+    }
+
+    static void cleanup(long now) {
+        if (now - lastCleanupAt < CLEANUP_INTERVAL_MS) {
+            return;
+        }
+
+        synchronized (OrchestratorCache.class) {
+            if (now - lastCleanupAt < CLEANUP_INTERVAL_MS) {
+                return;
+            }
+            lastCleanupAt = now;
+            cleanupNow(now);
+        }
+    }
+
+    private static void cleanupNow(long now) {
         cleanupReservations(now);
 
         // Remove stale servers
@@ -447,7 +466,7 @@ public class OrchestratorCache {
 
         for (GameWithServer gameWithServer : gamesByGameId.values()) {
             GameObject game = gameWithServer.game();
-            if (game.getType() == type) {
+            if (type == null || game.getType() == type) {
                 if (gameTypeName == null || gameTypeName.equals(game.getGameTypeName())) {
                     if (mapName == null || mapName.equals(game.getMap())) {
                         playerCount += game.getInvolvedPlayers().size();
@@ -458,6 +477,13 @@ public class OrchestratorCache {
         }
 
         return new GameCountStats(playerCount, gameCount);
+    }
+
+    public static void clear() {
+        serversByShortName.clear();
+        gamesByGameId.clear();
+        reservationsByGameId.clear();
+        lastCleanupAt = 0L;
     }
 
     public record GameCountStats(int playerCount, int gameCount) {

@@ -8,6 +8,8 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 import com.deyo.hypixel.commons.friend.FriendData;
 import com.deyo.hypixel.commons.friend.PendingFriendRequest;
@@ -50,16 +52,11 @@ public record FriendDatabase(String playerId) implements MongoDB {
         String serialized = data.getSerializer().serialize(data);
         String id = data.getPlayerUuid().toString();
 
-        Document query = new Document("_id", id);
-        Document existing = friendDataCollection.find(query).first();
-
-        if (existing != null) {
-            friendDataCollection.updateOne(query, Updates.set("data", serialized));
-        } else {
-            Document newDoc = new Document("_id", id);
-            newDoc.append("data", serialized);
-            friendDataCollection.insertOne(newDoc);
-        }
+        friendDataCollection.updateOne(
+                new Document("_id", id),
+                Updates.set("data", serialized),
+                new UpdateOptions().upsert(true)
+        );
     }
 
     public List<PendingFriendRequest> getPendingRequestsFor(UUID playerUuid) {
@@ -100,7 +97,11 @@ public record FriendDatabase(String playerId) implements MongoDB {
         doc.append("from", request.getFrom().toString());
         doc.append("to", request.getTo().toString());
         doc.append("data", serialized);
-        pendingRequestsCollection.insertOne(doc);
+        pendingRequestsCollection.replaceOne(
+                Filters.eq("_id", id),
+                doc,
+                new ReplaceOptions().upsert(true)
+        );
     }
 
     public void removePendingRequest(UUID from, UUID to) {
@@ -139,27 +140,16 @@ public record FriendDatabase(String playerId) implements MongoDB {
 
     @Override
     public void insertOrUpdate(@NonNull String key, Object value) {
-        if (exists()) {
-            Document query = new Document("_id", playerId);
-            Document found = friendDataCollection.find(query).first();
-            assert found != null;
-            friendDataCollection.updateOne(found, Updates.set(key, value));
-            return;
-        }
-        Document newDoc = new Document("_id", playerId);
-        newDoc.append(key, value);
-        friendDataCollection.insertOne(newDoc);
+        friendDataCollection.updateOne(
+                new Document("_id", playerId),
+                Updates.set(key, value),
+                new UpdateOptions().upsert(true)
+        );
     }
 
     @Override
     public boolean remove(@NonNull String id) {
-        Document query = new Document("_id", id);
-        Document found = friendDataCollection.find(query).first();
-        if (found == null) {
-            return false;
-        }
-        friendDataCollection.deleteOne(query);
-        return true;
+        return friendDataCollection.deleteOne(new Document("_id", id)).getDeletedCount() > 0;
     }
 
     public boolean exists() {
