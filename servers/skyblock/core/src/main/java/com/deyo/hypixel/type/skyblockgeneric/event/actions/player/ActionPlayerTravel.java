@@ -27,6 +27,17 @@ import java.util.UUID;
 public class ActionPlayerTravel implements HypixelEventClass {
     public static List<UUID> delay = new ArrayList<>();
 
+    public static boolean canEnterDungeonHub(SkyBlockPlayer player) {
+        MissionData data = player.getMissionData();
+        return canEnterDungeonHub(
+                MissionSet.GETTING_STARTED.hasCompleted(player),
+                data.isCurrentlyActive(MissionUseTeleporter.class));
+    }
+
+    static boolean canEnterDungeonHub(boolean completedStartingMissions, boolean teleporterMissionActive) {
+        return completedStartingMissions || teleporterMissionActive;
+    }
+
     @PhasedEvent(node = EventNodes.PLAYER, requireDataLoaded = true, phase = EventPhase.GAMEPLAY)
     public void run(PlayerMoveEvent event) {
         final SkyBlockPlayer player = (SkyBlockPlayer) event.getPlayer();
@@ -40,11 +51,7 @@ public class ActionPlayerTravel implements HypixelEventClass {
 
         Key block = player.getInstance().getBlock(player.getPosition()).key();
         if (block == Block.NETHER_PORTAL.key()) {
-            MissionData data = player.getMissionData();
-
-            if (!MissionSet.GETTING_STARTED.hasCompleted(player)
-                    && !data.isCurrentlyActive(MissionUseTeleporter.class)
-            ) {
+            if (!canEnterDungeonHub(player)) {
                 player.sendMessage("<c>You must complete your starting missions!");
                 return;
             }

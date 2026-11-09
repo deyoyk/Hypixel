@@ -3,10 +3,13 @@ package com.deyo.hypixel.type.hub.npcs;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.minestom.server.coordinate.Pos;
+import com.deyo.hypixel.commons.ServerType;
 import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
 import com.deyo.hypixel.type.generic.entity.npc.configuration.HumanConfiguration;
 import com.deyo.hypixel.type.generic.event.custom.NPCInteractEvent;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.skyblockgeneric.event.actions.player.ActionPlayerTravel;
+import com.deyo.hypixel.type.skyblockgeneric.user.SkyBlockPlayer;
 
 public class NPCMort extends HypixelNPC {
 
@@ -41,7 +44,12 @@ public class NPCMort extends HypixelNPC {
 
     @Override
     public void onClick(NPCInteractEvent e) {
-        e.player().notImplemented();
+        SkyBlockPlayer player = (SkyBlockPlayer) e.player();
+        if (!ActionPlayerTravel.canEnterDungeonHub(player)) {
+            player.sendMessage("<c>You must complete your starting missions!");
+            return;
+        }
+        player.sendTo(ServerType.SKYBLOCK_DUNGEON_HUB);
     }
 
 }
