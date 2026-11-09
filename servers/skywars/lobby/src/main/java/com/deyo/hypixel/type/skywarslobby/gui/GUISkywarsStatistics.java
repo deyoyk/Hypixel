@@ -7,6 +7,7 @@ import net.minestom.server.item.Material;
 import com.deyo.hypixel.commons.skywars.SkywarsLeaderboardMode;
 import com.deyo.hypixel.commons.skywars.SkywarsLeaderboardPeriod;
 import com.deyo.hypixel.commons.skywars.SkywarsModeStats;
+import com.deyo.hypixel.type.generic.data.datapoints.DatapointSkywarsKitStats;
 import com.deyo.hypixel.type.generic.data.datapoints.DatapointSkywarsModeStats;
 import com.deyo.hypixel.type.generic.data.handlers.SkywarsDataHandler;
 import com.deyo.hypixel.type.generic.gui.inventory.HypixelInventoryGUI;
@@ -14,6 +15,8 @@ import com.deyo.hypixel.type.generic.gui.inventory.ItemStacks;
 import com.deyo.hypixel.type.generic.gui.inventory.item.GUIClickableItem;
 import com.deyo.hypixel.type.generic.gui.inventory.item.GUIItem;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+
+import java.util.Map;
 
 public class GUISkywarsStatistics extends HypixelInventoryGUI {
 
@@ -32,6 +35,11 @@ public class GUISkywarsStatistics extends HypixelInventoryGUI {
         } else {
             stats = SkywarsModeStats.empty();
         }
+
+        ChallengeStats challenges = handler == null
+                ? ChallengeStats.EMPTY
+                : challengeStats(handler.get(SkywarsDataHandler.Data.KIT_STATS,
+                        DatapointSkywarsKitStats.class).getValue().getKitStats());
 
         set(new GUIItem(4) {
             @Override
@@ -239,24 +247,19 @@ public class GUISkywarsStatistics extends HypixelInventoryGUI {
             public ItemStack.Builder getItem(HypixelPlayer player) {
                 return ItemStacks.item(Material.BLAZE_POWDER, 1, """
                         <a>SkyWars Challenge Statistics
-                        <7>Total Challenge Wins: <a>0
+                        <7>Total Challenge Wins: <a>{}
 
-                        <7>Archer Wins: <a>0
-                        <7>Half Health Wins: <a>0
-                        <7>No Block Wins: <a>0
-                        <7>No Chest Wins: <a>0
-                        <7>Paper Wins: <a>0
-                        <7>Rookie Wins: <a>0
-                        <7>UHC Wins: <a>0
-                        <7>Ultimate Warrior Wins: <a>0
-
-                        <7>Wins with 2 Challenges: <a>0
-                        <7>Wins with 3 Challenges: <a>0
-                        <7>Wins with 4 Challenges: <a>0
-                        <7>Wins with 5 Challenges: <a>0
-                        <7>Wins with 6 Challenges: <a>0
-                        <7>Wins with 7 Challenges: <a>0
-                        <7>Wins with 8 Challenges: <a>0""");
+                        <7>Archer Wins: <a>{}
+                        <7>Half Health Wins: <a>{}
+                        <7>No Block Wins: <a>{}
+                        <7>No Chest Wins: <a>{}
+                        <7>Paper Wins: <a>{}
+                        <7>Rookie Wins: <a>{}
+                        <7>UHC Wins: <a>{}
+                        <7>Ultimate Warrior Wins: <a>{}""",
+                        challenges.total(), challenges.archer(), challenges.halfHealth(),
+                        challenges.noBlock(), challenges.noChest(), challenges.paper(),
+                        challenges.rookie(), challenges.uhc(), challenges.ultimateWarrior());
             }
         });
 
@@ -275,6 +278,39 @@ public class GUISkywarsStatistics extends HypixelInventoryGUI {
 
         set(GUIClickableItem.getCloseItem(49));
         updateItemStacks(getInventory(), getPlayer());
+    }
+
+    static ChallengeStats challengeStats(Map<String, DatapointSkywarsKitStats.KitStatistics> stats) {
+        int archer = 0;
+        int halfHealth = 0;
+        int noBlock = 0;
+        int noChest = 0;
+        int paper = 0;
+        int rookie = 0;
+        int uhc = 0;
+        int ultimateWarrior = 0;
+
+        for (DatapointSkywarsKitStats.KitStatistics entry : stats.values()) {
+            archer += entry.getArcherWins();
+            halfHealth += entry.getHalfHealthWins();
+            noBlock += entry.getNoBlockWins();
+            noChest += entry.getNoChestWins();
+            paper += entry.getPaperWins();
+            rookie += entry.getRookieWins();
+            uhc += entry.getUhcWins();
+            ultimateWarrior += entry.getUltimateWarriorWins();
+        }
+
+        return new ChallengeStats(archer, halfHealth, noBlock, noChest, paper, rookie, uhc, ultimateWarrior);
+    }
+
+    record ChallengeStats(int archer, int halfHealth, int noBlock, int noChest,
+                          int paper, int rookie, int uhc, int ultimateWarrior) {
+        static final ChallengeStats EMPTY = new ChallengeStats(0, 0, 0, 0, 0, 0, 0, 0);
+
+        int total() {
+            return archer + halfHealth + noBlock + noChest + paper + rookie + uhc + ultimateWarrior;
+        }
     }
 
     @Override
