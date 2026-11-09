@@ -89,26 +89,15 @@ public class SkyBlockScoreboard {
                     location.line(" {}", Text.key("scoreboard.skyblock.region_unknown"));
                 }
 
-                // TODO: make classes / a manager for regions to display scoreboard information.
-                boolean electionRoom = region != null && region.getType() == RegionType.ELECTION_ROOM;
-                TextBody.Section election = body.section("election").when(() -> electionRoom);
-                if (electionRoom) {
-                    election.line(BLANK);
-                    election.line(Text.key("scoreboard.skyblock.election_votes_title",
-                        calendarYear));
-                    candidates.forEach(candidate -> {
-                        long votes = totalVotes.getOrDefault(candidate.getMayorName(), 0L);
-                        int barLength = maxVotes > 0 ? (int) Math.round((votes * 15.0) / maxVotes) : 0;
-                        Text bars = Text.of("<color:{0}>{1}", candidate.getColor(), "|".repeat(barLength))
-                            .append("<f>{}", "|".repeat(15 - barLength));
-                        election.line(Text.key("scoreboard.skyblock.election_candidate_line",
-                            bars,
-                            candidate.getColoredName()));
-                    });
+                RegionScoreboardManager.RegionScoreboard regionScoreboard = RegionScoreboardManager.get(type);
+                if (regionScoreboard != null) {
+                    regionScoreboard.renderer().accept(new RegionScoreboardManager.Context(
+                            body, calendarYear, candidates, totalVotes, maxVotes));
                 }
+                boolean defaultSections = regionScoreboard == null || !regionScoreboard.hidesDefaultSections();
 
-                TextBody.Section purse = body.section("purse").when(() -> !electionRoom);
-                if (!electionRoom) {
+                TextBody.Section purse = body.section("purse").when(() -> defaultSections);
+                if (defaultSections) {
                     purse.line(BLANK);
                     purse.line(Text.key("scoreboard.skyblock.purse_line",
                         StringUtility.commaify(dataHandler.get(SkyBlockDataHandler.Data.COINS, DatapointDouble.class).getValue())));
@@ -123,7 +112,7 @@ public class SkyBlockScoreboard {
                 }
 
                 DarkAuctionHandler.DarkAuctionLocalState currentAuctionState = DarkAuctionHandler.getLocalState();
-                boolean darkAuction = !electionRoom
+                boolean darkAuction = defaultSections
                     && currentAuctionState != null
                     && DarkAuctionHandler.isPlayerInAuction(player.getUuid())
                     && currentAuctionState.getPhase() == DarkAuctionPhase.BIDDING;
@@ -148,7 +137,7 @@ public class SkyBlockScoreboard {
                 List<MissionData.ActiveMission> activeMissions = region != null
                     ? missionData.getActiveMissions(region.getType())
                     : List.of();
-                boolean objective = !electionRoom && !darkAuction && !activeMissions.isEmpty();
+                boolean objective = defaultSections && !darkAuction && !activeMissions.isEmpty();
                 TextBody.Section objectives = body.section("objective").when(() -> objective);
                 if (objective) {
                     objectives.line(BLANK);
