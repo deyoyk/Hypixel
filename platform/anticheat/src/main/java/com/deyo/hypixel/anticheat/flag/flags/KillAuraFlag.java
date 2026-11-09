@@ -6,10 +6,15 @@ import com.deyo.hypixel.anticheat.flag.Flag;
 import com.deyo.hypixel.anticheat.math.Pos;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class KillAuraFlag extends Flag {
     // Track attack patterns per player
-    private static final Map<UUID, AttackData> attackData = new HashMap<>();
+    private static final Map<UUID, AttackData> attackData = new ConcurrentHashMap<>();
+
+    public static void clearPlayer(UUID uuid) {
+        attackData.remove(uuid);
+    }
 
     private static class AttackData {
         List<AttackInfo> attacks = new ArrayList<>();

@@ -40,6 +40,7 @@ public class DeyoPlayer {
     public DeyoPlayer(UUID uuid) {
         this.uuid = uuid;
         this.flagManager = new FlagManager(uuid, new HashMap<>());
+        this.lastPingResponse = System.currentTimeMillis();
 
         players.put(uuid, this);
     }
@@ -82,7 +83,14 @@ public class DeyoPlayer {
     }
 
     public int ticksSinceLastPingResponse() {
-        return (int) (System.currentTimeMillis() - lastPingResponse) / 1000;
+        return ticksSince(lastPingResponse, System.currentTimeMillis(),
+                DeyoAnticheat.getValues().getTickLength());
+    }
+
+    static int ticksSince(long lastResponse, long now, int tickLength) {
+        if (tickLength <= 0) tickLength = 50;
+        long elapsed = Math.max(0, now - lastResponse);
+        return (int) (elapsed / tickLength);
     }
 
     public void sendPingRequest() {

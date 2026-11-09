@@ -17,7 +17,7 @@ public class FlagManager {
         this.flags = flags;
     }
 
-    public void addFlag(FlagType flagType, double certainty) {
+    public synchronized void addFlag(FlagType flagType, double certainty) {
         Flag flag = flagType.getFlagSupplier().get();
         flag.setCertainty(certainty);
 

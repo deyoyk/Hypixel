@@ -10,10 +10,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class AimFlag extends Flag {
     // Track rotation changes per player
-    private static final Map<UUID, RotationData> rotationData = new HashMap<>();
+    private static final Map<UUID, RotationData> rotationData = new ConcurrentHashMap<>();
+
+    public static void clearPlayer(UUID uuid) {
+        rotationData.remove(uuid);
+    }
 
     private static class RotationData {
         List<Float> yawChanges = new ArrayList<>();

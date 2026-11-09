@@ -11,35 +11,21 @@ public class PlayerWorld {
 
     private final ExecutorService executorService;
     private final ReentrantLock lock;
-    private final BlockingQueue<Runnable> taskQueue;
 
     public PlayerWorld() {
         this.chunks = new HashMap<>();
         this.executorService = Executors.newSingleThreadExecutor();
         this.lock = new ReentrantLock();
-        this.taskQueue = new LinkedBlockingQueue<>();
-
-        executorService.submit(this::processTaskQueue);
-    }
-
-    private void processTaskQueue() {
-        while (!Thread.currentThread().isInterrupted()) {
-            try {
-                Runnable task = taskQueue.take();
-                task.run();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
     }
 
     public CompletableFuture<Void> updateBlock(int x, int y, int z, Block block) {
         return CompletableFuture.runAsync(() -> {
             lock.lock();
             try {
-                ChunkCoordinate chunkCoord = new ChunkCoordinate(x / CHUNK_SIZE, z / CHUNK_SIZE);
+                ChunkCoordinate chunkCoord = new ChunkCoordinate(
+                        Math.floorDiv(x, CHUNK_SIZE), Math.floorDiv(z, CHUNK_SIZE));
                 Chunk chunk = chunks.computeIfAbsent(chunkCoord, k -> new Chunk());
-                chunk.setBlock(x % CHUNK_SIZE, y, z % CHUNK_SIZE, block);
+                chunk.setBlock(Math.floorMod(x, CHUNK_SIZE), y, Math.floorMod(z, CHUNK_SIZE), block);
             } finally {
                 lock.unlock();
             }
@@ -47,19 +33,26 @@ public class PlayerWorld {
     }
 
     public CompletableFuture<Block> getBlock(int x, int y, int z) {
-        return CompletableFuture.supplyAsync(() -> {
-            lock.lock();
-            try {
-                ChunkCoordinate chunkCoord = new ChunkCoordinate(x / CHUNK_SIZE, z / CHUNK_SIZE);
-                Chunk chunk = chunks.get(chunkCoord);
-                if (chunk == null) {
-                    return null;
-                }
-                return chunk.getBlock(x % CHUNK_SIZE, y, z % CHUNK_SIZE);
-            } finally {
-                lock.unlock();
+        return CompletableFuture.supplyAsync(() -> getBlockNow(x, y, z), executorService);
+    }
+
+    /**
+     * Reads a block from the current snapshot without waiting on the executor.
+     * Used by movement checks that already run on the server tick thread.
+     */
+    public Block getBlockNow(int x, int y, int z) {
+        lock.lock();
+        try {
+            ChunkCoordinate chunkCoord = new ChunkCoordinate(
+                    Math.floorDiv(x, CHUNK_SIZE), Math.floorDiv(z, CHUNK_SIZE));
+            Chunk chunk = chunks.get(chunkCoord);
+            if (chunk == null) {
+                return null;
             }
-        }, executorService);
+            return chunk.getBlock(Math.floorMod(x, CHUNK_SIZE), y, Math.floorMod(z, CHUNK_SIZE));
+        } finally {
+            lock.unlock();
+        }
     }
 
     public void shutdown() {

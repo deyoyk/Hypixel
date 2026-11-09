@@ -63,9 +63,9 @@ public class FlightFlag extends Flag {
         }
     }
 
-    private int countAirTicks(java.util.List<PlayerTickInformation> ticks) {
+    static int countAirTicks(java.util.List<PlayerTickInformation> ticks) {
         int count = 0;
-        for (int i = ticks.size() - 1; i >= 0 && i >= ticks.size() - 10; i--) {
+        for (int i = ticks.size() - 1; i >= 0; i--) {
             if (!ticks.get(i).isOnGround()) {
                 count++;
             } else {
@@ -75,7 +75,7 @@ public class FlightFlag extends Flag {
         return count;
     }
 
-    private double calculateAverageYVelocity(java.util.List<PlayerTickInformation> ticks, int count) {
+    static double calculateAverageYVelocity(java.util.List<PlayerTickInformation> ticks, int count) {
         if (ticks.isEmpty()) return 0;
         double sum = 0;
         int actualCount = 0;

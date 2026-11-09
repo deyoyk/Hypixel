@@ -5,10 +5,15 @@ import com.deyo.hypixel.anticheat.event.events.PlayerAttackEvent;
 import com.deyo.hypixel.anticheat.flag.Flag;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class AutoClickerFlag extends Flag {
     // Track click timings per player
-    private static final Map<UUID, ClickData> clickData = new HashMap<>();
+    private static final Map<UUID, ClickData> clickData = new ConcurrentHashMap<>();
+
+    public static void clearPlayer(UUID uuid) {
+        clickData.remove(uuid);
+    }
 
     private static class ClickData {
         List<Long> clickTimes = new ArrayList<>();

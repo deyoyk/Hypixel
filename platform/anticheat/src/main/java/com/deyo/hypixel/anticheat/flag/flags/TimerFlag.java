@@ -6,14 +6,21 @@ import com.deyo.hypixel.anticheat.event.ListenerMethod;
 import com.deyo.hypixel.anticheat.event.events.PlayerPositionUpdateEvent;
 import com.deyo.hypixel.anticheat.flag.Flag;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TimerFlag extends Flag {
     // Track last packet times per player
-    private static final Map<UUID, Long> lastPacketTimes = new HashMap<>();
-    private static final Map<UUID, Integer> packetCounts = new HashMap<>();
+    private static final Map<UUID, Long> lastPacketTimes = new ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> packetCounts = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> intervalTotals = new ConcurrentHashMap<>();
+
+    public static void clearPlayer(UUID uuid) {
+        lastPacketTimes.remove(uuid);
+        packetCounts.remove(uuid);
+        intervalTotals.remove(uuid);
+    }
 
     // Normal tick length is 50ms
     private static final long EXPECTED_TICK_MS = 50;
@@ -26,19 +33,16 @@ public class TimerFlag extends Flag {
         UUID uuid = player.getUuid();
         long currentTime = System.currentTimeMillis();
 
-        if (!lastPacketTimes.containsKey(uuid)) {
-            lastPacketTimes.put(uuid, currentTime);
+        Long lastTime = lastPacketTimes.put(uuid, currentTime);
+        if (lastTime == null) {
             packetCounts.put(uuid, 0);
+            intervalTotals.put(uuid, 0L);
             return;
         }
 
-        long lastTime = lastPacketTimes.get(uuid);
         long timeDiff = currentTime - lastTime;
-
-        // Update tracking
-        lastPacketTimes.put(uuid, currentTime);
-        int count = packetCounts.getOrDefault(uuid, 0) + 1;
-        packetCounts.put(uuid, count);
+        long totalTime = intervalTotals.merge(uuid, timeDiff, Long::sum);
+        int count = packetCounts.merge(uuid, 1, Integer::sum);
 
         // Only check after we have enough samples
         if (count < SAMPLE_SIZE) {
@@ -49,8 +53,7 @@ public class TimerFlag extends Flag {
         java.util.List<PlayerTickInformation> ticks = player.getLastTicks();
         if (ticks.size() < 5) return;
 
-        // Check if packets are coming too fast
-        double tickRatio = (double) timeDiff / EXPECTED_TICK_MS;
+        double tickRatio = averageInterval(totalTime, count) / EXPECTED_TICK_MS;
 
         if (tickRatio < MIN_TICK_RATIO) {
             // Player is sending packets faster than normal game speed
@@ -64,9 +67,16 @@ public class TimerFlag extends Flag {
             player.flag(com.deyo.hypixel.anticheat.flag.FlagType.TIMER, certainty);
         }
 
-        // Reset counter periodically
-        if (count >= SAMPLE_SIZE * 2) {
-            packetCounts.put(uuid, 0);
-        }
+        // Start a fresh sample window after each measurement.
+        packetCounts.put(uuid, 0);
+        intervalTotals.put(uuid, 0L);
+    }
+
+    static double averageInterval(long totalMs, int samples) {
+        return samples <= 0 ? 0 : (double) totalMs / samples;
+    }
+
+    static boolean isTooFast(double averageIntervalMs) {
+        return averageIntervalMs < EXPECTED_TICK_MS * MIN_TICK_RATIO;
     }
 }

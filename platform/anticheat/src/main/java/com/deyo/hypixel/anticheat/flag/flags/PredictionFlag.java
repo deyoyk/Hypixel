@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Modular prediction-based movement check
@@ -29,7 +30,11 @@ public class PredictionFlag extends Flag {
     private static final LagCompensator lagCompensator = new LagCompensator();
 
     // Track transaction IDs per player
-    private static final Map<UUID, Integer> currentTransactions = new HashMap<>();
+    private static final Map<UUID, Integer> currentTransactions = new ConcurrentHashMap<>();
+
+    public static void clearPlayer(UUID uuid) {
+        currentTransactions.remove(uuid);
+    }
 
     static {
         // Register all velocity modifiers (sorted by priority automatically)

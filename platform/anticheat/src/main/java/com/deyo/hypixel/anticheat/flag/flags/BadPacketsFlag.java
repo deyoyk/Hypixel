@@ -6,13 +6,17 @@ import com.deyo.hypixel.anticheat.event.events.PlayerPositionUpdateEvent;
 import com.deyo.hypixel.anticheat.flag.Flag;
 import com.deyo.hypixel.anticheat.math.Pos;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class BadPacketsFlag extends Flag {
     // Track packet patterns per player
-    private static final Map<UUID, PacketData> packetData = new HashMap<>();
+    private static final Map<UUID, PacketData> packetData = new ConcurrentHashMap<>();
+
+    public static void clearPlayer(UUID uuid) {
+        packetData.remove(uuid);
+    }
 
     private static class PacketData {
         long lastPacketTime = 0;

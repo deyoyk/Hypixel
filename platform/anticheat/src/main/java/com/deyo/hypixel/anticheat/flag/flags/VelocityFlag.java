@@ -7,13 +7,17 @@ import com.deyo.hypixel.anticheat.event.events.PlayerPositionUpdateEvent;
 import com.deyo.hypixel.anticheat.flag.Flag;
 import com.deyo.hypixel.anticheat.math.Vel;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class VelocityFlag extends Flag {
     // Track expected velocity after knockback per player
-    private static final Map<UUID, KnockbackData> expectedKnockback = new HashMap<>();
+    private static final Map<UUID, KnockbackData> expectedKnockback = new ConcurrentHashMap<>();
+
+    public static void clearPlayer(UUID uuid) {
+        expectedKnockback.remove(uuid);
+    }
 
     private static class KnockbackData {
         Vel expectedVelocity;
