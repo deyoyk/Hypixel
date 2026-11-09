@@ -10,6 +10,7 @@ import com.deyo.hypixel.type.generic.data.handlers.SkywarsDataHandler;
 import com.deyo.hypixel.type.generic.gui.inventory.ItemStacks;
 import com.deyo.hypixel.type.generic.gui.v2.*;
 import com.deyo.hypixel.type.generic.gui.v2.context.ViewContext;
+import com.deyo.hypixel.type.generic.utility.WebLinks;
 import com.deyo.hypixel.type.skywarslobby.soulwell.SoulWellUpgrade;
 import com.deyo.hypixel.type.skywarslobby.soulwell.SoulWellUpgradeRegistry;
 
@@ -120,8 +121,9 @@ public class GUISoulWell extends StatelessView {
             String formattedCoins = NumberFormat.getNumberInstance(Locale.US).format(coins);
             return ItemStacks.item(Material.EMERALD, 1, """
                     <7>Total Coins: <6>{}
-                    <6>https://store.hypixel.net""", formattedCoins);
-        });
+
+                    <e>Click to visit the Hypixel Store!""", formattedCoins);
+        }, (_, click) -> WebLinks.sendStoreLink(click.player()));
 
         // Close button (slot 49)
         Components.close(layout, 49);

@@ -10,8 +10,8 @@ import com.deyo.hypixel.type.generic.data.handlers.SkywarsDataHandler;
 import com.deyo.hypixel.type.generic.gui.inventory.HypixelInventoryGUI;
 import com.deyo.hypixel.type.generic.gui.inventory.ItemStacks;
 import com.deyo.hypixel.type.generic.gui.inventory.item.GUIClickableItem;
-import com.deyo.hypixel.type.generic.gui.inventory.item.GUIItem;
 import com.deyo.hypixel.type.generic.user.HypixelPlayer;
+import com.deyo.hypixel.type.generic.utility.WebLinks;
 
 import java.util.List;
 
@@ -222,12 +222,18 @@ public class GUIKitsPerks extends HypixelInventoryGUI {
         });
 
         // Total Coins display (slot 40)
-        set(new GUIItem(40) {
+        set(new GUIClickableItem(40) {
             @Override
             public ItemStack.Builder getItem(HypixelPlayer player) {
                 return ItemStacks.item(Material.EMERALD, 1, """
                         <7>Total Coins: <6>{:,}
-                        <6>https://store.hypixel.net""", coins);
+
+                        <e>Click to visit the Hypixel Store!""", coins);
+            }
+
+            @Override
+            public void run(InventoryPreClickEvent e, HypixelPlayer player) {
+                WebLinks.sendStoreLink(player);
             }
         });
 

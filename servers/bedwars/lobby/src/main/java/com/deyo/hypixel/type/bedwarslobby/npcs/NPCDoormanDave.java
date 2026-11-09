@@ -1,6 +1,7 @@
 package com.deyo.hypixel.type.bedwarslobby.npcs;
 
 import net.minestom.server.coordinate.Pos;
+import com.deyo.hypixel.type.bedwarslobby.gui.cosmetics.GUITheSlumberHotel;
 import com.deyo.hypixel.type.generic.entity.npc.HypixelNPC;
 import com.deyo.hypixel.type.generic.entity.npc.configuration.HumanConfiguration;
 import com.deyo.hypixel.type.generic.event.custom.NPCInteractEvent;
@@ -42,6 +43,6 @@ public class NPCDoormanDave extends HypixelNPC {
 
 	@Override
 	public void onClick(NPCInteractEvent event) {
-		event.player().notImplemented();
+		event.player().openView(new GUITheSlumberHotel());
 	}
 }
