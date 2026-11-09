@@ -31,14 +31,6 @@ public final class MiningHandlers {
     }
 
     /**
-     * Create a hoe mining handler.
-     * @param strength Block hardness for mining time calculation
-     */
-    public static SkyBlockMiningHandler hoe(double strength) {
-        return new HoeMiningHandler(strength);
-    }
-
-    /**
      * Get the instant break handler singleton.
      * Used for blocks that break instantly with any tool.
      */
