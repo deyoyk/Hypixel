@@ -191,7 +191,7 @@ public class GUICommissionMilestones extends HypixelInventoryGUI {
 		if (milestone.isUnlocksExtraSlot()) {
 		}
 		if (milestone.isUnlocksDwarvenMinesScroll()) {
-			// TODO: Give Travel Scroll item
+			player.addAndUpdateItem(ItemType.DWARVEN_MINES_TRAVEL_SCROLL);
 		}
 		if (milestone.isUnlocksRoyalPigeon()) {
 			player.addAndUpdateItem(ItemType.ROYAL_PIGEON);

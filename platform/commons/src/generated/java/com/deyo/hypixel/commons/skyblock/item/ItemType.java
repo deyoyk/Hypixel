@@ -1124,6 +1124,8 @@ public enum ItemType {
 
   DWARF_TURTLE_SHELMET(Material.PLAYER_HEAD, Rarity.EPIC),
 
+  DWARVEN_MINES_TRAVEL_SCROLL(Material.PAPER, Rarity.RARE),
+
   DWARVEN_SACK(Material.PLAYER_HEAD, Rarity.COMMON),
 
   EARTH_SHARD(Material.STONE_SWORD, Rarity.EPIC),

@@ -73,3 +73,10 @@ items:
             result:
               type: HUB_CRYPTS_TRAVEL_SCROLL
               amount: 1
+  - id: DWARVEN_MINES_TRAVEL_SCROLL
+    material: PAPER
+    name: "Travel Scroll to the Dwarven Mines"
+    rarity: RARE
+    components:
+      - id: TRAVEL_SCROLL
+        scroll_type: DWARVEN_MINES

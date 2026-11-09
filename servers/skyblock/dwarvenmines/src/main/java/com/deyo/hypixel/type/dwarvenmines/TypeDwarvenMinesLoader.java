@@ -24,6 +24,7 @@ import com.deyo.hypixel.type.skyblockgeneric.SkyBlockGenericLoader;
 import com.deyo.hypixel.type.skyblockgeneric.entity.TextDisplayEntity;
 import com.deyo.hypixel.type.skyblockgeneric.tabmodules.AccountInformationModule;
 import com.deyo.hypixel.type.skyblockgeneric.tabmodules.SkyBlockPlayersOnlineModule;
+import com.deyo.hypixel.type.skyblockgeneric.warps.TravelScrollType;
 import org.jetbrains.annotations.Nullable;
 import org.tinylog.Logger;
 
@@ -60,7 +61,7 @@ public class TypeDwarvenMinesLoader implements SkyBlockTypeLoader {
 	@Override
 	public LoaderValues getLoaderValues() {
 		return new LoaderValues(
-				(_) -> new Pos(-48.5, 200, -121.5, -90, 0),
+				(_) -> TravelScrollType.DWARVEN_MINES.getLocation(),
 				true
 		);
 	}

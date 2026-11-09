@@ -42,6 +42,12 @@ public enum TravelScrollType {
             "a221f813dacee0fef8c59f76894dbb26415478d9ddfc44c2e708a6d3b7549b",
             new ScrollUnlockCustomRecipe("Unlock this scroll's recipe through Foraging Skill Rewards."),
             new Pos(200, 70, 200, 0, 0),
+            Rank.DEFAULT),
+    DWARVEN_MINES("dwarven", "<b>Dwarven Mines <7>- <b>Spawn",
+            "Spawn at the entrance to the <b>Dwarven Mines<7>.",
+            "f4559d75464b2e40a518e4de8e6cf3085f0a3ca0b1b7012614c4cd96fed60378",
+            new ScrollUnlockCustomRecipe("Unlock this scroll through Commission Milestones."),
+            new Pos(-48.5, 200, -121.5, -90, 0),
             Rank.DEFAULT)
     ;
 

@@ -30,6 +30,10 @@ public enum TravelScrollIslands {
 			(unused) -> "An island that gets progressively deeper and contains 6 layers of dangerous mobs and new resources.", ServerType.SKYBLOCK_DWARVEN_MINES, SkillCategories.MINING, 2)
 	;
 
+	static {
+		DWARVEN_MINES.associatedScrolls.add(TravelScrollType.DWARVEN_MINES);
+	}
+
     private final String internalName;
     @Getter(AccessLevel.NONE)
     private final String descriptiveName;
